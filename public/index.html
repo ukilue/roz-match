@@ -1,1 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RO 糾團佈告欄</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#141C2E;          /* 深夜普隆德拉 */
+  --night-2:#1D2941;
+  --parchment:#F6EDD6;      /* 佈告欄紙張 */
+  --parchment-dim:#EADDBE;
+  --ink:#3A2E1E;
+  --wood:#8A6F3F;
+  --wood-dark:#5C4A28;
+  --ro-blue:#4A6FA5;        /* 經典 RO 視窗藍 */
+  --ro-blue-dark:#33507E;
+  --gold:#D9A441;
+  --green:#2F9E4F;
+  --green-dark:#1F7A3A;
+  --red:#C0452F;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans TC',sans-serif;color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 70% -10%, #2A3A5C 0%, transparent 60%),
+    radial-gradient(2px 2px at 20% 30%, #6C7FA6 50%, transparent 51%),
+    radial-gradient(2px 2px at 80% 60%, #56688F 50%, transparent 51%),
+    radial-gradient(2px 2px at 40% 80%, #56688F 50%, transparent 51%),
+    var(--night);
+  min-height:100vh;
+}
+/* ── 頁首 ─────────────────────────── */
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 20px;flex-wrap:wrap;
+  background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);
+  border-bottom:3px solid var(--gold);
+  position:sticky;top:0;z-index:20;
+}
+.logo{display:flex;align-items:baseline;gap:10px;color:#fff;cursor:pointer}
+.logo .px{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--gold);text-shadow:2px 2px 0 #00000055}
+.logo .zh{font-weight:900;font-size:19px;letter-spacing:2px}
+nav{display:flex;gap:8px}
+.nav-btn{
+  font-family:inherit;font-weight:700;font-size:14px;letter-spacing:1px;
+  color:#fff;background:#ffffff1f;border:1px solid #ffffff55;border-radius:4px;
+  padding:8px 14px;cursor:pointer;transition:background .15s;
+}
+.nav-btn:hover{background:#ffffff38}
+.nav-btn.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
+main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
+.view{display:none}
+.view.show{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+/* ── RO 風格視窗面板 ───────────────── */
+.panel{
+  background:var(--parchment);border:2px solid var(--wood);border-radius:8px;
+  box-shadow:0 8px 24px #00000066, inset 0 0 0 1px #ffffff88;
+  overflow:hidden;margin-bottom:22px;
+}
+.panel-title{
+  background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));
+  color:#fff;font-weight:700;letter-spacing:2px;font-size:15px;
+  padding:9px 14px;display:flex;justify-content:space-between;align-items:center;
+}
+.panel-title small{font-weight:400;opacity:.85;letter-spacing:0}
+.panel-body{padding:18px 18px 20px}
+.hint{font-size:13px;color:#7A6845;margin-top:4px}
+
+/* ── 表單 ─────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+label{display:block;font-weight:700;font-size:14px;margin-bottom:5px;letter-spacing:1px}
+input,select{
+  width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+  background:#FFFDF6;border:1.5px solid var(--wood);border-radius:4px;
+  padding:9px 10px;outline:none;
+}
+input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA533}
+.time-row{display:flex;align-items:center;gap:8px}
+.time-row select{width:auto;flex:1}
+.btn{
+  font-family:inherit;font-weight:900;font-size:16px;letter-spacing:3px;cursor:pointer;
+  border:2px solid var(--wood-dark);border-radius:6px;padding:12px 18px;width:100%;
+  background:linear-gradient(180deg,var(--gold),#B9852E);color:#fff;
+  text-shadow:1px 1px 0 #00000044;box-shadow:0 3px 0 var(--wood-dark);
+  transition:transform .08s, box-shadow .08s;
+}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--wood-dark)}
+.btn.blue{background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));border-color:#22375B;box-shadow:0 3px 0 #22375B}
+.btn.red{background:linear-gradient(180deg,#D45A44,#A83A26);border-color:#6E2314;box-shadow:0 3px 0 #6E2314}
+.btn.small{width:auto;font-size:14px;padding:9px 16px;letter-spacing:2px}
+
+/* ── 佈告卡片（簽名元素）────────────── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.card{
+  position:relative;background:var(--parchment);border:3px solid #2B2B2B;border-radius:6px;
+  padding:34px 16px 14px;cursor:pointer;box-shadow:0 6px 16px #00000059;
+  transition:transform .12s;
+}
+.card:hover{transform:translateY(-3px) rotate(-.4deg)}
+.card::before{ /* 圖釘 */
+  content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  width:14px;height:14px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ff9c8a,var(--red) 70%);
+  box-shadow:0 2px 3px #00000066;
+}
+.card.ok{border-color:var(--green)}
+.pnum{
+  position:absolute;top:9px;left:11px;
+  font-family:'Press Start 2P',monospace;font-size:15px;font-weight:900;
+  color:var(--wood-dark);letter-spacing:1px;text-shadow:1px 1px 0 #ffffffaa;
+}
+.almost{color:var(--ro-blue);font-weight:900;letter-spacing:1px}
+.count-bar i.full{background:linear-gradient(90deg,#D45A44,var(--red))}
+.card .act{font-weight:900;font-size:16px;letter-spacing:1px;margin-bottom:6px}
+.card .row{font-size:14px;margin:3px 0;display:flex;gap:6px;align-items:center}
+.card .row b{min-width:60px;display:inline-block;color:#6b5a3a;font-size:12.5px;letter-spacing:1px}
+.stamp{
+  position:absolute;top:8px;right:8px;transform:rotate(8deg);
+  border:2.5px solid;border-radius:4px;padding:2px 7px;
+  font-weight:900;font-size:13px;letter-spacing:2px;opacity:.95;
+}
+.stamp.ok{color:var(--green-dark);border-color:var(--green-dark);background:#2F9E4F1a}
+.stamp.wait{color:#555;border-color:#777;background:#00000008}
+.stamp.live{color:var(--red);border-color:var(--red);background:#C0452F14}
+.count-bar{height:8px;background:#00000015;border-radius:99px;margin-top:8px;overflow:hidden}
+.count-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:99px}
+.empty{
+  text-align:center;color:var(--parchment-dim);padding:46px 10px;font-size:15px;letter-spacing:2px;
+  border:2px dashed #ffffff33;border-radius:8px;
+}
+
+/* ── 明細彈窗 ─────────────────────── */
+.overlay{position:fixed;inset:0;background:#000000A8;display:none;z-index:50;padding:20px;overflow:auto}
+.overlay.show{display:flex;align-items:flex-start;justify-content:center}
+.modal{width:100%;max-width:520px;margin:4vh auto}
+.modal.wide{max-width:820px}
+.detail-flex{display:flex;gap:16px;flex-wrap:wrap;align-items:stretch}
+.detail-main{flex:1 1 320px;min-width:280px}
+.chat-box{flex:1 1 260px;min-width:250px;display:flex;flex-direction:column;border:2px solid var(--wood);border-radius:6px;background:#FFFDF6;max-height:440px;min-height:280px}
+.chat-head{background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));color:#fff;font-weight:700;font-size:13.5px;letter-spacing:2px;padding:7px 10px;border-radius:4px 4px 0 0}
+.chat-msgs{flex:1;overflow-y:auto;padding:10px;font-size:13.5px;line-height:1.55}
+.chat-msg{margin-bottom:8px;word-break:break-word}
+.chat-msg .who{font-weight:700;color:var(--ro-blue-dark)}
+.chat-msg .t{color:#9a8c6c;font-size:11px;margin-left:5px}
+.chat-input{display:flex;gap:6px;padding:8px;border-top:1.5px dashed #8a6f3f66}
+.chat-input input{flex:1;font-size:14px;padding:7px 9px}
+.chat-input button{
+  font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px;
+  background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));color:#fff;
+  border:1px solid #22375B;border-radius:4px;padding:0 14px;
+}
+.close-x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1}
+.member-list{list-style:none;margin-top:8px}
+.member-list li{
+  display:flex;justify-content:space-between;gap:8px;font-size:14.5px;
+  padding:7px 10px;border-bottom:1px dashed #8a6f3f66;
+}
+.member-list li .lead{color:var(--red);font-weight:900}
+.notice{
+  margin-top:14px;border-radius:6px;padding:12px;font-size:14px;line-height:1.7;
+}
+.notice.leader{background:#C0452F14;border:1.5px solid var(--red);color:#7d2416}
+.notice.member{background:#4A6FA51a;border:1.5px solid var(--ro-blue);color:#2b4368}
+.notice code{background:#00000012;padding:1px 6px;border-radius:3px;font-weight:700}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--wood-dark);color:#fff;padding:11px 22px;border-radius:6px;border:1px solid var(--gold);
+  font-size:14.5px;letter-spacing:1px;opacity:0;pointer-events:none;transition:all .25s;z-index:99;
+}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.mode-tag{font-size:11px;color:#ffffffaa;letter-spacing:1px}
+@media (max-width:560px){
+  .form-grid{grid-template-columns:1fr}
+  .logo .zh{font-size:16px}
+  nav{width:100%;justify-content:flex-end}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" onclick="showView('home')">
+    <span class="px">RO</span><span class="zh">糾團佈告欄</span>
+  </div>
+  <nav>
+    <button class="nav-btn" id="nav-home" onclick="showView('home')">登記糾團</button>
+    <button class="nav-btn" id="nav-mine" onclick="showView('mine')">我的糾團</button>
+    <button class="nav-btn" id="nav-all"  onclick="showView('all')">所有糾團</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ═══ 登記 ═══ -->
+  <section class="view" id="view-home">
+    <div class="panel">
+      <div class="panel-title">冒險者登記卡 <small id="mode-tag" class="mode-tag"></small></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div><label>角色 ID</label><input id="f-id" maxlength="24" placeholder="例：波利獵人小明"></div>
+          <div><label>角色等級</label><input id="f-lv" type="number" min="1" max="110" placeholder="1～110"></div>
+          <div><label>角色職業</label><input id="f-job" maxlength="20" placeholder="例：十字刺客"></div>
+          <div>
+            <label>要做的事情</label>
+            <select id="f-act" onchange="toggleBento()">
+              <option value="90級每日">90級每日</option>
+              <option value="100級朱諾毀葛每日">100級朱諾毀葛每日</option>
+              <option value="105級朱諾毀葛每日">105級朱諾毀葛每日</option>
+              <option value="副本4困1普">副本4困1普</option>
+              <option value="副本3困2普">副本3困2普</option>
+            </select>
+            <div id="f-bento-wrap" style="display:none;margin-top:8px">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer">
+                <input type="checkbox" id="f-bento" style="width:auto;transform:scale(1.3)"> 我是便當（由打手帶飛）
+              </label>
+            </div>
+          </div>
+          <div class="full">
+            <label>今天可以開始的時間區間（24 小時制）</label>
+            <div class="time-row">
+              <select id="f-start"></select><span>～</span><select id="f-end"></select>
+            </div>
+            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團。</p>
+          </div>
+          <div class="full"><button class="btn" onclick="submitReg()">送出登記</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">佈告欄規則</div>
+      <div class="panel-body" style="font-size:14px;line-height:2">
+        同一時段、同一目標滿 <b>3 人</b>即開團成功，單團上限 <b>12 人</b>；同時段人數過多會自動平均拆團。<br>
+        等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級朱諾毀葛需 100 級以上</b>、<b>105級朱諾毀葛需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
+        副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
+        集合地點由系統隨機指派：<b>斐揚卡普拉、吉芬塔前、艾爾貝塔卡普拉</b>。<br>
+        糾團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
+        隱私保護：<b>開團時間到之前，其他成員的角色 ID 會先遮罩</b>，時間到、實際開團後才公開；團員可在「我的糾團」明細的留言板先行溝通。
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 我的糾團 ═══ -->
+  <section class="view" id="view-mine">
+    <div class="panel">
+      <div class="panel-title">查詢我的糾團</div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div><label>角色 ID</label><input id="m-id" maxlength="24" placeholder="輸入登記時的角色 ID"></div>
+          <div><label>角色等級</label><input id="m-lv" type="number" min="1" max="110" placeholder="輸入登記時的等級"></div>
+          <div class="full"><button class="btn blue" onclick="lookupMine()">查看我的糾團</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="mine-cards" class="cards"></div>
+    <div id="mine-empty" class="empty" style="display:none">尚未查到登記紀錄，請確認角色 ID 與等級。</div>
+  </section>
+
+  <!-- ═══ 所有糾團 ═══ -->
+  <section class="view" id="view-all">
+    <div class="panel">
+      <div class="panel-title">即將到來的糾團 <small>時間由近到遠</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <input id="search-q" placeholder="🔍 輸入糾團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
+        <p class="hint">同時間、同目標的糾團，快滿人的會排在前面。</p>
+      </div>
+    </div>
+    <div id="all-cards" class="cards"></div>
+    <div id="all-empty" class="empty" style="display:none">目前佈告欄上沒有糾團，快去登記第一張吧！</div>
+  </section>
+
+</main>
+
+<!-- ═══ 明細彈窗 ═══ -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal panel">
+    <div class="panel-title"><span id="d-title">糾團明細</span><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="panel-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════ 架構說明 ═══════════════
+   本頁面部署於 Cloudflare Pages，資料透過同網域的 /api（Pages Functions）
+   存取 D1 資料庫。資料庫完全不暴露在前端，遊戲規則於伺服器端再次驗證。
+   退團需要登記時發放、只存在登記者瀏覽器的 token，杜絕惡意幫別人退團。
+   若 /api 無法連線（例如直接開啟本機檔案預覽），自動退回單機模式。 */
+const API = "/api";
+
+const LOCATIONS = ["斐揚卡普拉","吉芬塔前","艾爾貝塔卡普拉"];
+const DUNGEONS = ["副本4困1普","副本3困2普"];
+const MAX_PARTY = 12, MIN_PARTY = 3, MIN_FIGHTERS = 5, POLL_MS = 25000;
+const isDungeon = act => DUNGEONS.includes(act);
+const fighterCount = members => members.filter(m=>!m.bento).length;
+// 成團條件：副本需 5 名以上打手；其他滿 3 人
+const canForm = (act, members) => isDungeon(act) ? fighterCount(members) >= MIN_FIGHTERS : members.length >= MIN_PARTY;
+
+/* ─── 小工具 ─── */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const todayKey = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const toMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
+const toHM = m => pad(Math.floor(m/60))+":"+pad(m%60);
+const nowMin = () => { const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+const hashStr = s => { let h=7; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return h; };
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
+
+/* ─── 資料層：Cloudflare Pages Functions（共用）或瀏覽器（單機備援） ─── */
+const TOKENS = (()=>{ try{ return JSON.parse(localStorage.getItem("ro-party-tokens")||"{}"); }catch(e){ return {}; } })();
+function saveToken(uid, token){ TOKENS[uid]=token; localStorage.setItem("ro-party-tokens", JSON.stringify(TOKENS)); }
+
+const store = {
+  online: true,
+  async load(){
+    try{
+      const r = await fetch(API+"/regs?date="+todayKey());
+      if(!r.ok) throw 0;
+      this.online = true;
+      return await r.json();
+    }catch(e){
+      if(this.online){ this.online=false; toast("無法連線伺服器，暫用單機模式"); }
+      try{ return JSON.parse(localStorage.getItem("ro-party-regs")||"[]"); }catch(x){ return []; }
+    }
+  },
+  async add(reg){
+    if(this.online){
+      try{
+        const r = await fetch(API+"/regs",
+          {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(reg)});
+        const d = await r.json();
+        if(!r.ok){ toast(d.error||"登記失敗"); return false; }
+        saveToken(d.uid, d.token);        // 退團憑證只存在自己的瀏覽器
+        return true;
+      }catch(e){ this.online=false; toast("連線失敗，已存到本機"); }
+    }
+    const list = await this.load(); list.push(reg);
+    localStorage.setItem("ro-party-regs", JSON.stringify(list));
+    return true;
+  },
+  async remove(reg){
+    if(this.online){
+      const token = TOKENS[reg.uid];
+      if(!token){ toast("為防止惡意退團，只能從當初登記的裝置退出"); return false; }
+      try{
+        const r = await fetch(API+"/regs/"+encodeURIComponent(reg.uid),
+          {method:"DELETE",headers:{"X-Token":token}});
+        const d = await r.json();
+        if(!r.ok){ toast(d.error||"退出失敗"); return false; }
+        return true;
+      }catch(e){ toast("連線失敗，請稍後再試"); return false; }
+    }
+    const list = await this.load();
+    localStorage.setItem("ro-party-regs", JSON.stringify(list.filter(r=>r.uid!==reg.uid)));
+    return true;
+  },
+  async chatLoad(key){
+    if(this.online){
+      try{
+        const r = await fetch(API+"/chats/"+encodeURIComponent(key));
+        if(!r.ok) return [];
+        return await r.json();
+      }catch(e){ return []; }
+    }
+    try{ return JSON.parse(localStorage.getItem("ro-chat-"+key)||"[]"); }catch(e){ return []; }
+  },
+  async chatAdd(key, msg){
+    if(this.online){
+      try{
+        await fetch(API+"/chats/"+encodeURIComponent(key),
+          {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(msg)});
+        return;
+      }catch(e){ toast("留言送出失敗"); return; }
+    }
+    const l = await this.chatLoad(key); l.push({...msg, ts:Date.now()});
+    localStorage.setItem("ro-chat-"+key, JSON.stringify(l));
+  }
+};
+
+let REGS = [];          // 所有登記
+let PARTIES = [];       // 演算後的糾團
+let currentView = "home";
+let openPartyId = null;
+let notified = new Set(JSON.parse(localStorage.getItem("ro-party-notified")||"[]"));
+const myIds = new Set(JSON.parse(localStorage.getItem("ro-party-myids")||"[]"));
+function rememberMe(id){ myIds.add(id.trim()); localStorage.setItem("ro-party-myids", JSON.stringify([...myIds])); }
+
+/* ─── 組團演算法（各端結果一致） ───
+   1. 只看今天的登記，依「要做的事情」分堆
+   2. 依開始時間排序，貪婪找出「時間區間有交集」的一群人
+   3. 交集起點 = 開團時間；滿 3 人開團成功，超過 12 人平均拆團
+   4. 集合點、隊長皆以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
+function buildParties(regs){
+  const t = todayKey();
+  const byAct = {};
+  regs.filter(r=>r.date===t).forEach(r=>{ (byAct[r.activity] ||= []).push(r); });
+  const parties = [];
+  for(const act in byAct){
+    const list = byAct[act].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || a.charId.localeCompare(b.charId));
+    let cluster=[], is=0, ie=0;
+    const flush = ()=>{ if(cluster.length) parties.push(...splitCluster(act,cluster,is,ie)); };
+    for(const r of list){
+      const s=toMin(r.start), e=toMin(r.end);
+      if(!cluster.length){ cluster=[r]; is=s; ie=e; continue; }
+      if(s <= ie){ cluster.push(r); is=Math.max(is,s); ie=Math.min(ie,e); }
+      else { flush(); cluster=[r]; is=s; ie=e; }
+    }
+    flush();
+  }
+  // 時間近→遠；同時間快滿人的排前面
+  parties.sort((a,b)=> a.time-b.time || b.members.length-a.members.length || a.num.localeCompare(b.num));
+  return parties;
+}
+function splitCluster(act, members, is, ie){
+  const groups = [];
+  if(canForm(act, members)){
+    let count = Math.ceil(members.length / MAX_PARTY);
+    if(isDungeon(act)){
+      // 拆團數不能讓每團打手低於門檻
+      count = Math.max(1, Math.min(count, Math.floor(fighterCount(members)/MIN_FIGHTERS)));
+      for(let i=0;i<count;i++) groups.push([]);
+      const fighters = members.filter(m=>!m.bento), bentos = members.filter(m=>m.bento);
+      fighters.forEach((m,i)=>groups[i%count].push(m));       // 打手平均
+      let gi=0; const overflow=[];
+      for(const b of bentos){                                  // 便當平均分配，滿 12 人跳下一團
+        let tries=0;
+        while(groups[gi%count].length>=MAX_PARTY && tries<count){ gi++; tries++; }
+        if(tries>=count) overflow.push(b);
+        else { groups[gi%count].push(b); gi++; }
+      }
+      if(overflow.length) groups.push(overflow);               // 塞不下的便當成為候補團
+    }else{
+      for(let i=0;i<count;i++) groups.push([]);
+      members.forEach((m,i)=>groups[i%count].push(m));         // 平均分配
+    }
+  }else groups.push(members.slice());
+  return groups.map((g,gi)=>{
+    const id = act+"|"+toHM(is)+"|"+gi+"|"+g.map(m=>m.charId).sort().join(",");
+    // 集合地點與留言板只看「最早登記的創團者」＋活動＋團序，後續有人加入/退出也不會變動
+    const founder = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
+    const stable = act+"|"+founder.charId+"|"+(founder.ts||0)+"|"+gi;
+    const locHash = hashStr(stable);
+    return {
+      id, activity:act, members:g, time:is, timeEnd:ie,
+      ok: canForm(act, g),
+      location: LOCATIONS[locHash % LOCATIONS.length],
+      leader: g[hashStr(id+"L") % g.length],
+      // 四位數糾團編號：以創團者為基準，成員增減不會變，方便遊戲內廣播
+      num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
+      chatKey: "c"+hashStr(stable+"|"+todayKey()).toString(36)+hashStr(stable+"|chat").toString(36)
+    };
+  });
+}
+
+/* ─── 畫面 ─── */
+function showView(v){
+  currentView = v;
+  ["home","mine","all"].forEach(x=>{
+    $("view-"+x).classList.toggle("show", x===v);
+    $("nav-"+x).classList.toggle("active", x===v);
+  });
+  if(v==="all") renderAll();
+  if(v==="mine" && $("m-id").value) lookupMine();
+  window.scrollTo({top:0});
+}
+
+function statusOf(p){
+  if(p.ok && nowMin() >= p.time) return {cls:"live", label:"時間已到", frame:"ok"};
+  if(p.members.length >= MAX_PARTY) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
+  if(!p.ok) return {cls:"wait", label:"糾團中", frame:""};
+  return {cls:"ok", label:"開團成功", frame:"ok"};
+}
+function cardHTML(p, source){
+  const st = statusOf(p);
+  const dg = isDungeon(p.activity);
+  const n = p.members.length;
+  const ft = fighterCount(p.members), bt = n - ft;
+  const remain = MAX_PARTY - n;
+  const need = dg ? Math.max(0, MIN_FIGHTERS - ft) : Math.max(0, MIN_PARTY - n);
+  const pct = Math.min(100, Math.round(n/MAX_PARTY*100));   // bar 條＝實際 12 人佔比
+  const full = n >= MAX_PARTY;
+  const countText = dg
+    ? `${n} / ${MAX_PARTY} 人（打手 ${ft}／便當 ${bt}）${p.ok?"":"（再 "+need+" 名打手成團）"}`
+    : `${n} / ${MAX_PARTY} 人${p.ok?"":"（再 "+need+" 人成團）"}`;
+  return `<div class="card ${st.frame}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
+    <span class="pnum">#${p.num}</span>
+    <span class="stamp ${st.cls}">${st.label}</span>
+    <div class="act">${esc(p.activity)}</div>
+    <div class="row"><b>開團時間</b>${toHM(p.time)}（可至 ${toHM(p.timeEnd)}）</div>
+    ${p.ok ? `<div class="row"><b>集合地點</b>${esc(p.location)}</div>` : `<div class="row"><b>集合地點</b>成團後公佈</div>`}
+    <div class="row"><b>目前人數</b>${countText}</div>
+    ${!full && remain<=3 ? `<div class="row"><span class="almost">⚡ 即將滿團（剩 ${remain} 位）</span></div>` : ""}
+    <div class="count-bar"><i class="${full?"full":""}" style="width:${pct}%"></i></div>
+  </div>`;
+}
+function renderAll(){
+  const now = nowMin();
+  const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
+  let upcoming = PARTIES.filter(p=>p.timeEnd >= now);
+  if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
+  $("all-cards").innerHTML = upcoming.map(p=>cardHTML(p,"all")).join("");
+  $("all-empty").style.display = upcoming.length ? "none" : "block";
+  if(q && !upcoming.length) $("all-empty").textContent = "找不到符合「"+q+"」的糾團";
+  else $("all-empty").textContent = "目前佈告欄上沒有糾團，快去登記第一張吧！";
+}
+let viewer = null;   // 目前在「我的糾團」查詢的角色身分 {id, lv}
+function lookupMine(){
+  const id = $("m-id").value.trim(), lv = $("m-lv").value.trim();
+  if(!id || !lv) return toast("請輸入角色 ID 與角色等級");
+  rememberMe(id);
+  viewer = {id, lv};
+  const mine = PARTIES.filter(p=>p.members.some(m=>m.charId===id && String(m.level)===lv));
+  const now = nowMin();
+  mine.sort((a,b)=> Math.abs(a.time-now) - Math.abs(b.time-now) || b.members.length-a.members.length);   // 離現在最近 → 最遠；同時間快滿優先
+  $("mine-cards").innerHTML = mine.map(p=>cardHTML(p,"mine")).join("");
+  $("mine-empty").style.display = mine.length ? "none" : "block";
+}
+
+/* ─── 明細 ─── */
+/* ─── 明細 ───
+   隱私規則:開團時間到之前，其他人的角色 ID 一律遮罩（防止惡意查詢幫別人退團），
+   時間到、實際開團後才公開角色 ID。自己查詢的角色永遠看得到自己。 */
+function maskId(id){
+  id = String(id);
+  return id.length <= 1 ? "＊" : id[0] + "＊".repeat(Math.min(4, id.length-1));
+}
+let openSource = "all";
+function openDetail(pid, source){
+  const p = PARTIES.find(x=>x.id===pid);
+  if(!p) return;
+  // 背景同步重建畫面前，保留使用者打到一半的內容
+  const draft = $("chat-input-el") ? $("chat-input-el").value : "";
+  const joinDraft = $("j-id") ? {
+    id:$("j-id").value, lv:$("j-lv").value, job:$("j-job").value,
+    bento: !!($("j-bento") && $("j-bento").checked)
+  } : null;
+  stopChat();
+  openPartyId = pid;
+  openSource = source || "all";
+  const st = statusOf(p);
+  const started = p.ok && nowMin() >= p.time;
+  const viewerMember = viewer ? p.members.find(m=>m.charId===viewer.id && String(m.level)===viewer.lv) : null;
+  // 只有「我的糾團」查詢的角色恰好是被指派的隊長，才顯示您是隊長
+  const iAmLeader = started && !!viewerMember && viewerMember.charId===p.leader.charId;
+  const dg = isDungeon(p.activity);
+  // 開團時間到才公開 ID；在那之前只有自己看得到自己
+  const showId = m => started || (viewerMember && m.charId===viewerMember.charId && String(m.level)===String(viewerMember.level)) ? esc(m.charId) : esc(maskId(m.charId));
+
+  let main = `
+    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">糾團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
+    <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">開團時間</b>${toHM(p.time)}（時段 ${toHM(p.time)}～${toHM(p.timeEnd)}）</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">集合地點</b>${p.ok?esc(p.location):"成團後公佈"}</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，打手 "+fighterCount(p.members)+"／便當 "+(p.members.length-fighterCount(p.members)):""}）</div>
+    ${started?"":`<p class="hint" style="margin-top:6px">開團時間到之前，其他成員的角色 ID 會先遮罩保護。</p>`}
+    <ul class="member-list">` +
+    p.members.map(m=>`<li><span>${showId(m)}｜Lv.${esc(m.level)}｜${esc(m.job)}${m.bento?"｜🍱 便當":""}</span>${started && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
+    `</ul>`;
+  if(started){
+    main += iAmLeader
+      ? `<div class="notice leader"><b>您是隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請上列成員入隊。</div>`
+      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，並前往 <b>${esc(p.location)}</b> 集合。</div>`;
+  }
+
+  if(openSource === "mine"){
+    // 我的糾團：只有退出，沒有加入；右側附留言板
+    if(!started && viewerMember){
+      main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出糾團</button></div>`;
+    }
+    const chat = `
+      <div class="chat-box">
+        <div class="chat-head">團員留言板</div>
+        <div class="chat-msgs" id="chat-msgs"></div>
+        <div class="chat-input">
+          <input id="chat-input-el" maxlength="200" placeholder="輸入留言…" onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">送出</button>
+        </div>
+      </div>`;
+    $("d-body").innerHTML = `<div class="detail-flex"><div class="detail-main">${main}</div>${chat}</div>`;
+    document.querySelector(".modal").classList.add("wide");
+    if(draft) $("chat-input-el").value = draft;
+    startChat(p);
+  }else{
+    // 所有糾團：只有加入，沒有退出；滿團擋下
+    if(!started && p.members.length >= MAX_PARTY){
+      main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
+    }else if(!started){
+      main += `
+      <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
+        <label style="margin-bottom:8px">加入這個糾團</label>
+        <div class="form-grid">
+          <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
+          <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
+          <div><input id="j-job" maxlength="20" placeholder="角色職業"></div>
+          <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入糾團</button></div>
+          ${dg?`<div class="full" style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="j-bento" style="width:auto;transform:scale(1.3)"> 我是便當（由打手帶飛）</label></div>`:""}
+        </div>
+      </div>`;
+    }
+    $("d-body").innerHTML = main;
+    document.querySelector(".modal").classList.remove("wide");
+    if(joinDraft && $("j-id")){   // 還原背景同步前打到一半的加入表單
+      $("j-id").value = joinDraft.id;
+      $("j-lv").value = joinDraft.lv;
+      $("j-job").value = joinDraft.job;
+      if($("j-bento")) $("j-bento").checked = joinDraft.bento;
+    }
+  }
+  $("d-title").textContent = "糾團明細 #"+p.num;
+  $("overlay").classList.add("show");
+}
+async function exitParty(){
+  const p = PARTIES.find(x=>x.id===openPartyId);
+  if(!p || !viewer) return;
+  const m = p.members.find(x=>x.charId===viewer.id && String(x.level)===viewer.lv);
+  if(!m) return toast("找不到你的登記資料");
+  const removed = await store.remove(m);
+  if(!removed) return;
+  await refresh();
+  closeModal();
+  lookupMine();
+  toast("已退出糾團");
+}
+function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
+
+/* ─── 團員留言板（每 5 秒更新） ─── */
+let chatTimer = null;
+function startChat(p){
+  loadChat(p);
+  chatTimer = setInterval(()=>{
+    const cur = PARTIES.find(x=>x.id===openPartyId);
+    if(cur) loadChat(cur);
+  }, 5000);
+}
+function stopChat(){ if(chatTimer){ clearInterval(chatTimer); chatTimer=null; } }
+async function loadChat(p){
+  const msgs = await store.chatLoad(p.chatKey);
+  const box = $("chat-msgs");
+  if(!box) return;
+  const started = p.ok && nowMin() >= p.time;
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 50 || !box.innerHTML;
+  box.innerHTML = msgs.slice(-60).map(m=>{
+    // 開團時間到之前，留言者名稱同樣遮罩（自己除外）
+    const nm = (started || (viewer && m.name===viewer.id)) ? m.name : maskId(m.name);
+    const d = new Date(m.ts);
+    return `<div class="chat-msg"><span class="who">${esc(nm)}</span><span class="t">${pad(d.getHours())}:${pad(d.getMinutes())}</span><br>${esc(m.text)}</div>`;
+  }).join("") || `<div style="color:#9a8c6c">還沒有留言，跟團員打個招呼吧！</div>`;
+  if(nearBottom) box.scrollTop = box.scrollHeight;
+}
+async function sendChat(){
+  const inp = $("chat-input-el");
+  const text = (inp?inp.value:"").trim();
+  if(!text) return;
+  const p = PARTIES.find(x=>x.id===openPartyId);
+  if(!p || !viewer) return toast("請先在「我的糾團」查詢你的角色");
+  inp.value = "";
+  await store.chatAdd(p.chatKey, {name:viewer.id, text:text.slice(0,200), ts:Date.now()});
+  loadChat(p);
+}
+
+/* ─── 登記 / 加入 ─── */
+function levelCheck(activity, level){
+  const lv = Number(level);
+  if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
+  if(lv > 110) return "角色等級不能超過 110";
+  if(activity.startsWith("90級")  && lv < 90)  return "此每日需 90 級以上才能登記";
+  if(activity.startsWith("100級") && lv < 100) return "此每日需 100 級以上才能登記";
+  if(activity.startsWith("105級") && lv < 105) return "此每日需 105 級以上才能登記";
+  if(isDungeon(activity) && lv < 90) return "副本需 90 級以上才能登記";
+  return "";
+}
+function toggleBento(){
+  $("f-bento-wrap").style.display = isDungeon($("f-act").value) ? "block" : "none";
+  if(!isDungeon($("f-act").value)) $("f-bento").checked = false;
+}
+const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+async function submitReg(){
+  const charId=$("f-id").value.trim(), level=$("f-lv").value.trim(), job=$("f-job").value.trim();
+  const s=$("f-start").value, e=$("f-end").value;
+  if(!charId||!level||!job) return toast("請完整填寫角色 ID、等級與職業");
+  const lvErr = levelCheck($("f-act").value, level);
+  if(lvErr) return toast(lvErr);
+  if(toMin(s) < nowMin()) { fillTimeSelects(); return toast("開始時間不能早於現在，已為你更新時段"); }
+  if(toMin(e)<=toMin(s)) return toast("結束時間必須晚於開始時間");
+  const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
+    bento: isDungeon($("f-act").value) && $("f-bento").checked,
+    date:todayKey(), ts:Date.now(), uid:newUid()});
+  if(!added) return;
+  rememberMe(charId);
+  await refresh();
+  toast("登記完成！可到「我的糾團」查看進度");
+  askNotify();
+  $("f-id").value=$("f-lv").value=$("f-job").value="";
+}
+async function joinParty(){
+  const p = PARTIES.find(x=>x.id===openPartyId); if(!p) return;
+  const charId=$("j-id").value.trim(), level=$("j-lv").value.trim(), job=$("j-job").value.trim();
+  if(!charId||!level||!job) return toast("請完整填寫角色 ID、等級與職業");
+  const lvErr = levelCheck(p.activity, level);
+  if(lvErr) return toast(lvErr);
+  if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
+  if(p.members.length >= MAX_PARTY) return toast("此團已滿 "+MAX_PARTY+" 人");
+  const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
+    bento: isDungeon(p.activity) && !!($("j-bento") && $("j-bento").checked),
+    date:todayKey(), ts:Date.now(), uid:newUid()});
+  if(!added) return;
+  rememberMe(charId);
+  await refresh();
+  closeModal();
+  toast("已為你登記加入這個糾團！");
+  askNotify();
+}
+
+/* ─── 通知 ─── */
+function askNotify(){
+  if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
+}
+function checkNotify(){
+  if(!("Notification" in window) || Notification.permission!=="granted") return;
+  const now = nowMin();
+  PARTIES.forEach(p=>{
+    if(p.ok && now>=p.time && now<=p.timeEnd && !notified.has(p.id)
+       && p.members.some(m=>myIds.has(m.charId))){
+      new Notification("糾團時間已到！",{ body:`「${p.activity}」請查看團員並前往 ${p.location} 集合`, tag:p.id });
+      notified.add(p.id);
+      localStorage.setItem("ro-party-notified", JSON.stringify([...notified]));
+    }
+  });
+}
+
+/* ─── 初始化與輪詢 ─── */
+function fillTimeSelects(){
+  // 開始時間：只列出「現在（向上取到 30 分）」之後的時段
+  const cur = nowMin();
+  const first = Math.min(23*60+30, Math.ceil(cur/30)*30);
+  const prevStart = $("f-start").value;
+  let opts="";
+  for(let m=first;m<24*60;m+=30) opts+=`<option value="${toHM(m)}">${toHM(m)}</option>`;
+  $("f-start").innerHTML = opts;
+  if(prevStart && toMin(prevStart)>=first) $("f-start").value = prevStart;
+  fillEndSelect();
+}
+function fillEndSelect(){
+  // 結束時間：只留下比開始時間更晚的選項
+  const s = toMin($("f-start").value);
+  const prevEnd = $("f-end").value;
+  let opts="";
+  for(let m=s+30;m<24*60;m+=30) opts+=`<option value="${toHM(m)}">${toHM(m)}</option>`;
+  opts+=`<option value="23:59">23:59</option>`;
+  $("f-end").innerHTML = opts;
+  if(prevEnd && toMin(prevEnd)>s) $("f-end").value = prevEnd;
+  else $("f-end").value = toHM(Math.min(23*60+59, s+90));
+}
+async function refresh(){
+  REGS = await store.load();
+  PARTIES = buildParties(REGS);
+  if(currentView==="all") renderAll();
+  if(currentView==="mine" && $("m-id").value && $("m-lv").value) lookupMine();
+  if(openPartyId && $("overlay").classList.contains("show")){
+    const still = PARTIES.find(x=>x.id===openPartyId);
+    if(still) openDetail(openPartyId, openSource);
+  }
+  checkNotify();
+}
+(async function init(){
+  fillTimeSelects();
+  $("f-start").addEventListener("change", fillEndSelect);
+  setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的時段
+  showView("home");
+  await refresh();
+  $("mode-tag").textContent = store.online ? "共用模式" : "單機模式（僅本瀏覽器）";
+  setInterval(refresh, POLL_MS);
+})();
+</script>
+</body>
+</html>
