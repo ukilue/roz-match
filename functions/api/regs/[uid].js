@@ -1,11 +1,12 @@
 // DELETE /api/regs/:uid — 退出揪團
 // 需登入 Discord，且這筆登記必須是本人帳號建立的，
 // 從根本杜絕惡意幫別人退團；也不再受限於「同一台裝置」。
-import { getSession, json, needLogin } from "../_auth.js";
+import { getSession, json, needLogin, needMember } from "../_auth.js";
 
 export async function onRequestDelete({ request, env, params }) {
   const user = await getSession(request, env);
   if (!user) return needLogin();
+  if (!user.member) return needMember();
 
   const uid = String(params.uid || "");
   if (!uid) return json({ error: "缺少參數" }, 400);
