@@ -1,7 +1,7 @@
 // /api/regs — GET 查詢當日登記、POST 新增登記（需 Discord 登入＋公會伺服器成員）
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
-import { getSession, needLogin } from "./_auth.js";
+import { getSession, needLogin, needMember } from "./_auth.js";
 
 const ACTS = ["90級每日","100級每日","100+105級每日","副本4困1普","副本3困2普"];
 const LEVEL_REQ = { "90級每日":90, "100級每日":100, "100+105級每日":105, "副本4困1普":90, "副本3困2普":90 };
@@ -43,6 +43,7 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPost({ request, env }) {
   const user = await getSession(request, env);
   if (!user) return needLogin();
+  if (!user.member) return needMember();
 
   let b;
   try { b = await request.json(); } catch { return bad("JSON 格式錯誤"); }

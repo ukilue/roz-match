@@ -19,8 +19,8 @@ async function sign(secret, data) {
   return b64u(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
 
-export async function makeSession(env, user) {
-  const payload = strToB64u(JSON.stringify({ ...user, exp: Date.now() + 7 * 864e5 })); // 7 天
+export async function makeSession(env, user, ttlMs = 7 * 864e5) {
+  const payload = strToB64u(JSON.stringify({ ...user, exp: Date.now() + ttlMs }));
   return payload + "." + (await sign(env.SESSION_SECRET, payload));
 }
 
@@ -43,4 +43,5 @@ export const sessionCookie = (val, maxAge) =>
 export const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
-export const needLogin = () => json({ error: "請先登入 Discord 並加入公會伺服器" }, 401);
+export const needLogin = () => json({ error: "請先登入 Discord" }, 401);
+export const needMember = () => json({ error: "請先加入懿岐來揪團 Discord 伺服器" }, 403);
