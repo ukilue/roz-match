@@ -83,6 +83,7 @@ input,select{
   padding:9px 10px;outline:none;
 }
 input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA533}
+input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BBA97F;cursor:not-allowed}
 .time-row{display:flex;align-items:center;gap:8px}
 .time-row select{width:auto;flex:1}
 .btn{
@@ -233,7 +234,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
             </div>
             <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團。</p>
           </div>
-          <div class="full"><button class="btn" onclick="submitReg()">送出登記</button></div>
+          <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
       </div>
     </div>
@@ -332,21 +333,57 @@ async function loadUser(){
     USER = r.ok ? await r.json() : null;
   }catch(e){ USER = null; }
   const btn = $("auth-btn");
-  if(USER){
+  if(USER && USER.member){
     btn.textContent = "🎮 "+USER.name+"｜登出";
     btn.style.background = "#3BA55D"; btn.style.borderColor = "#3BA55D";
+  }else if(USER){
+    btn.textContent = "⚠ "+USER.name+"（未加入伺服器）｜登出";
+    btn.style.background = "#C77B2B"; btn.style.borderColor = "#C77B2B";
   }else{
     btn.textContent = "Discord 登入";
     btn.style.background = "#5865F2"; btn.style.borderColor = "#5865F2";
   }
-  if(store.online) $("mode-tag").textContent = USER ? "共用模式｜已登入" : "共用模式｜未登入";
+  if(store.online) $("mode-tag").textContent = !USER ? "共用模式｜未登入" : (USER.member ? "共用模式｜已登入" : "共用模式｜未加入伺服器");
   updateNavMine();
 }
 // 未登入時隱藏「我的揪團」（單機預覽模式不受限）
 function updateNavMine(){
-  const visible = USER || !store.online;
+  const visible = (USER && USER.member) || !store.online;
   $("nav-mine").style.display = visible ? "" : "none";
   if(!visible && currentView==="mine") showView("home");
+  updateRegForm();
+}
+// 登記表單狀態：依登入與伺服器成員資格切換（欄位反灰＋按鈕變身）
+function updateRegForm(){
+  const btn = $("submit-btn");
+  if(!btn) return;
+  let mode = "ok";
+  if(store.online){
+    if(!USER) mode = "login";
+    else if(!USER.member) mode = "join";
+  }
+  const disabled = mode !== "ok";
+  ["f-id","f-lv","f-job","f-act","f-start","f-end","f-bento"].forEach(id=>{
+    const el = $(id); if(el) el.disabled = disabled;
+  });
+  if(mode === "login"){
+    btn.textContent = "Discord 登入";
+    btn.style.background = "linear-gradient(180deg,#5865F2,#3C48C8)";
+    btn.style.borderColor = "#2A339E"; btn.style.boxShadow = "0 3px 0 #2A339E";
+    btn.onclick = ()=>{ location.href = API+"/auth/login"; };
+  }else if(mode === "join"){
+    btn.textContent = "加入懿岐來揪團DC";
+    btn.style.background = "linear-gradient(180deg,#3BA55D,#2C7F46)";
+    btn.style.borderColor = "#1F5C33"; btn.style.boxShadow = "0 3px 0 #1F5C33";
+    btn.onclick = ()=>{
+      window.open(DISCORD_INVITE_URL, "_blank");
+      toast("加入伺服器後，請點右上角重新登入驗證");
+    };
+  }else{
+    btn.textContent = "送出登記";
+    btn.style.background = ""; btn.style.borderColor = ""; btn.style.boxShadow = "";
+    btn.onclick = submitReg;
+  }
 }
 async function authAction(){
   if(USER){
@@ -361,9 +398,14 @@ async function authAction(){
 // 登記／加入／退出／留言前的守門：共用模式必須登入
 function requireLogin(){
   if(!store.online) return true;   // 單機預覽模式不需登入
-  if(USER) return true;
-  toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
-  setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
+  if(USER && USER.member) return true;
+  if(USER){   // 已登入但未加入伺服器
+    toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
+    setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
+  }else{      // 未登入
+    toast("請先以 Discord 登入，3秒後前往登入");
+    setTimeout(()=>{ location.href = API+"/auth/login"; }, 3000);
+  }
   return false;
 }
 
@@ -641,7 +683,9 @@ function openDetail(pid, source){
     if(!started && p.members.length >= MAX_PARTY){
       main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
     }else if(!started && store.online && !USER){
-      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>並加入公會伺服器。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
+    }else if(!started && store.online && !USER.member){
+      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(!started){
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
@@ -833,10 +877,7 @@ async function refresh(){
   if(auth){
     history.replaceState(null, "", location.pathname);
     if(auth==="ok") toast("Discord 登入成功！");
-    else if(auth==="notmember"){
-      toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
-      setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
-    }
+    else if(auth==="nonmember") toast("已登入，但你尚未加入懿岐來揪團伺服器");
     else toast("Discord 登入失敗，請再試一次");
   }
   await Promise.all([loadUser(), refresh()]);
