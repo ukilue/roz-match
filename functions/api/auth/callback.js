@@ -35,15 +35,18 @@ export async function onRequestGet({ request, env }) {
   if (!ur.ok) return fail("user");
   const user = await ur.json();
 
-  // 驗證是否為指定伺服器成員
+  // 驗證是否為指定伺服器成員：非成員也發 Session（短效期），
+  // 讓前端能區分「未登入」與「已登入但未加入伺服器」；寫入 API 依 member 旗標把關
   const gr = await fetch("https://discord.com/api/users/@me/guilds", { headers: h });
   if (!gr.ok) return fail("guilds");
   const guilds = await gr.json();
-  if (!Array.isArray(guilds) || !guilds.some(g => g.id === env.DISCORD_GUILD_ID)) return fail("notmember");
+  const isMember = Array.isArray(guilds) && guilds.some(g => g.id === env.DISCORD_GUILD_ID);
 
-  const sess = await makeSession(env, { id: user.id, name: user.global_name || user.username });
-  const headers = new Headers({ Location: "/?auth=ok" });
-  headers.append("Set-Cookie", sessionCookie(sess, 7 * 86400));
+  const sess = await makeSession(env,
+    { id: user.id, name: user.global_name || user.username, member: isMember },
+    isMember ? 7 * 864e5 : 10 * 60 * 1000);   // 非成員 10 分鐘，加入後重新登入即重新驗證
+  const headers = new Headers({ Location: isMember ? "/?auth=ok" : "/?auth=nonmember" });
+  headers.append("Set-Cookie", sessionCookie(sess, isMember ? 7 * 86400 : 600));
   headers.append("Set-Cookie", "ro_state=; Path=/; Max-Age=0");
   return new Response(null, { status: 302, headers });
 }
