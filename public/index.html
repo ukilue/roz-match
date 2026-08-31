@@ -297,7 +297,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
    若 /api 無法連線（例如直接開啟本機檔案預覽），自動退回單機模式。 */
 const API = "/api";
 // 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
-const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
+const DISCORD_INVITE_URL = "https://discord.gg/請填入你的邀請碼";
 
 const LOCATIONS = ["斐揚卡普拉","吉芬塔前","艾爾貝塔卡普拉"];
 const DUNGEONS = ["副本4困1普","副本3困2普"];
@@ -471,13 +471,16 @@ function buildParties(regs){
 }
 function splitCluster(act, members, is, ie){
   const groups = [];
+  // 依「登記時間」排序後再分組：新加入者永遠排在最後，
+  // 既有成員的分組不會因為有人加入而重新洗牌 → 揪團編號、集合地點、留言板都不變動
+  const byTs = arr => arr.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
   if(canForm(act, members)){
     let count = Math.ceil(members.length / MAX_PARTY);
     if(isDungeon(act)){
       // 拆團數不能讓每團打手低於門檻
       count = Math.max(1, Math.min(count, Math.floor(fighterCount(members)/MIN_FIGHTERS)));
       for(let i=0;i<count;i++) groups.push([]);
-      const fighters = members.filter(m=>!m.bento), bentos = members.filter(m=>m.bento);
+      const fighters = byTs(members.filter(m=>!m.bento)), bentos = byTs(members.filter(m=>m.bento));
       fighters.forEach((m,i)=>groups[i%count].push(m));       // 打手平均
       let gi=0; const overflow=[];
       for(const b of bentos){                                  // 便當平均分配，滿 12 人跳下一團
@@ -489,21 +492,22 @@ function splitCluster(act, members, is, ie){
       if(overflow.length) groups.push(overflow);               // 塞不下的便當成為候補團
     }else{
       for(let i=0;i<count;i++) groups.push([]);
-      members.forEach((m,i)=>groups[i%count].push(m));         // 平均分配
+      byTs(members).forEach((m,i)=>groups[i%count].push(m));   // 平均分配
     }
-  }else groups.push(members.slice());
-  return groups.map((g,gi)=>{
-    const id = act+"|"+toHM(is)+"|"+gi+"|"+g.map(m=>m.charId).sort().join(",");
-    // 集合地點與留言板只看「最早登記的創團者」＋活動＋團序，後續有人加入/退出也不會變動
+  }else groups.push(byTs(members));
+  return groups.map(g=>{
+    const id = act+"|"+toHM(is)+"|"+g.map(m=>m.charId).sort().join(",");
+    // 編號、集合地點、留言板只看「這一團最早登記的創團者」：
+    // 有人加入／退出、或因人數增加而拆團，含創團者的那團一律不變號
     const founder = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
-    const stable = act+"|"+founder.charId+"|"+(founder.ts||0)+"|"+gi;
+    const stable = act+"|"+founder.charId+"|"+(founder.ts||0);
     const locHash = hashStr(stable);
     return {
       id, activity:act, members:g, time:is, timeEnd:ie,
       ok: canForm(act, g),
       location: LOCATIONS[locHash % LOCATIONS.length],
       leader: g[hashStr(id+"L") % g.length],
-      // 四位數揪團編號：以創團者為基準，成員增減不會變，方便遊戲內廣播
+      // 四位數揪團編號：錨定創團者，方便遊戲內廣播
       num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
       chatKey: "c"+hashStr(stable+"|"+todayKey()).toString(36)+hashStr(stable+"|chat").toString(36)
     };
@@ -637,9 +641,11 @@ function openDetail(pid, source){
     if(draft) $("chat-input-el").value = draft;
     startChat(p);
   }else{
-    // 所有揪團：只有加入，沒有退出；滿團擋下
+    // 所有揪團：只有加入，沒有退出；滿團擋下；未登入不顯示加入表單
     if(!started && p.members.length >= MAX_PARTY){
       main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
+    }else if(!started && store.online && !USER){
+      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>並加入公會伺服器。</div>`;
     }else if(!started){
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
