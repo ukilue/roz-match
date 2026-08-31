@@ -1,5 +1,5 @@
 // /api/chats/:key — GET 讀取留言（最近 60 則）、POST 新增留言（需 Discord 登入）
-import { getSession, needLogin } from "../_auth.js";
+import { getSession, needLogin, needMember } from "../_auth.js";
 
 const KEY = /^[a-z0-9]{1,48}$/i;
 
@@ -18,6 +18,7 @@ export async function onRequestGet({ env, params }) {
 export async function onRequestPost({ request, env, params }) {
   const user = await getSession(request, env);
   if (!user) return needLogin();
+  if (!user.member) return needMember();
   const key = String(params.key || "");
   if (!KEY.test(key)) return json({ error: "key 格式錯誤" }, 400);
   let b;
