@@ -255,17 +255,13 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
   <!-- ═══ 我的揪團 ═══ -->
   <section class="view" id="view-mine">
     <div class="panel">
-      <div class="panel-title">查詢我的揪團</div>
+      <div class="panel-title">我的揪團</div>
       <div class="panel-body">
-        <div class="form-grid">
-          <div><label>角色 ID</label><input id="m-id" maxlength="24" placeholder="輸入登記時的角色 ID"></div>
-          <div><label>角色等級</label><input id="m-lv" type="number" min="1" max="110" placeholder="輸入登記時的等級"></div>
-          <div class="full"><button class="btn blue" onclick="lookupMine()">查看我的揪團</button></div>
-        </div>
+        <p style="font-size:14px" id="mine-hint">以你登入的 Discord 帳號，自動顯示今天登記的所有揪團。</p>
       </div>
     </div>
     <div id="mine-cards" class="cards"></div>
-    <div id="mine-empty" class="empty" style="display:none">尚未查到登記紀錄，請確認角色 ID 與等級。</div>
+    <div id="mine-empty" class="empty" style="display:none">今天還沒有登記任何揪團。</div>
   </section>
 
   <!-- ═══ 所有揪團 ═══ -->
@@ -300,6 +296,8 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
    退團需要登記時發放、只存在登記者瀏覽器的 token，杜絕惡意幫別人退團。
    若 /api 無法連線（例如直接開啟本機檔案預覽），自動退回單機模式。 */
 const API = "/api";
+// 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
+const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
 const LOCATIONS = ["斐揚卡普拉","吉芬塔前","艾爾貝塔卡普拉"];
 const DUNGEONS = ["副本4困1普","副本3困2普"];
@@ -309,13 +307,20 @@ const fighterCount = members => members.filter(m=>!m.bento).length;
 // 成團條件：副本需 5 名以上打手；其他滿 3 人
 const canForm = (act, members) => isDungeon(act) ? fighterCount(members) >= MIN_FIGHTERS : members.length >= MIN_PARTY;
 
-/* ─── 小工具 ─── */
+/* ─── 小工具（日期時間一律以台北時區計算，與伺服器一致，避免裝置時區不同造成查不到資料） ─── */
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,"0");
-const todayKey = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+function twNow(){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",
+    year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false})
+    .formatToParts(new Date());
+  const g = t => p.find(x=>x.type===t).value;
+  return { date: g("year")+"-"+g("month")+"-"+g("day"), min: (Number(g("hour"))%24)*60 + Number(g("minute")) };
+}
+const todayKey = () => twNow().date;
 const toMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
 const toHM = m => pad(Math.floor(m/60))+":"+pad(m%60);
-const nowMin = () => { const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+const nowMin = () => twNow().min;
 const hashStr = s => { let h=7; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return h; };
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
@@ -351,7 +356,8 @@ async function authAction(){
 function requireLogin(){
   if(!store.online) return true;   // 單機預覽模式不需登入
   if(USER) return true;
-  toast("請先以 Discord 登入並加入公會伺服器");
+  toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
+  setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
   return false;
 }
 
@@ -380,7 +386,7 @@ const store = {
         return true;
       }catch(e){ this.online=false; toast("連線失敗，已存到本機"); }
     }
-    const list = await this.load(); list.push(reg);
+    const list = await this.load(); list.push({...reg, mine:true});
     localStorage.setItem("ro-party-regs", JSON.stringify(list));
     return true;
   },
@@ -427,8 +433,8 @@ let PARTIES = [];       // 演算後的揪團
 let currentView = "home";
 let openPartyId = null;
 let notified = new Set(JSON.parse(localStorage.getItem("ro-party-notified")||"[]"));
-const myIds = new Set(JSON.parse(localStorage.getItem("ro-party-myids")||"[]"));
-function rememberMe(id){ myIds.add(id.trim()); localStorage.setItem("ro-party-myids", JSON.stringify([...myIds])); }
+// 「我的」判定：伺服器依 Discord 帳號在每筆登記標上 mine 旗標（單機模式則本機登記皆為 mine）
+const myNames = () => new Set(REGS.filter(r=>r.mine).map(r=>r.charId));
 
 /* ─── 組團演算法（各端結果一致） ───
    1. 只看今天的登記，依「要做的事情」分堆
@@ -505,7 +511,7 @@ function showView(v){
     $("nav-"+x).classList.toggle("active", x===v);
   });
   if(v==="all") renderAll();
-  if(v==="mine" && $("m-id").value) lookupMine();
+  if(v==="mine") renderMine();
   window.scrollTo({top:0});
 }
 
@@ -548,17 +554,15 @@ function renderAll(){
   if(q && !upcoming.length) $("all-empty").textContent = "找不到符合「"+q+"」的揪團";
   else $("all-empty").textContent = "目前佈告欄上沒有揪團，快去登記第一張吧！";
 }
-let viewer = null;   // 目前在「我的揪團」查詢的角色身分 {id, lv}
-function lookupMine(){
-  const id = $("m-id").value.trim(), lv = $("m-lv").value.trim();
-  if(!id || !lv) return toast("請輸入角色 ID 與角色等級");
-  rememberMe(id);
-  viewer = {id, lv};
-  const mine = PARTIES.filter(p=>p.members.some(m=>m.charId===id && String(m.level)===lv));
+function renderMine(){
+  const mine = PARTIES.filter(p=>p.members.some(m=>m.mine));
   const now = nowMin();
   mine.sort((a,b)=> Math.abs(a.time-now) - Math.abs(b.time-now) || b.members.length-a.members.length);   // 離現在最近 → 最遠；同時間快滿優先
   $("mine-cards").innerHTML = mine.map(p=>cardHTML(p,"mine")).join("");
   $("mine-empty").style.display = mine.length ? "none" : "block";
+  $("mine-empty").textContent = (store.online && !USER)
+    ? "請先點右上角以 Discord 登入，即可自動顯示你登記的揪團。"
+    : "今天還沒有登記任何揪團。";
 }
 
 /* ─── 明細 ─── */
@@ -584,12 +588,12 @@ function openDetail(pid, source){
   openSource = source || "all";
   const st = statusOf(p);
   const started = p.ok && nowMin() >= p.time;
-  const viewerMember = viewer ? p.members.find(m=>m.charId===viewer.id && String(m.level)===viewer.lv) : null;
-  // 只有「我的揪團」查詢的角色恰好是被指派的隊長，才顯示您是隊長
-  const iAmLeader = started && !!viewerMember && viewerMember.charId===p.leader.charId;
+  const viewerMember = p.members.find(m=>m.mine) || null;
+  // 只有系統指派的隊長恰好是「我的登記」，才顯示您是隊長
+  const iAmLeader = started && !!p.leader.mine;
   const dg = isDungeon(p.activity);
   // 開團時間到才公開 ID；在那之前只有自己看得到自己
-  const showId = m => started || (viewerMember && m.charId===viewerMember.charId && String(m.level)===String(viewerMember.level)) ? esc(m.charId) : esc(maskId(m.charId));
+  const showId = m => (started || m.mine) ? esc(m.charId) : esc(maskId(m.charId));
 
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
@@ -657,14 +661,14 @@ function openDetail(pid, source){
 async function exitParty(){
   if(!requireLogin()) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
-  if(!p || !viewer) return;
-  const m = p.members.find(x=>x.charId===viewer.id && String(x.level)===viewer.lv);
+  if(!p) return;
+  const m = p.members.find(x=>x.mine);
   if(!m) return toast("找不到你的登記資料");
   const removed = await store.remove(m);
   if(!removed) return;
   await refresh();
   closeModal();
-  lookupMine();
+  renderMine();
   toast("已退出揪團");
 }
 function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
@@ -687,7 +691,7 @@ async function loadChat(p){
   const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 50 || !box.innerHTML;
   box.innerHTML = msgs.slice(-60).map(m=>{
     // 開團時間到之前，留言者名稱同樣遮罩（自己除外）
-    const nm = (started || (viewer && m.name===viewer.id)) ? m.name : maskId(m.name);
+    const nm = (started || myNames().has(m.name)) ? m.name : maskId(m.name);
     const d = new Date(m.ts);
     return `<div class="chat-msg"><span class="who">${esc(nm)}</span><span class="t">${pad(d.getHours())}:${pad(d.getMinutes())}</span><br>${esc(m.text)}</div>`;
   }).join("") || `<div style="color:#9a8c6c">還沒有留言，跟團員打個招呼吧！</div>`;
@@ -699,9 +703,11 @@ async function sendChat(){
   const text = (inp?inp.value:"").trim();
   if(!text) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
-  if(!p || !viewer) return toast("請先在「我的揪團」查詢你的角色");
+  if(!p) return;
+  const me = p.members.find(x=>x.mine);
+  const name = me ? me.charId : (USER ? USER.name : "團員");
   inp.value = "";
-  await store.chatAdd(p.chatKey, {name:viewer.id, text:text.slice(0,200), ts:Date.now()});
+  await store.chatAdd(p.chatKey, {name, text:text.slice(0,200), ts:Date.now()});
   loadChat(p);
 }
 
@@ -734,7 +740,6 @@ async function submitReg(){
     bento: isDungeon($("f-act").value) && $("f-bento").checked,
     date:todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
-  rememberMe(charId);
   await refresh();
   toast("登記完成！可到「我的揪團」查看進度");
   askNotify();
@@ -753,7 +758,6 @@ async function joinParty(){
     bento: isDungeon(p.activity) && !!($("j-bento") && $("j-bento").checked),
     date:todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
-  rememberMe(charId);
   await refresh();
   closeModal();
   toast("已為你登記加入這個揪團！");
@@ -769,7 +773,7 @@ function checkNotify(){
   const now = nowMin();
   PARTIES.forEach(p=>{
     if(p.ok && now>=p.time && now<=p.timeEnd && !notified.has(p.id)
-       && p.members.some(m=>myIds.has(m.charId))){
+       && p.members.some(m=>m.mine)){
       new Notification("揪團時間已到！",{ body:`「${p.activity}」請查看團員並前往 ${p.location} 集合`, tag:p.id });
       notified.add(p.id);
       localStorage.setItem("ro-party-notified", JSON.stringify([...notified]));
@@ -804,7 +808,7 @@ async function refresh(){
   REGS = await store.load();
   PARTIES = buildParties(REGS);
   if(currentView==="all") renderAll();
-  if(currentView==="mine" && $("m-id").value && $("m-lv").value) lookupMine();
+  if(currentView==="mine") renderMine();
   if(openPartyId && $("overlay").classList.contains("show")){
     const still = PARTIES.find(x=>x.id===openPartyId);
     if(still) openDetail(openPartyId, openSource);
@@ -821,7 +825,10 @@ async function refresh(){
   if(auth){
     history.replaceState(null, "", location.pathname);
     if(auth==="ok") toast("Discord 登入成功！");
-    else if(auth==="notmember") toast("你的 Discord 帳號尚未加入公會伺服器，無法使用登記功能");
+    else if(auth==="notmember"){
+      toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
+      setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
+    }
     else toast("Discord 登入失敗，請再試一次");
   }
   await Promise.all([loadUser(), refresh()]);
