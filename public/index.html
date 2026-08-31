@@ -877,7 +877,8 @@ async function refresh(){
   if(auth){
     history.replaceState(null, "", location.pathname);
     if(auth==="ok") toast("Discord 登入成功！");
-    else if(auth==="nonmember") toast("已登入，但你尚未加入懿岐來揪團伺服器");
+    else if(auth==="joined") toast("登入成功，已自動幫你加入懿岐來揪團伺服器！");
+    else if(auth==="nonmember") toast("已登入，但尚未能加入懿岐來揪團伺服器，請點按鈕手動加入");
     else toast("Discord 登入失敗，請再試一次");
   }
   await Promise.all([loadUser(), refresh()]);
