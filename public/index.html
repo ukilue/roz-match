@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO 糾團佈告欄</title>
+<title>RO 揪團佈告欄</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -190,12 +190,13 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
 
 <header>
   <div class="logo" onclick="showView('home')">
-    <span class="px">RO</span><span class="zh">糾團佈告欄</span>
+    <span class="px">RO</span><span class="zh">揪團佈告欄</span>
   </div>
   <nav>
-    <button class="nav-btn" id="nav-home" onclick="showView('home')">登記糾團</button>
-    <button class="nav-btn" id="nav-mine" onclick="showView('mine')">我的糾團</button>
-    <button class="nav-btn" id="nav-all"  onclick="showView('all')">所有糾團</button>
+    <button class="nav-btn" id="nav-home" onclick="showView('home')">登記揪團</button>
+    <button class="nav-btn" id="nav-mine" onclick="showView('mine')">我的揪團</button>
+    <button class="nav-btn" id="nav-all"  onclick="showView('all')">所有揪團</button>
+    <button class="nav-btn" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </nav>
 </header>
 
@@ -240,25 +241,26 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
     <div class="panel">
       <div class="panel-title">佈告欄規則</div>
       <div class="panel-body" style="font-size:14px;line-height:2">
+        使用登記、加入、退出與留言功能，需先以 <b>Discord 登入</b>並為公會伺服器成員（點右上角按鈕）。<br>
         同一時段、同一目標滿 <b>3 人</b>即開團成功，單團上限 <b>12 人</b>；同時段人數過多會自動平均拆團。<br>
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級朱諾毀葛需 100 級以上</b>、<b>105級朱諾毀葛需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
         集合地點由系統隨機指派：<b>斐揚卡普拉、吉芬塔前、艾爾貝塔卡普拉</b>。<br>
-        糾團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
-        隱私保護：<b>開團時間到之前，其他成員的角色 ID 會先遮罩</b>，時間到、實際開團後才公開；團員可在「我的糾團」明細的留言板先行溝通。
+        揪團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
+        隱私保護：<b>開團時間到之前，其他成員的角色 ID 會先遮罩</b>，時間到、實際開團後才公開；團員可在「我的揪團」明細的留言板先行溝通。
       </div>
     </div>
   </section>
 
-  <!-- ═══ 我的糾團 ═══ -->
+  <!-- ═══ 我的揪團 ═══ -->
   <section class="view" id="view-mine">
     <div class="panel">
-      <div class="panel-title">查詢我的糾團</div>
+      <div class="panel-title">查詢我的揪團</div>
       <div class="panel-body">
         <div class="form-grid">
           <div><label>角色 ID</label><input id="m-id" maxlength="24" placeholder="輸入登記時的角色 ID"></div>
           <div><label>角色等級</label><input id="m-lv" type="number" min="1" max="110" placeholder="輸入登記時的等級"></div>
-          <div class="full"><button class="btn blue" onclick="lookupMine()">查看我的糾團</button></div>
+          <div class="full"><button class="btn blue" onclick="lookupMine()">查看我的揪團</button></div>
         </div>
       </div>
     </div>
@@ -266,17 +268,17 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
     <div id="mine-empty" class="empty" style="display:none">尚未查到登記紀錄，請確認角色 ID 與等級。</div>
   </section>
 
-  <!-- ═══ 所有糾團 ═══ -->
+  <!-- ═══ 所有揪團 ═══ -->
   <section class="view" id="view-all">
     <div class="panel">
-      <div class="panel-title">即將到來的糾團 <small>時間由近到遠</small></div>
+      <div class="panel-title">即將到來的揪團 <small>時間由近到遠</small></div>
       <div class="panel-body" style="padding:14px 18px">
-        <input id="search-q" placeholder="🔍 輸入糾團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
-        <p class="hint">同時間、同目標的糾團，快滿人的會排在前面。</p>
+        <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
+        <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
       </div>
     </div>
     <div id="all-cards" class="cards"></div>
-    <div id="all-empty" class="empty" style="display:none">目前佈告欄上沒有糾團，快去登記第一張吧！</div>
+    <div id="all-empty" class="empty" style="display:none">目前佈告欄上沒有揪團，快去登記第一張吧！</div>
   </section>
 
 </main>
@@ -284,7 +286,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
 <!-- ═══ 明細彈窗 ═══ -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal panel">
-    <div class="panel-title"><span id="d-title">糾團明細</span><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="panel-title"><span id="d-title">揪團明細</span><button class="close-x" onclick="closeModal()">✕</button></div>
     <div class="panel-body" id="d-body"></div>
   </div>
 </div>
@@ -318,10 +320,42 @@ const hashStr = s => { let h=7; for(let i=0;i<s.length;i++) h=(h*31 + s.charCode
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 
-/* ─── 資料層：Cloudflare Pages Functions（共用）或瀏覽器（單機備援） ─── */
-const TOKENS = (()=>{ try{ return JSON.parse(localStorage.getItem("ro-party-tokens")||"{}"); }catch(e){ return {}; } })();
-function saveToken(uid, token){ TOKENS[uid]=token; localStorage.setItem("ro-party-tokens", JSON.stringify(TOKENS)); }
+/* ─── Discord 登入狀態 ─── */
+let USER = null;   // {id, name} 或 null
+async function loadUser(){
+  try{
+    const r = await fetch(API+"/auth/me");
+    USER = r.ok ? await r.json() : null;
+  }catch(e){ USER = null; }
+  const btn = $("auth-btn");
+  if(USER){
+    btn.textContent = "🎮 "+USER.name+"｜登出";
+    btn.style.background = "#3BA55D"; btn.style.borderColor = "#3BA55D";
+  }else{
+    btn.textContent = "Discord 登入";
+    btn.style.background = "#5865F2"; btn.style.borderColor = "#5865F2";
+  }
+  if(store.online) $("mode-tag").textContent = USER ? "共用模式｜已登入" : "共用模式｜未登入";
+}
+async function authAction(){
+  if(USER){
+    await fetch(API+"/auth/logout", {method:"POST"});
+    USER = null;
+    await loadUser();
+    toast("已登出");
+  }else{
+    location.href = API+"/auth/login";
+  }
+}
+// 登記／加入／退出／留言前的守門：共用模式必須登入
+function requireLogin(){
+  if(!store.online) return true;   // 單機預覽模式不需登入
+  if(USER) return true;
+  toast("請先以 Discord 登入並加入公會伺服器");
+  return false;
+}
 
+/* ─── 資料層：Cloudflare Pages Functions（共用）或瀏覽器（單機備援） ─── */
 const store = {
   online: true,
   async load(){
@@ -341,8 +375,8 @@ const store = {
         const r = await fetch(API+"/regs",
           {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(reg)});
         const d = await r.json();
+        if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
         if(!r.ok){ toast(d.error||"登記失敗"); return false; }
-        saveToken(d.uid, d.token);        // 退團憑證只存在自己的瀏覽器
         return true;
       }catch(e){ this.online=false; toast("連線失敗，已存到本機"); }
     }
@@ -352,12 +386,10 @@ const store = {
   },
   async remove(reg){
     if(this.online){
-      const token = TOKENS[reg.uid];
-      if(!token){ toast("為防止惡意退團，只能從當初登記的裝置退出"); return false; }
       try{
-        const r = await fetch(API+"/regs/"+encodeURIComponent(reg.uid),
-          {method:"DELETE",headers:{"X-Token":token}});
+        const r = await fetch(API+"/regs/"+encodeURIComponent(reg.uid), {method:"DELETE"});
         const d = await r.json();
+        if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
         if(!r.ok){ toast(d.error||"退出失敗"); return false; }
         return true;
       }catch(e){ toast("連線失敗，請稍後再試"); return false; }
@@ -379,8 +411,9 @@ const store = {
   async chatAdd(key, msg){
     if(this.online){
       try{
-        await fetch(API+"/chats/"+encodeURIComponent(key),
+        const r = await fetch(API+"/chats/"+encodeURIComponent(key),
           {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(msg)});
+        if(r.status===401){ const d=await r.json(); toast(d.error||"請先登入 Discord"); USER=null; loadUser(); }
         return;
       }catch(e){ toast("留言送出失敗"); return; }
     }
@@ -390,7 +423,7 @@ const store = {
 };
 
 let REGS = [];          // 所有登記
-let PARTIES = [];       // 演算後的糾團
+let PARTIES = [];       // 演算後的揪團
 let currentView = "home";
 let openPartyId = null;
 let notified = new Set(JSON.parse(localStorage.getItem("ro-party-notified")||"[]"));
@@ -457,7 +490,7 @@ function splitCluster(act, members, is, ie){
       ok: canForm(act, g),
       location: LOCATIONS[locHash % LOCATIONS.length],
       leader: g[hashStr(id+"L") % g.length],
-      // 四位數糾團編號：以創團者為基準，成員增減不會變，方便遊戲內廣播
+      // 四位數揪團編號：以創團者為基準，成員增減不會變，方便遊戲內廣播
       num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
       chatKey: "c"+hashStr(stable+"|"+todayKey()).toString(36)+hashStr(stable+"|chat").toString(36)
     };
@@ -479,7 +512,7 @@ function showView(v){
 function statusOf(p){
   if(p.ok && nowMin() >= p.time) return {cls:"live", label:"時間已到", frame:"ok"};
   if(p.members.length >= MAX_PARTY) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
-  if(!p.ok) return {cls:"wait", label:"糾團中", frame:""};
+  if(!p.ok) return {cls:"wait", label:"揪團中", frame:""};
   return {cls:"ok", label:"開團成功", frame:"ok"};
 }
 function cardHTML(p, source){
@@ -512,10 +545,10 @@ function renderAll(){
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
   $("all-cards").innerHTML = upcoming.map(p=>cardHTML(p,"all")).join("");
   $("all-empty").style.display = upcoming.length ? "none" : "block";
-  if(q && !upcoming.length) $("all-empty").textContent = "找不到符合「"+q+"」的糾團";
-  else $("all-empty").textContent = "目前佈告欄上沒有糾團，快去登記第一張吧！";
+  if(q && !upcoming.length) $("all-empty").textContent = "找不到符合「"+q+"」的揪團";
+  else $("all-empty").textContent = "目前佈告欄上沒有揪團，快去登記第一張吧！";
 }
-let viewer = null;   // 目前在「我的糾團」查詢的角色身分 {id, lv}
+let viewer = null;   // 目前在「我的揪團」查詢的角色身分 {id, lv}
 function lookupMine(){
   const id = $("m-id").value.trim(), lv = $("m-lv").value.trim();
   if(!id || !lv) return toast("請輸入角色 ID 與角色等級");
@@ -552,14 +585,14 @@ function openDetail(pid, source){
   const st = statusOf(p);
   const started = p.ok && nowMin() >= p.time;
   const viewerMember = viewer ? p.members.find(m=>m.charId===viewer.id && String(m.level)===viewer.lv) : null;
-  // 只有「我的糾團」查詢的角色恰好是被指派的隊長，才顯示您是隊長
+  // 只有「我的揪團」查詢的角色恰好是被指派的隊長，才顯示您是隊長
   const iAmLeader = started && !!viewerMember && viewerMember.charId===p.leader.charId;
   const dg = isDungeon(p.activity);
   // 開團時間到才公開 ID；在那之前只有自己看得到自己
   const showId = m => started || (viewerMember && m.charId===viewerMember.charId && String(m.level)===String(viewerMember.level)) ? esc(m.charId) : esc(maskId(m.charId));
 
   let main = `
-    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">糾團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
+    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">開團時間</b>${toHM(p.time)}（時段 ${toHM(p.time)}～${toHM(p.timeEnd)}）</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">集合地點</b>${p.ok?esc(p.location):"成團後公佈"}</div>
@@ -575,9 +608,9 @@ function openDetail(pid, source){
   }
 
   if(openSource === "mine"){
-    // 我的糾團：只有退出，沒有加入；右側附留言板
+    // 我的揪團：只有退出，沒有加入；右側附留言板
     if(!started && viewerMember){
-      main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出糾團</button></div>`;
+      main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出揪團</button></div>`;
     }
     const chat = `
       <div class="chat-box">
@@ -593,18 +626,18 @@ function openDetail(pid, source){
     if(draft) $("chat-input-el").value = draft;
     startChat(p);
   }else{
-    // 所有糾團：只有加入，沒有退出；滿團擋下
+    // 所有揪團：只有加入，沒有退出；滿團擋下
     if(!started && p.members.length >= MAX_PARTY){
       main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
     }else if(!started){
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
-        <label style="margin-bottom:8px">加入這個糾團</label>
+        <label style="margin-bottom:8px">加入這個揪團</label>
         <div class="form-grid">
           <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
           <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
           <div><input id="j-job" maxlength="20" placeholder="角色職業"></div>
-          <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入糾團</button></div>
+          <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入揪團</button></div>
           ${dg?`<div class="full" style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="j-bento" style="width:auto;transform:scale(1.3)"> 我是便當（由打手帶飛）</label></div>`:""}
         </div>
       </div>`;
@@ -618,10 +651,11 @@ function openDetail(pid, source){
       if($("j-bento")) $("j-bento").checked = joinDraft.bento;
     }
   }
-  $("d-title").textContent = "糾團明細 #"+p.num;
+  $("d-title").textContent = "揪團明細 #"+p.num;
   $("overlay").classList.add("show");
 }
 async function exitParty(){
+  if(!requireLogin()) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
   if(!p || !viewer) return;
   const m = p.members.find(x=>x.charId===viewer.id && String(x.level)===viewer.lv);
@@ -631,7 +665,7 @@ async function exitParty(){
   await refresh();
   closeModal();
   lookupMine();
-  toast("已退出糾團");
+  toast("已退出揪團");
 }
 function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
 
@@ -660,11 +694,12 @@ async function loadChat(p){
   if(nearBottom) box.scrollTop = box.scrollHeight;
 }
 async function sendChat(){
+  if(!requireLogin()) return;
   const inp = $("chat-input-el");
   const text = (inp?inp.value:"").trim();
   if(!text) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
-  if(!p || !viewer) return toast("請先在「我的糾團」查詢你的角色");
+  if(!p || !viewer) return toast("請先在「我的揪團」查詢你的角色");
   inp.value = "";
   await store.chatAdd(p.chatKey, {name:viewer.id, text:text.slice(0,200), ts:Date.now()});
   loadChat(p);
@@ -687,6 +722,7 @@ function toggleBento(){
 }
 const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 async function submitReg(){
+  if(!requireLogin()) return;
   const charId=$("f-id").value.trim(), level=$("f-lv").value.trim(), job=$("f-job").value.trim();
   const s=$("f-start").value, e=$("f-end").value;
   if(!charId||!level||!job) return toast("請完整填寫角色 ID、等級與職業");
@@ -700,11 +736,12 @@ async function submitReg(){
   if(!added) return;
   rememberMe(charId);
   await refresh();
-  toast("登記完成！可到「我的糾團」查看進度");
+  toast("登記完成！可到「我的揪團」查看進度");
   askNotify();
   $("f-id").value=$("f-lv").value=$("f-job").value="";
 }
 async function joinParty(){
+  if(!requireLogin()) return;
   const p = PARTIES.find(x=>x.id===openPartyId); if(!p) return;
   const charId=$("j-id").value.trim(), level=$("j-lv").value.trim(), job=$("j-job").value.trim();
   if(!charId||!level||!job) return toast("請完整填寫角色 ID、等級與職業");
@@ -719,7 +756,7 @@ async function joinParty(){
   rememberMe(charId);
   await refresh();
   closeModal();
-  toast("已為你登記加入這個糾團！");
+  toast("已為你登記加入這個揪團！");
   askNotify();
 }
 
@@ -733,7 +770,7 @@ function checkNotify(){
   PARTIES.forEach(p=>{
     if(p.ok && now>=p.time && now<=p.timeEnd && !notified.has(p.id)
        && p.members.some(m=>myIds.has(m.charId))){
-      new Notification("糾團時間已到！",{ body:`「${p.activity}」請查看團員並前往 ${p.location} 集合`, tag:p.id });
+      new Notification("揪團時間已到！",{ body:`「${p.activity}」請查看團員並前往 ${p.location} 集合`, tag:p.id });
       notified.add(p.id);
       localStorage.setItem("ro-party-notified", JSON.stringify([...notified]));
     }
@@ -779,8 +816,16 @@ async function refresh(){
   $("f-start").addEventListener("change", fillEndSelect);
   setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的時段
   showView("home");
-  await refresh();
-  $("mode-tag").textContent = store.online ? "共用模式" : "單機模式（僅本瀏覽器）";
+  // OAuth 回跳結果提示
+  const auth = new URLSearchParams(location.search).get("auth");
+  if(auth){
+    history.replaceState(null, "", location.pathname);
+    if(auth==="ok") toast("Discord 登入成功！");
+    else if(auth==="notmember") toast("你的 Discord 帳號尚未加入公會伺服器，無法使用登記功能");
+    else toast("Discord 登入失敗，請再試一次");
+  }
+  await Promise.all([loadUser(), refresh()]);
+  $("mode-tag").textContent = store.online ? (USER ? "共用模式｜已登入" : "共用模式｜未登入") : "單機模式（僅本瀏覽器）";
   setInterval(refresh, POLL_MS);
 })();
 </script>
