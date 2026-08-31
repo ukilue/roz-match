@@ -245,7 +245,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
         同一時段、同一目標滿 <b>3 人</b>即開團成功，單團上限 <b>12 人</b>；同時段人數過多會自動平均拆團。<br>
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
-        集合地點由系統隨機指派：<b>斐揚卡普拉、吉芬塔前、艾爾貝塔卡普拉</b>。<br>
+        集合地點不由系統指派，請團員在揪團明細的<b>留言板</b>自行溝通協調。<br>
         揪團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
         隱私保護：<b>開團時間到之前，其他成員的角色 ID 會先遮罩</b>，時間到、實際開團後才公開；團員可在「我的揪團」明細的留言板先行溝通。
       </div>
@@ -297,9 +297,8 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
    若 /api 無法連線（例如直接開啟本機檔案預覽），自動退回單機模式。 */
 const API = "/api";
 // 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
-const DISCORD_INVITE_URL = "https://discord.gg/請填入你的邀請碼";
+const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
-const LOCATIONS = ["斐揚卡普拉","吉芬塔前","艾爾貝塔卡普拉"];
 const DUNGEONS = ["副本4困1普","副本3困2普"];
 const MAX_PARTY = 12, MIN_PARTY = 3, MIN_FIGHTERS = 5, POLL_MS = 25000;
 const isDungeon = act => DUNGEONS.includes(act);
@@ -447,7 +446,7 @@ const myNames = () => new Set(REGS.filter(r=>r.mine).map(r=>r.charId));
    1. 只看今天的登記，依「要做的事情」分堆
    2. 依開始時間排序，貪婪找出「時間區間有交集」的一群人
    3. 交集起點 = 開團時間；滿 3 人開團成功，超過 12 人平均拆團
-   4. 集合點、隊長皆以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
+   4. 隊長以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
 function buildParties(regs){
   const t = todayKey();
   const byAct = {};
@@ -472,7 +471,7 @@ function buildParties(regs){
 function splitCluster(act, members, is, ie){
   const groups = [];
   // 依「登記時間」排序後再分組：新加入者永遠排在最後，
-  // 既有成員的分組不會因為有人加入而重新洗牌 → 揪團編號、集合地點、留言板都不變動
+  // 既有成員的分組不會因為有人加入而重新洗牌 → 揪團編號、留言板都不變動
   const byTs = arr => arr.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
   if(canForm(act, members)){
     let count = Math.ceil(members.length / MAX_PARTY);
@@ -497,15 +496,13 @@ function splitCluster(act, members, is, ie){
   }else groups.push(byTs(members));
   return groups.map(g=>{
     const id = act+"|"+toHM(is)+"|"+g.map(m=>m.charId).sort().join(",");
-    // 編號、集合地點、留言板只看「這一團最早登記的創團者」：
+    // 編號、留言板只看「這一團最早登記的創團者」：
     // 有人加入／退出、或因人數增加而拆團，含創團者的那團一律不變號
     const founder = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
     const stable = act+"|"+founder.charId+"|"+(founder.ts||0);
-    const locHash = hashStr(stable);
     return {
       id, activity:act, members:g, time:is, timeEnd:ie,
       ok: canForm(act, g),
-      location: LOCATIONS[locHash % LOCATIONS.length],
       leader: g[hashStr(id+"L") % g.length],
       // 四位數揪團編號：錨定創團者，方便遊戲內廣播
       num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
@@ -549,7 +546,6 @@ function cardHTML(p, source){
     <span class="stamp ${st.cls}">${st.label}</span>
     <div class="act">${esc(p.activity)}</div>
     <div class="row"><b>開團時間</b>${toHM(p.time)}（可至 ${toHM(p.timeEnd)}）</div>
-    ${p.ok ? `<div class="row"><b>集合地點</b>${esc(p.location)}</div>` : `<div class="row"><b>集合地點</b>成團後公佈</div>`}
     <div class="row"><b>目前人數</b>${countText}</div>
     ${!full && remain<=3 ? `<div class="row"><span class="almost">⚡ 即將滿團（剩 ${remain} 位）</span></div>` : ""}
     <div class="count-bar"><i class="${full?"full":""}" style="width:${pct}%"></i></div>
@@ -610,7 +606,6 @@ function openDetail(pid, source){
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">開團時間</b>${toHM(p.time)}（時段 ${toHM(p.time)}～${toHM(p.timeEnd)}）</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">集合地點</b>${p.ok?esc(p.location):"成團後公佈"}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，打手 "+fighterCount(p.members)+"／便當 "+(p.members.length-fighterCount(p.members)):""}）</div>
     ${started?"":`<p class="hint" style="margin-top:6px">開團時間到之前，其他成員的角色 ID 會先遮罩保護。</p>`}
     <ul class="member-list">` +
@@ -619,11 +614,12 @@ function openDetail(pid, source){
   if(started){
     main += iAmLeader
       ? `<div class="notice leader"><b>您是隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請上列成員入隊。</div>`
-      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，並前往 <b>${esc(p.location)}</b> 集合。</div>`;
+      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，集合地點請於留言板協調。</div>`;
   }
 
-  if(openSource === "mine"){
-    // 我的揪團：只有退出，沒有加入；右側附留言板
+  // 只要這個團裡有「我的登記」，不論從哪個頁面點進來，
+  // 一律顯示成員視角：退出揪團按鈕＋團員留言板（不顯示加入表單）
+  if(viewerMember){
     if(!started && viewerMember){
       main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出揪團</button></div>`;
     }
@@ -641,7 +637,7 @@ function openDetail(pid, source){
     if(draft) $("chat-input-el").value = draft;
     startChat(p);
   }else{
-    // 所有揪團：只有加入，沒有退出；滿團擋下；未登入不顯示加入表單
+    // 不含我的登記的團：顯示加入（滿團擋下；未登入不顯示加入表單）
     if(!started && p.members.length >= MAX_PARTY){
       main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
     }else if(!started && store.online && !USER){
@@ -786,7 +782,7 @@ function checkNotify(){
   PARTIES.forEach(p=>{
     if(p.ok && now>=p.time && now<=p.timeEnd && !notified.has(p.id)
        && p.members.some(m=>m.mine)){
-      new Notification("揪團時間已到！",{ body:`「${p.activity}」請查看團員並前往 ${p.location} 集合`, tag:p.id });
+      new Notification("揪團時間已到！",{ body:`「${p.activity}」請查看團員，集合地點請至留言板協調`, tag:p.id });
       notified.add(p.id);
       localStorage.setItem("ro-party-notified", JSON.stringify([...notified]));
     }
