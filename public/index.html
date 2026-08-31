@@ -194,7 +194,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
   </div>
   <nav>
     <button class="nav-btn" id="nav-home" onclick="showView('home')">登記揪團</button>
-    <button class="nav-btn" id="nav-mine" onclick="showView('mine')">我的揪團</button>
+    <button class="nav-btn" id="nav-mine" onclick="showView('mine')" style="display:none">我的揪團</button>
     <button class="nav-btn" id="nav-all"  onclick="showView('all')">所有揪團</button>
     <button class="nav-btn" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </nav>
@@ -210,13 +210,13 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
         <div class="form-grid">
           <div><label>角色 ID</label><input id="f-id" maxlength="24" placeholder="例：波利獵人小明"></div>
           <div><label>角色等級</label><input id="f-lv" type="number" min="1" max="110" placeholder="1～110"></div>
-          <div><label>角色職業</label><input id="f-job" maxlength="20" placeholder="例：十字刺客"></div>
+          <div><label>角色職業</label><input id="f-job" maxlength="20" placeholder="例：刺客"></div>
           <div>
             <label>要做的事情</label>
             <select id="f-act" onchange="toggleBento()">
               <option value="90級每日">90級每日</option>
-              <option value="100級朱諾毀葛每日">100級朱諾毀葛每日</option>
-              <option value="105級朱諾毀葛每日">105級朱諾毀葛每日</option>
+              <option value="100級每日">100級每日</option>
+              <option value="100+105級每日">100+105級每日</option>
               <option value="副本4困1普">副本4困1普</option>
               <option value="副本3困2普">副本3困2普</option>
             </select>
@@ -243,7 +243,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
       <div class="panel-body" style="font-size:14px;line-height:2">
         使用登記、加入、退出與留言功能，需先以 <b>Discord 登入</b>並為公會伺服器成員（點右上角按鈕）。<br>
         同一時段、同一目標滿 <b>3 人</b>即開團成功，單團上限 <b>12 人</b>；同時段人數過多會自動平均拆團。<br>
-        等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級朱諾毀葛需 100 級以上</b>、<b>105級朱諾毀葛需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
+        等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
         集合地點由系統隨機指派：<b>斐揚卡普拉、吉芬塔前、艾爾貝塔卡普拉</b>。<br>
         揪團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
@@ -297,7 +297,7 @@ input:focus,select:focus{border-color:var(--ro-blue);box-shadow:0 0 0 3px #4A6FA
    若 /api 無法連線（例如直接開啟本機檔案預覽），自動退回單機模式。 */
 const API = "/api";
 // 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
-const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
+const DISCORD_INVITE_URL = "https://discord.gg/請填入你的邀請碼";
 
 const LOCATIONS = ["斐揚卡普拉","吉芬塔前","艾爾貝塔卡普拉"];
 const DUNGEONS = ["副本4困1普","副本3困2普"];
@@ -341,6 +341,13 @@ async function loadUser(){
     btn.style.background = "#5865F2"; btn.style.borderColor = "#5865F2";
   }
   if(store.online) $("mode-tag").textContent = USER ? "共用模式｜已登入" : "共用模式｜未登入";
+  updateNavMine();
+}
+// 未登入時隱藏「我的揪團」（單機預覽模式不受限）
+function updateNavMine(){
+  const visible = USER || !store.online;
+  $("nav-mine").style.display = visible ? "" : "none";
+  if(!visible && currentView==="mine") showView("home");
 }
 async function authAction(){
   if(USER){
@@ -712,14 +719,13 @@ async function sendChat(){
 }
 
 /* ─── 登記 / 加入 ─── */
+const LEVEL_REQ = {"90級每日":90, "100級每日":100, "100+105級每日":105, "副本4困1普":90, "副本3困2普":90};
 function levelCheck(activity, level){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
   if(lv > 110) return "角色等級不能超過 110";
-  if(activity.startsWith("90級")  && lv < 90)  return "此每日需 90 級以上才能登記";
-  if(activity.startsWith("100級") && lv < 100) return "此每日需 100 級以上才能登記";
-  if(activity.startsWith("105級") && lv < 105) return "此每日需 105 級以上才能登記";
-  if(isDungeon(activity) && lv < 90) return "副本需 90 級以上才能登記";
+  const need = LEVEL_REQ[activity];
+  if(need && lv < need) return "此活動需 "+need+" 級以上才能登記";
   return "";
 }
 function toggleBento(){
@@ -833,6 +839,7 @@ async function refresh(){
   }
   await Promise.all([loadUser(), refresh()]);
   $("mode-tag").textContent = store.online ? (USER ? "共用模式｜已登入" : "共用模式｜未登入") : "單機模式（僅本瀏覽器）";
+  updateNavMine();
   setInterval(refresh, POLL_MS);
 })();
 </script>
