@@ -3,7 +3,8 @@
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
 import { getSession, needLogin } from "./_auth.js";
 
-const ACTS = ["90級每日","100級朱諾毀葛每日","105級朱諾毀葛每日","副本4困1普","副本3困2普"];
+const ACTS = ["90級每日","100級每日","100+105級每日","副本4困1普","副本3困2普"];
+const LEVEL_REQ = { "90級每日":90, "100級每日":100, "100+105級每日":105, "副本4困1普":90, "副本3困2普":90 };
 const isDungeon = a => a === "副本4困1普" || a === "副本3困2普";
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -58,10 +59,8 @@ export async function onRequestPost({ request, env }) {
   if (!charId || !job) return bad("資料不完整");
   if (!ACTS.includes(activity)) return bad("目標不存在");
   if (!Number.isInteger(level) || level < 1 || level > 110) return bad("角色等級須為 1～110");
-  if (activity.startsWith("90級") && level < 90) return bad("此每日需 90 級以上");
-  if (activity.startsWith("100級") && level < 100) return bad("此每日需 100 級以上");
-  if (activity.startsWith("105級") && level < 105) return bad("此每日需 105 級以上");
-  if (isDungeon(activity) && level < 90) return bad("副本需 90 級以上");
+  const needLv = LEVEL_REQ[activity];
+  if (needLv && level < needLv) return bad(`此活動需 ${needLv} 級以上`);
   if (!HM.test(start) || !HM.test(end)) return bad("時間格式錯誤");
   if (!DATE.test(date)) return bad("日期格式錯誤");
   if (toMin(end) <= toMin(start)) return bad("結束時間必須晚於開始時間");
