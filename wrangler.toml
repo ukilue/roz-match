@@ -1,5 +1,5 @@
 name = "roz-match"
-compatibility_date = "2026-01-01"
+compatibility_date = "2026-08-31"
 pages_build_output_dir = "public"
 
 # D1 資料庫綁定：database_id 請換成你建立資料庫後拿到的 ID
