@@ -1,9 +1,9 @@
-name = "ro-party"
+name = "roz-match"
 compatibility_date = "2026-01-01"
 pages_build_output_dir = "public"
 
 # D1 資料庫綁定：database_id 請換成你建立資料庫後拿到的 ID
 [[d1_databases]]
 binding = "DB"
-database_name = "ro-party"
-database_id = "955097d9-a016-4581-898f-4a8ddfb9cd9b"
+database_name = "roz-match"
+database_id = "1ba1181c-db82-4e17-9e52-23015c53554b"
