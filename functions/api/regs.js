@@ -30,11 +30,13 @@ const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m;
 export async function onRequestGet({ request, env }) {
   const date = new URL(request.url).searchParams.get("date") || "";
   if (!DATE.test(date)) return bad("date 格式錯誤");
+  const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
-  return json(results.map(r => ({ ...r, bento: !!r.bento })));
+  return json(results.map(({ discordId, ...r }) =>
+    ({ ...r, bento: !!r.bento, mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
