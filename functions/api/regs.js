@@ -1,6 +1,7 @@
-// /api/regs — GET 查詢當日登記、POST 新增登記
+// /api/regs — GET 查詢當日登記、POST 新增登記（需 Discord 登入＋公會伺服器成員）
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
-// token 只在建立時回傳給本人，之後的查詢絕不包含 token。
+// 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
+import { getSession, needLogin } from "./_auth.js";
 
 const ACTS = ["90級每日","100級朱諾毀葛每日","105級朱諾毀葛每日","副本4困1普","副本3困2普"];
 const isDungeon = a => a === "副本4困1普" || a === "副本3困2普";
@@ -11,7 +12,7 @@ const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 const bad = (msg, status = 400) => json({ error: msg }, status);
 
-// 以台灣時區判斷「今天」與現在時間
+// 以台灣時區判斷「今天」與現在時間；查詢絕不回傳 discordId（防對照身分）
 function taipeiNow() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Taipei",
@@ -37,6 +38,9 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const user = await getSession(request, env);
+  if (!user) return needLogin();
+
   let b;
   try { b = await request.json(); } catch { return bad("JSON 格式錯誤"); }
 
@@ -61,21 +65,20 @@ export async function onRequestPost({ request, env }) {
   if (toMin(end) <= toMin(start)) return bad("結束時間必須晚於開始時間");
 
   const tw = taipeiNow();
-  if (date !== tw.date) return bad("只能登記今天的糾團");
+  if (date !== tw.date) return bad("只能登記今天的揪團");
   if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
 
-  // 防灌水：同角色同日登記數上限
+  // 防灌水：同 Discord 帳號同日登記數上限
   const cnt = await env.DB
-    .prepare("SELECT COUNT(*) AS c FROM regs WHERE date = ? AND charId = ?")
-    .bind(date, charId).first();
-  if (cnt && cnt.c >= 20) return bad("此角色今日登記次數已達上限");
+    .prepare("SELECT COUNT(*) AS c FROM regs WHERE date = ? AND discordId = ?")
+    .bind(date, user.id).first();
+  if (cnt && cnt.c >= 20) return bad("你今日的登記次數已達上限");
 
   const uid = crypto.randomUUID();
-  const token = crypto.randomUUID();
   await env.DB
-    .prepare(`INSERT INTO regs (uid, token, charId, level, job, activity, startHM, endHM, date, bento, ts)
+    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, bento, ts)
               VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(uid, token, charId, level, job, activity, start, end, date, bento, Date.now())
+    .bind(uid, user.id, charId, level, job, activity, start, end, date, bento, Date.now())
     .run();
-  return json({ uid, token });
+  return json({ uid });
 }
