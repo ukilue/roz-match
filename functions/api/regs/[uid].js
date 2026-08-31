@@ -1,18 +1,18 @@
-// DELETE /api/regs/:uid — 退出糾團
-// 必須附上登記時發放的 token（存在登記者自己的瀏覽器），
-// 沒有 token 無法刪除任何人的登記 → 從根本杜絕惡意幫別人退團。
-
-const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
+// DELETE /api/regs/:uid — 退出揪團
+// 需登入 Discord，且這筆登記必須是本人帳號建立的，
+// 從根本杜絕惡意幫別人退團；也不再受限於「同一台裝置」。
+import { getSession, json, needLogin } from "../_auth.js";
 
 export async function onRequestDelete({ request, env, params }) {
-  const uid = String(params.uid || "");
-  const token = request.headers.get("X-Token") || "";
-  if (!uid || !token) return json({ error: "缺少驗證資訊" }, 400);
+  const user = await getSession(request, env);
+  if (!user) return needLogin();
 
-  const row = await env.DB.prepare("SELECT token FROM regs WHERE uid = ?").bind(uid).first();
+  const uid = String(params.uid || "");
+  if (!uid) return json({ error: "缺少參數" }, 400);
+
+  const row = await env.DB.prepare("SELECT discordId FROM regs WHERE uid = ?").bind(uid).first();
   if (!row) return json({ error: "找不到這筆登記" }, 404);
-  if (row.token !== token) return json({ error: "只能退出自己登記的糾團" }, 403);
+  if (row.discordId !== user.id) return json({ error: "只能退出自己 Discord 帳號登記的揪團" }, 403);
 
   await env.DB.prepare("DELETE FROM regs WHERE uid = ?").bind(uid).run();
   return json({ deleted: true });
