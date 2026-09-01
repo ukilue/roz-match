@@ -3,7 +3,7 @@
 // 2. 用 code + Client Secret（僅存於後端環境變數）換 access token
 // 3. 取得使用者資料，並查其加入的伺服器清單
 // 4. 必須是 DISCORD_GUILD_ID 指定伺服器的成員，才發放 Session Cookie
-import { makeSession, sessionCookie } from "../_auth.js";
+import { createSession, sessionCookie } from "../_auth.js";
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -58,13 +58,13 @@ export async function onRequestGet({ request, env }) {
     // 其他狀態（Bot 權限不足等）→ 落回未加入流程，前端仍會引導手動加入
   }
 
-  const sess = await makeSession(env,
+  const sid = await createSession(env,
     { id: user.id, name: user.global_name || user.username, member: isMember },
     isMember ? 7 * 864e5 : 10 * 60 * 1000);   // 非成員 10 分鐘，加入後重新登入即重新驗證
   const headers = new Headers({
     Location: isMember ? (autoJoined ? "/?auth=joined" : "/?auth=ok") : "/?auth=nonmember"
   });
-  headers.append("Set-Cookie", sessionCookie(sess, isMember ? 7 * 86400 : 600));
+  headers.append("Set-Cookie", sessionCookie(sid, isMember ? 7 * 86400 : 600));
   headers.append("Set-Cookie", "ro_state=; Path=/; Max-Age=0");
   return new Response(null, { status: 302, headers });
 }

@@ -1,40 +1,52 @@
 // functions/api/_auth.js — 共用認證工具（底線開頭的檔案不會成為路由）
-// Session 採 HMAC-SHA256 簽章的 Cookie，密鑰存於 Cloudflare 環境變數，前端拿不到。
+//
+// 伺服器端 Session 設計：
+// - Cookie 只存 64 字元的隨機亂數（sid），不含任何身分資料 → 沒有可竄改的內容，
+//   改動任何一個字元都只會變成「查無此 Session」。
+// - 身分資料（Discord ID、暱稱、成員資格、效期）全部存在 D1 的 sessions 表。
+// - 資料庫存的是 sid 的 SHA-256 雜湊：就算資料庫內容外洩，也無法反推出可用的 Cookie。
+// - 登出＝刪除資料列，Session 立即在所有裝置失效（可撤銷）。
 
 const enc = new TextEncoder();
 
-const b64u = buf =>
-  btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const strToB64u = s =>
-  btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const b64uToStr = s => {
-  s = s.replace(/-/g, "+").replace(/_/g, "/");
-  while (s.length % 4) s += "=";
-  return decodeURIComponent(escape(atob(s)));
-};
-
-async function sign(secret, data) {
-  const key = await crypto.subtle.importKey(
-    "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return b64u(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
+async function sha256hex(s) {
+  const d = await crypto.subtle.digest("SHA-256", enc.encode(s));
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function randomSid() {
+  const a = new Uint8Array(32);                       // 256 bits 亂數
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function readSid(request) {
+  const m = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)ro_sess=([a-f0-9]{64})/);
+  return m ? m[1] : null;
 }
 
-export async function makeSession(env, user, ttlMs = 7 * 864e5) {
-  const payload = strToB64u(JSON.stringify({ ...user, exp: Date.now() + ttlMs }));
-  return payload + "." + (await sign(env.SESSION_SECRET, payload));
+export async function createSession(env, user, ttlMs = 7 * 864e5) {
+  const sid = randomSid();
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM sessions WHERE exp < ?").bind(now).run();   // 順手清除過期 Session
+  await env.DB
+    .prepare("INSERT INTO sessions (sidHash, discordId, name, member, exp) VALUES (?,?,?,?,?)")
+    .bind(await sha256hex(sid), user.id, user.name, user.member ? 1 : 0, now + ttlMs)
+    .run();
+  return sid;
 }
 
 export async function getSession(request, env) {
-  if (!env.SESSION_SECRET) return null;
-  const m = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)ro_sess=([^;]+)/);
-  if (!m) return null;
-  const [payload, sig] = m[1].split(".");
-  if (!payload || !sig) return null;
-  if ((await sign(env.SESSION_SECRET, payload)) !== sig) return null;
-  let u;
-  try { u = JSON.parse(b64uToStr(payload)); } catch { return null; }
-  if (!u.exp || Date.now() > u.exp) return null;
-  return u; // { id, name, exp }
+  const sid = readSid(request);
+  if (!sid) return null;
+  const row = await env.DB
+    .prepare("SELECT discordId, name, member, exp FROM sessions WHERE sidHash = ?")
+    .bind(await sha256hex(sid)).first();
+  if (!row || Date.now() > row.exp) return null;
+  return { id: row.discordId, name: row.name, member: !!row.member };
+}
+
+export async function destroySession(request, env) {
+  const sid = readSid(request);
+  if (sid) await env.DB.prepare("DELETE FROM sessions WHERE sidHash = ?").bind(await sha256hex(sid)).run();
 }
 
 export const sessionCookie = (val, maxAge) =>
