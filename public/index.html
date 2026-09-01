@@ -247,7 +247,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
         集合地點不由系統指派，請團員在揪團明細的<b>留言板</b>自行溝通協調。<br>
-        揪團時間一到，系統會隨機指派一名隊長，請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
+        揪團時間一到，系統隨機指派一名隊長，並由 <b>Discord 機器人私訊全體團員</b>（含成員名單、開團時間與目標）；請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
         隱私保護：<b>開團時間到之前，其他成員的角色 ID 會先遮罩</b>，時間到、實際開團後才公開；團員可在「我的揪團」明細的留言板先行溝通。
       </div>
     </div>
@@ -480,7 +480,6 @@ let REGS = [];          // 所有登記
 let PARTIES = [];       // 演算後的揪團
 let currentView = "home";
 let openPartyId = null;
-let notified = new Set(JSON.parse(localStorage.getItem("ro-party-notified")||"[]"));
 // 「我的」判定：伺服器依 Discord 帳號在每筆登記標上 mine 旗標（單機模式則本機登記皆為 mine）
 const myNames = () => new Set(REGS.filter(r=>r.mine).map(r=>r.charId));
 
@@ -794,7 +793,6 @@ async function submitReg(){
   if(!added) return;
   await refresh();
   toast("登記完成！可到「我的揪團」查看進度");
-  askNotify();
   $("f-id").value=$("f-lv").value=$("f-job").value="";
 }
 async function joinParty(){
@@ -813,24 +811,6 @@ async function joinParty(){
   await refresh();
   closeModal();
   toast("已為你登記加入這個揪團！");
-  askNotify();
-}
-
-/* ─── 通知 ─── */
-function askNotify(){
-  if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
-}
-function checkNotify(){
-  if(!("Notification" in window) || Notification.permission!=="granted") return;
-  const now = nowMin();
-  PARTIES.forEach(p=>{
-    if(p.ok && now>=p.time && now<=p.timeEnd && !notified.has(p.id)
-       && p.members.some(m=>m.mine)){
-      new Notification("揪團時間已到！",{ body:`「${p.activity}」請查看團員，集合地點請至留言板協調`, tag:p.id });
-      notified.add(p.id);
-      localStorage.setItem("ro-party-notified", JSON.stringify([...notified]));
-    }
-  });
 }
 
 /* ─── 初始化與輪詢 ─── */
@@ -865,7 +845,6 @@ async function refresh(){
     const still = PARTIES.find(x=>x.id===openPartyId);
     if(still) openDetail(openPartyId, openSource);
   }
-  checkNotify();
 }
 (async function init(){
   fillTimeSelects();
