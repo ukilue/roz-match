@@ -20,7 +20,7 @@ export function taipeiNow() {
   return { date: `${g("year")}-${g("month")}-${g("day")}`, min: (Number(g("hour")) % 24) * 60 + Number(g("minute")) };
 }
 
-function splitCluster(act, members, is, ie, dateStr) {
+function splitCluster(act, members, is, ie, dateStr, removedRegs) {
   const groups = [];
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
   if (canForm(act, members)) {
@@ -43,10 +43,22 @@ function splitCluster(act, members, is, ie, dateStr) {
       byTs(members).forEach((m, i) => groups[i % count].push(m));
     }
   } else groups.push(byTs(members));
-  return groups.map(g => {
+  // 錨點：退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
+  const founderOf = g => g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId))[0];
+  const owns = groups.map(founderOf);
+  let primaryIdx = 0;
+  owns.forEach((f, i) => { const p0 = owns[primaryIdx];
+    if ((f.ts || 0) < (p0.ts || 0) || ((f.ts || 0) === (p0.ts || 0) && f.charId.localeCompare(p0.charId) < 0)) primaryIdx = i; });
+  const cands = (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end));
+  return groups.map((g, gi) => {
     const id = act + "|" + toHM(is) + "|" + g.map(m => m.charId).sort().join(",");
-    const founder = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId))[0];
-    const stable = act + "|" + founder.charId + "|" + (founder.ts || 0);
+    let anchor = owns[gi];
+    if (gi === primaryIdx) {
+      for (const c of cands) {
+        if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
+      }
+    }
+    const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
     return {
       id, activity: act, members: g, time: is, timeEnd: ie,
       ok: canForm(act, g),
@@ -58,13 +70,16 @@ function splitCluster(act, members, is, ie, dateStr) {
 }
 
 export function buildParties(regs, dateStr) {
+  const todays = regs.filter(r => r.date === dateStr);
   const byAct = {};
-  regs.filter(r => r.date === dateStr).forEach(r => { (byAct[r.activity] ||= []).push(r); });
+  todays.filter(r => !r.removed).forEach(r => { (byAct[r.activity] ||= []).push(r); });
+  const removedByAct = {};
+  todays.filter(r => r.removed).forEach(r => { (removedByAct[r.activity] ||= []).push(r); });
   const parties = [];
   for (const act in byAct) {
     const list = byAct[act].slice().sort((a, b) => toMin(a.start) - toMin(b.start) || a.charId.localeCompare(b.charId));
     let cluster = [], is = 0, ie = 0;
-    const flush = () => { if (cluster.length) parties.push(...splitCluster(act, cluster, is, ie, dateStr)); };
+    const flush = () => { if (cluster.length) parties.push(...splitCluster(act, cluster, is, ie, dateStr, removedByAct[act] || [])); };
     for (const r of list) {
       const s = toMin(r.start), e = toMin(r.end);
       if (!cluster.length) { cluster = [r]; is = s; ie = e; continue; }

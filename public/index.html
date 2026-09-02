@@ -455,7 +455,7 @@ const store = {
       }catch(e){ toast("連線失敗，請稍後再試"); return false; }
     }
     const list = await this.load();
-    localStorage.setItem("ro-party-regs", JSON.stringify(list.filter(r=>r.uid!==reg.uid)));
+    localStorage.setItem("ro-party-regs", JSON.stringify(list.map(r=>r.uid===reg.uid?{...r,removed:true}:r)));
     return true;
   },
   async chatLoad(key, after){
@@ -494,7 +494,7 @@ let PARTIES = [];       // 演算後的揪團
 let currentView = "home";
 let openPartyId = null;
 // 「我的」判定：伺服器依 Discord 帳號在每筆登記標上 mine 旗標（單機模式則本機登記皆為 mine）
-const myNames = () => new Set(REGS.filter(r=>r.mine).map(r=>r.charId));
+const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.charId));
 
 /* ─── 組團演算法（各端結果一致） ───
    1. 只看今天的登記，依「要做的事情」分堆
@@ -503,13 +503,16 @@ const myNames = () => new Set(REGS.filter(r=>r.mine).map(r=>r.charId));
    4. 隊長以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
 function buildParties(regs){
   const t = todayKey();
+  const todays = regs.filter(r=>r.date===t);
   const byAct = {};
-  regs.filter(r=>r.date===t).forEach(r=>{ (byAct[r.activity] ||= []).push(r); });
+  todays.filter(r=>!r.removed).forEach(r=>{ (byAct[r.activity] ||= []).push(r); });
+  const removedByAct = {};
+  todays.filter(r=>r.removed).forEach(r=>{ (removedByAct[r.activity] ||= []).push(r); });
   const parties = [];
   for(const act in byAct){
     const list = byAct[act].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || a.charId.localeCompare(b.charId));
     let cluster=[], is=0, ie=0;
-    const flush = ()=>{ if(cluster.length) parties.push(...splitCluster(act,cluster,is,ie)); };
+    const flush = ()=>{ if(cluster.length) parties.push(...splitCluster(act,cluster,is,ie,removedByAct[act]||[])); };
     for(const r of list){
       const s=toMin(r.start), e=toMin(r.end);
       if(!cluster.length){ cluster=[r]; is=s; ie=e; continue; }
@@ -522,7 +525,7 @@ function buildParties(regs){
   parties.sort((a,b)=> a.time-b.time || b.members.length-a.members.length || a.num.localeCompare(b.num));
   return parties;
 }
-function splitCluster(act, members, is, ie){
+function splitCluster(act, members, is, ie, removedRegs){
   const groups = [];
   // 依「登記時間」排序後再分組：新加入者永遠排在最後，
   // 既有成員的分組不會因為有人加入而重新洗牌 → 揪團編號、留言板都不變動
@@ -548,12 +551,22 @@ function splitCluster(act, members, is, ie){
       byTs(members).forEach((m,i)=>groups[i%count].push(m));   // 平均分配
     }
   }else groups.push(byTs(members));
-  return groups.map(g=>{
+  // 錨點：編號/留言板繫於「創團者」。退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
+  const founderOf = g => g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
+  const owns = groups.map(founderOf);
+  let primaryIdx = 0;
+  owns.forEach((f,i)=>{ const p0=owns[primaryIdx];
+    if((f.ts||0)<(p0.ts||0) || ((f.ts||0)===(p0.ts||0) && f.charId.localeCompare(p0.charId)<0)) primaryIdx=i; });
+  const cands = (removedRegs||[]).filter(r=> toMin(r.start) <= ie && is <= toMin(r.end));
+  return groups.map((g,gi)=>{
     const id = act+"|"+toHM(is)+"|"+g.map(m=>m.charId).sort().join(",");
-    // 編號、留言板只看「這一團最早登記的創團者」：
-    // 有人加入／退出、或因人數增加而拆團，含創團者的那團一律不變號
-    const founder = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
-    const stable = act+"|"+founder.charId+"|"+(founder.ts||0);
+    let anchor = owns[gi];
+    if(gi===primaryIdx){
+      for(const c of cands){
+        if((c.ts||0)<(anchor.ts||0) || ((c.ts||0)===(anchor.ts||0) && c.charId.localeCompare(anchor.charId)<0)) anchor=c;
+      }
+    }
+    const stable = act+"|"+anchor.charId+"|"+(anchor.ts||0);
     return {
       id, activity:act, members:g, time:is, timeEnd:ie,
       ok: canForm(act, g),
@@ -610,6 +623,11 @@ function renderAll(){
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
   let upcoming = PARTIES.filter(p=>p.timeEnd >= now);
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
+  // 尚未開團的在前（時間近→遠）；時間已到的排在後面
+  upcoming = upcoming.slice().sort((a,b)=>{
+    const as = now >= a.time ? 1 : 0, bs = now >= b.time ? 1 : 0;
+    return as - bs || a.time - b.time || b.members.length - a.members.length;
+  });
   $("all-cards").innerHTML = upcoming.map(p=>cardHTML(p,"all")).join("");
   $("all-empty").style.display = upcoming.length ? "none" : "block";
   if(q && !upcoming.length) $("all-empty").textContent = "找不到符合「"+q+"」的揪團";
@@ -732,6 +750,19 @@ function updateDetail(p){
   $("d-title").textContent = "揪團明細 #"+p.num;
 }
 function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
+async function exitParty(){
+  if(!requireLogin()) return;
+  const p = PARTIES.find(x=>x.id===openPartyId);
+  if(!p) return;
+  const m = p.members.find(x=>x.mine);
+  if(!m) return toast("找不到你的登記資料");
+  const removed = await store.remove(m);
+  if(!removed) return;
+  await refresh();
+  closeModal();
+  renderMine();
+  toast("已退出揪團");
+}
 
 /* ─── 團員留言板 ───
    即時顯示機制：不再整段重畫。送出時「樂觀顯示」（先上畫面再送出、依序排隊），

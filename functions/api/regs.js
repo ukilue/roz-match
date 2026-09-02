@@ -33,11 +33,11 @@ export async function onRequestGet({ request, env }) {
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, removed, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   return json(results.map(({ discordId, ...r }) =>
-    ({ ...r, bento: !!r.bento, mine: !!(user && discordId === user.id) })));
+    ({ ...r, bento: !!r.bento, removed: !!r.removed, mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
@@ -69,6 +69,18 @@ export async function onRequestPost({ request, env }) {
   const tw = taipeiNow();
   if (date !== tw.date) return bad("只能登記今天的揪團");
   if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
+
+  // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）
+  const { results: myRegs } = await env.DB
+    .prepare("SELECT startHM, endHM, activity FROM regs WHERE date = ? AND discordId = ? AND removed = 0")
+    .bind(date, user.id).all();
+  const ns = toMin(start), ne = toMin(end);
+  for (const r of myRegs) {
+    const os = toMin(r.startHM), oe = toMin(r.endHM);
+    if (ns < oe && os < ne) {
+      return bad(`你已在 ${r.startHM}～${r.endHM} 登記「${r.activity}」，時段重疊無法再登記；若要改時段請先退出原團`);
+    }
+  }
 
   // 防灌水：同 Discord 帳號同日登記數上限
   const cnt = await env.DB

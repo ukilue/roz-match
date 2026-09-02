@@ -16,10 +16,10 @@ async function authorize(env, request, key) {
   if (!user.member) return { err: needMember() };
   const tw = taipeiNow();
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, removed, ts
               FROM regs WHERE date = ?`)
     .bind(tw.date).all();
-  const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento })), tw.date);
+  const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento, removed: !!r.removed })), tw.date);
   const party = parties.find(p => p.chatKey === key);
   if (!party) return { err: json({ error: "找不到這個揪團的留言板" }, 404) };
   const me = party.members.find(m => m.discordId === user.id);
