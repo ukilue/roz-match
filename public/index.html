@@ -216,17 +216,22 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <div><label>角色職業</label><input id="f-job" maxlength="20" placeholder="例：刺客"></div>
           <div>
             <label>要做的事情</label>
-            <select id="f-act" onchange="toggleBento()">
+            <select id="f-act" onchange="toggleRole()">
               <option value="90級每日">90級每日</option>
               <option value="100級每日">100級每日</option>
               <option value="100+105級每日">100+105級每日</option>
               <option value="副本4困1普">副本4困1普</option>
               <option value="副本3困2普">副本3困2普</option>
             </select>
-            <div id="f-bento-wrap" style="display:none;margin-top:8px">
-              <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer">
-                <input type="checkbox" id="f-bento" style="width:auto;transform:scale(1.3)"> 我是便當（由打手帶飛）
-              </label>
+            <div id="f-role-wrap" style="display:none;margin-top:8px">
+              <label>副本職責（擇一）</label>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;font-weight:700">
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="f-role" value="大腿" style="width:auto;transform:scale(1.2)">🍗 大腿</label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="f-role" value="坦" style="width:auto;transform:scale(1.2)">🛡 坦</label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="f-role" value="補" style="width:auto;transform:scale(1.2)">✚ 補</label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="f-role" value="打" style="width:auto;transform:scale(1.2)" checked>⚔ 打</label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="f-role" value="便當" style="width:auto;transform:scale(1.2)">🍱 便當</label>
+              </div>
             </div>
           </div>
           <div class="full">
@@ -245,9 +250,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title">佈告欄規則</div>
       <div class="panel-body" style="font-size:14px;line-height:2">
         使用登記、加入、退出與留言功能，需先以 <b>Discord 登入</b>並為公會伺服器成員（點右上角按鈕）。<br>
-        同一時段、同一目標滿 <b>3 人</b>即開團成功，單團上限 <b>12 人</b>；同時段人數過多會自動平均拆團。<br>
+        每日類同一時段、同一目標滿 <b>3 人</b>即開團成功；單團上限 <b>12 人</b>，同時段人數過多會自動平均拆團。<b>開團時間一到即關團</b>，不再接受新成員。<br>
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
-        副本（4困1普／3困2普）可勾選「我是便當」，拆團時便當會平均分配，且<b>主要打手需 5 名以上</b>才會成團。<br>
+        副本（4困1普／3困2普）登記時從「<b>大腿／坦／補／打／便當</b>」擇一：團內<b>有大腿即成團</b>（其餘可全便當）；<b>沒大腿則需坦、打各 1</b> 才成團。拆團時每團都會分到核心（大腿或坦＋打），便當平均分配。<br>
         集合地點不由系統指派，請團員在揪團明細的<b>留言板</b>自行溝通協調。<br>
         揪團時間一到，系統隨機指派一名隊長，並由 <b>Discord 機器人私訊全體團員</b>（含成員名單、開團時間與目標）；請隊長輸入 <code>/organize 團名</code> 邀請成員入隊。<br>
         隱私保護：<b>留言板僅本團成員可讀寫</b>，成團前後皆可先在留言板溝通協調。
@@ -307,11 +312,17 @@ const API = "/api";
 const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
 const DUNGEONS = ["副本4困1普","副本3困2普"];
-const MAX_PARTY = 12, MIN_PARTY = 3, MIN_FIGHTERS = 5, POLL_MS = 25000;
+const MAX_PARTY = 12, MIN_PARTY = 3, POLL_MS = 25000;
 const isDungeon = act => DUNGEONS.includes(act);
-const fighterCount = members => members.filter(m=>!m.bento).length;
-// 成團條件：副本需 5 名以上打手；其他滿 3 人
-const canForm = (act, members) => isDungeon(act) ? fighterCount(members) >= MIN_FIGHTERS : members.length >= MIN_PARTY;
+const ROLES = ["大腿","坦","補","打","便當"];
+// 副本職責（舊資料相容：便當旗標→便當、其餘→打）
+const roleOf = m => m.role || (m.bento ? "便當" : "打");
+const roleCount = (members, r) => members.filter(m=>roleOf(m)===r).length;
+// 成團條件：副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
+const canForm = (act, members) => {
+  if(!isDungeon(act)) return members.length >= MIN_PARTY;
+  return roleCount(members,"大腿") >= 1 || (roleCount(members,"坦") >= 1 && roleCount(members,"打") >= 1);
+};
 
 /* ─── 小工具（日期時間一律以台北時區計算，與伺服器一致，避免裝置時區不同造成查不到資料） ─── */
 const $ = id => document.getElementById(id);
@@ -369,9 +380,10 @@ function updateRegForm(){
     else if(!USER.member) mode = "join";
   }
   const disabled = mode !== "ok";
-  ["f-id","f-lv","f-job","f-act","f-start","f-end","f-bento"].forEach(id=>{
+  ["f-id","f-lv","f-job","f-act","f-start","f-end"].forEach(id=>{
     const el = $(id); if(el) el.disabled = disabled;
   });
+  document.querySelectorAll('input[name="f-role"]').forEach(el=>{ el.disabled = disabled; });
   if(mode === "login"){
     btn.textContent = "Discord 登入";
     btn.style.background = "linear-gradient(180deg,#5865F2,#3C48C8)";
@@ -533,19 +545,24 @@ function splitCluster(act, members, is, ie, removedRegs){
   if(canForm(act, members)){
     let count = Math.ceil(members.length / MAX_PARTY);
     if(isDungeon(act)){
-      // 拆團數不能讓每團打手低於門檻
-      count = Math.max(1, Math.min(count, Math.floor(fighterCount(members)/MIN_FIGHTERS)));
+      // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
+      const pool = r => byTs(members.filter(m=>roleOf(m)===r));
+      const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
+      const maxCore = legs.length + Math.min(tanks.length, dps.length);
+      count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
       for(let i=0;i<count;i++) groups.push([]);
-      const fighters = byTs(members.filter(m=>!m.bento)), bentos = byTs(members.filter(m=>m.bento));
-      fighters.forEach((m,i)=>groups[i%count].push(m));       // 打手平均
-      let gi=0; const overflow=[];
-      for(const b of bentos){                                  // 便當平均分配，滿 12 人跳下一團
+      let gi = 0; const overflow = [];
+      legs.forEach(l=>{ groups[gi%count].push(l); gi++; });            // 大腿先各組一隻
+      for(let i=legs.length; i<count; i++){ groups[i].push(tanks.shift()); groups[i].push(dps.shift()); } // 沒大腿的組補坦＋打
+      const place = m => {                                              // 其餘依登記順序平均，滿 12 人跳下一組
         let tries=0;
         while(groups[gi%count].length>=MAX_PARTY && tries<count){ gi++; tries++; }
-        if(tries>=count) overflow.push(b);
-        else { groups[gi%count].push(b); gi++; }
-      }
-      if(overflow.length) groups.push(overflow);               // 塞不下的便當成為候補團
+        if(tries>=count) overflow.push(m);
+        else { groups[gi%count].push(m); gi++; }
+      };
+      byTs([...tanks, ...dps, ...heals]).forEach(place);                // 剩餘坦/打/補
+      bens.forEach(place);                                              // 便當最後平均分配
+      if(overflow.length) groups.push(overflow);                        // 塞不下的成為候補團
     }else{
       for(let i=0;i<count;i++) groups.push([]);
       byTs(members).forEach((m,i)=>groups[i%count].push(m));   // 平均分配
@@ -596,18 +613,20 @@ function statusOf(p){
   if(!p.ok) return {cls:"wait", label:"揪團中", frame:""};
   return {cls:"ok", label:"開團成功", frame:"ok"};
 }
+function roleSummary(members){
+  const c = r => roleCount(members, r);
+  return `🍗${c("大腿")}｜🛡${c("坦")}｜✚${c("補")}｜⚔${c("打")}｜🍱${c("便當")}`;
+}
 function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
   const n = p.members.length;
-  const ft = fighterCount(p.members), bt = n - ft;
   const remain = MAX_PARTY - n;
-  const need = dg ? Math.max(0, MIN_FIGHTERS - ft) : Math.max(0, MIN_PARTY - n);
   const pct = Math.min(100, Math.round(n/MAX_PARTY*100));   // bar 條＝實際 12 人佔比
   const full = n >= MAX_PARTY;
   const countText = dg
-    ? `${n} / ${MAX_PARTY} 人（打手 ${ft}／便當 ${bt}）${p.ok?"":"（再 "+need+" 名打手成團）"}`
-    : `${n} / ${MAX_PARTY} 人${p.ok?"":"（再 "+need+" 人成團）"}`;
+    ? `${n} / ${MAX_PARTY} 人（${roleSummary(p.members)}）${p.ok?"":"（缺大腿，或坦＋打各 1）"}`
+    : `${n} / ${MAX_PARTY} 人${p.ok?"":"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
   return `<div class="card ${st.frame}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
@@ -659,9 +678,9 @@ function detailMainHTML(p){
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">開團時間</b>${toHM(p.time)}（時段 ${toHM(p.time)}～${toHM(p.timeEnd)}）</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，打手 "+fighterCount(p.members)+"／便當 "+(p.members.length-fighterCount(p.members)):""}）</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}）</div>
     <ul class="member-list">` +
-    p.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${m.bento?"｜🍱 便當":""}</span>${started && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
+    p.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${started && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
     `</ul>`;
   if(started){
     main += iAmLeader
@@ -682,7 +701,9 @@ function detailMainHTML(p){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
     }else if(!started && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
-    }else if(!started){
+    }else if(started){
+      main += `<div class="notice member" style="margin-top:14px">此團已開團，不再接受新成員加入。</div>`;
+    }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
         <label style="margin-bottom:8px">加入這個揪團</label>
@@ -691,7 +712,7 @@ function detailMainHTML(p){
           <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
           <div><input id="j-job" maxlength="20" placeholder="角色職業"></div>
           <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入揪團</button></div>
-          ${isDungeon(p.activity)?`<div class="full" style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="j-bento" style="width:auto;transform:scale(1.3)"> 我是便當（由打手帶飛）</label></div>`:""}
+          ${isDungeon(p.activity)?`<div class="full" style="grid-column:1/-1"><label>副本職責（擇一）</label><div style="display:flex;gap:10px;flex-wrap:wrap;font-weight:700">${["大腿","坦","補","打","便當"].map(r=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="j-role" value="${r}" style="width:auto;transform:scale(1.2)" ${r==="打"?"checked":""}>${r}</label>`).join("")}</div></div>`:""}
         </div>
       </div>`;
     }
@@ -700,12 +721,13 @@ function detailMainHTML(p){
 }
 function captureJoinDraft(){
   return $("j-id") ? { id:$("j-id").value, lv:$("j-lv").value, job:$("j-job").value,
-    bento: !!($("j-bento") && $("j-bento").checked) } : null;
+    role: pickedRole("j-role") } : null;
 }
 function restoreJoinDraft(d){
   if(!d || !$("j-id")) return;
   $("j-id").value=d.id; $("j-lv").value=d.lv; $("j-job").value=d.job;
-  if($("j-bento")) $("j-bento").checked=d.bento;
+  const el = document.querySelector('input[name="j-role"][value="'+d.role+'"]');
+  if(el) el.checked = true;
 }
 function openDetail(pid, source){
   const p = PARTIES.find(x=>x.id===pid);
@@ -851,10 +873,10 @@ function levelCheck(activity, level){
   if(need && lv < need) return "此活動需 "+need+" 級以上才能登記";
   return "";
 }
-function toggleBento(){
-  $("f-bento-wrap").style.display = isDungeon($("f-act").value) ? "block" : "none";
-  if(!isDungeon($("f-act").value)) $("f-bento").checked = false;
+function toggleRole(){
+  $("f-role-wrap").style.display = isDungeon($("f-act").value) ? "block" : "none";
 }
+const pickedRole = name => { const el = document.querySelector('input[name="'+name+'"]:checked'); return el ? el.value : "打"; };
 const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 async function submitReg(){
   if(!requireLogin()) return;
@@ -865,8 +887,9 @@ async function submitReg(){
   if(lvErr) return toast(lvErr);
   if(toMin(s) < nowMin()) { fillTimeSelects(); return toast("開始時間不能早於現在，已為你更新時段"); }
   if(toMin(e)<=toMin(s)) return toast("結束時間必須晚於開始時間");
+  const role = isDungeon($("f-act").value) ? pickedRole("f-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
-    bento: isDungeon($("f-act").value) && $("f-bento").checked,
+    role, bento: role==="便當",
     date:todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
   await refresh();
@@ -882,8 +905,9 @@ async function joinParty(){
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
   if(p.members.length >= MAX_PARTY) return toast("此團已滿 "+MAX_PARTY+" 人");
+  const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
-    bento: isDungeon(p.activity) && !!($("j-bento") && $("j-bento").checked),
+    role, bento: role==="便當",
     date:todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
   await refresh();

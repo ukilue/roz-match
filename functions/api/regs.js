@@ -4,6 +4,7 @@
 import { getSession, needLogin, needMember } from "./_auth.js";
 
 const ACTS = ["90級每日","100級每日","100+105級每日","副本4困1普","副本3困2普"];
+const ROLES = ["大腿","坦","補","打","便當"];
 const LEVEL_REQ = { "90級每日":90, "100級每日":100, "100+105級每日":105, "副本4困1普":90, "副本3困2普":90 };
 const isDungeon = a => a === "副本4困1普" || a === "副本3困2普";
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -33,11 +34,11 @@ export async function onRequestGet({ request, env }) {
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, removed, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   return json(results.map(({ discordId, ...r }) =>
-    ({ ...r, bento: !!r.bento, removed: !!r.removed, mine: !!(user && discordId === user.id) })));
+    ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
@@ -55,7 +56,12 @@ export async function onRequestPost({ request, env }) {
   const start = String(b.start || "");
   const end = String(b.end || "");
   const date = String(b.date || "");
-  const bento = isDungeon(activity) && b.bento ? 1 : 0;
+  let role = "";
+  if (isDungeon(activity)) {
+    role = String(b.role || "打");
+    if (!ROLES.includes(role)) return bad("副本職責選項錯誤");
+  }
+  const bento = role === "便當" ? 1 : 0;
 
   if (!charId || !job) return bad("資料不完整");
   if (!ACTS.includes(activity)) return bad("目標不存在");
@@ -69,6 +75,7 @@ export async function onRequestPost({ request, env }) {
   const tw = taipeiNow();
   if (date !== tw.date) return bad("只能登記今天的揪團");
   if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
+  if (toMin(start) < tw.min - 2) return bad("此團已開團或時段已開始，不再接受登記加入");
 
   // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）
   const { results: myRegs } = await env.DB
@@ -90,9 +97,9 @@ export async function onRequestPost({ request, env }) {
 
   const uid = crypto.randomUUID();
   await env.DB
-    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, bento, ts)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(uid, user.id, charId, level, job, activity, start, end, date, bento, Date.now())
+    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, bento, role, ts)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(uid, user.id, charId, level, job, activity, start, end, date, bento, role, Date.now())
     .run();
   return json({ uid });
 }

@@ -3,10 +3,16 @@
 // ⚠ 若修改組團規則，三處必須同步修改。
 
 const DUNGEONS = ["副本4困1普", "副本3困2普"];
-const MAX_PARTY = 12, MIN_PARTY = 3, MIN_FIGHTERS = 5;
+const MAX_PARTY = 12, MIN_PARTY = 3;
 const isDungeon = act => DUNGEONS.includes(act);
-const fighterCount = ms => ms.filter(m => !m.bento).length;
-const canForm = (act, ms) => isDungeon(act) ? fighterCount(ms) >= MIN_FIGHTERS : ms.length >= MIN_PARTY;
+const ROLES = ["大腿", "坦", "補", "打", "便當"];
+const roleOf = m => m.role || (m.bento ? "便當" : "打");
+const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
+// 副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
+const canForm = (act, ms) => {
+  if (!isDungeon(act)) return ms.length >= MIN_PARTY;
+  return roleCount(ms, "大腿") >= 1 || (roleCount(ms, "坦") >= 1 && roleCount(ms, "打") >= 1);
+};
 const pad = n => String(n).padStart(2, "0");
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const toHM = m => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
@@ -26,17 +32,23 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
   if (canForm(act, members)) {
     let count = Math.ceil(members.length / MAX_PARTY);
     if (isDungeon(act)) {
-      count = Math.max(1, Math.min(count, Math.floor(fighterCount(members) / MIN_FIGHTERS)));
+      // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
+      const pool = r => byTs(members.filter(m => roleOf(m) === r));
+      const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
+      const maxCore = legs.length + Math.min(tanks.length, dps.length);
+      count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
       for (let i = 0; i < count; i++) groups.push([]);
-      const fighters = byTs(members.filter(m => !m.bento)), bentos = byTs(members.filter(m => m.bento));
-      fighters.forEach((m, i) => groups[i % count].push(m));
       let gi = 0; const overflow = [];
-      for (const b of bentos) {
+      legs.forEach(l => { groups[gi % count].push(l); gi++; });
+      for (let i = legs.length; i < count; i++) { groups[i].push(tanks.shift()); groups[i].push(dps.shift()); }
+      const place = m => {
         let tries = 0;
         while (groups[gi % count].length >= MAX_PARTY && tries < count) { gi++; tries++; }
-        if (tries >= count) overflow.push(b);
-        else { groups[gi % count].push(b); gi++; }
-      }
+        if (tries >= count) overflow.push(m);
+        else { groups[gi % count].push(m); gi++; }
+      };
+      byTs([...tanks, ...dps, ...heals]).forEach(place);
+      bens.forEach(place);
       if (overflow.length) groups.push(overflow);
     } else {
       for (let i = 0; i < count; i++) groups.push([]);
