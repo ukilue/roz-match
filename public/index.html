@@ -639,11 +639,16 @@ function showView(v){
 }
 
 function statusOf(p){
-  if(p.ok && nowMin() >= p.time) return {cls:"live", label:"時間已到", frame:"ok"};
+  // 揪團中(藍,收人) → 尚有位置(綠,收人) → 即將出發(紅章,緩衝期仍收人) → 關閉揪團(紅,關團)
+  const now = nowMin();
+  if(p.ok && p.departMin != null && now >= p.departMin) return {cls:"live", label:"關閉揪團", frame:"ok"};
   if(p.members.length >= MAX_PARTY) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
-  if(!p.ok) return {cls:"wait", label:"揪團中", frame:""};
-  return {cls:"ok", label:"開團成功", frame:"ok"};
+  if(p.ok && p.readyMin != null && now >= p.readyMin) return {cls:"live", label:"即將出發", frame:"ok"};
+  if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
+  return {cls:"ok", label:"尚有位置", frame:"ok"};
 }
+const isClosed = p => p.ok && p.departMin != null && nowMin() >= p.departMin;
+const isReady  = p => p.ok && p.readyMin  != null && nowMin() >= p.readyMin;
 function roleSummary(members){
   const c = r => roleCount(members, r);
   return `🍗${c("大腿")}｜🛡${c("坦")}｜✚${c("補")}｜⚔${c("打")}｜🍱${c("便當")}`;
