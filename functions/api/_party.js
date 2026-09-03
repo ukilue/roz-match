@@ -9,6 +9,19 @@ const ROLES = ["大腿", "坦", "補", "打", "便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
 // 副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
+// 緩衝分鐘數：以「準備通知當下」的人數決定，之後加人不改變出發時間
+const bufferOf = n => n <= 3 ? 30 : n <= 5 ? 20 : n <= 7 ? 15 : 10;
+// 將絕對時間戳(ms)換算為台北時區的當日分鐘數
+function taipeiMinOfTs(ts){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts));
+  const g = t => Number(p.find(x=>x.type===t).value);
+  return (g("hour")%24)*60 + g("minute");
+}
+// 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
+function taipeiMs(dateStr, min){
+  const [y,mo,d] = dateStr.split("-").map(Number);
+  return Date.UTC(y, mo-1, d, 0, 0) + min*60000 - 8*3600000;
+}
 const canForm = (act, ms) => {
   if (!isDungeon(act)) return ms.length >= MIN_PARTY;
   return roleCount(ms, "大腿") >= 1 || (roleCount(ms, "坦") >= 1 && roleCount(ms, "打") >= 1);
@@ -71,9 +84,24 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       }
     }
     const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
+    // 兩階段出發時程：ready = max(時段起點, 成團時刻)；depart = ready + 依人數緩衝（不超過時段終點）
+    const okNow = canForm(act, g);
+    let readyMin = null, departMin = null, buffer = null;
+    if (okNow) {
+      const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+      let formedTs = sorted[sorted.length - 1].ts || 0;
+      for (let i = 0; i < sorted.length; i++) {
+        if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
+      }
+      readyMin = Math.max(is, taipeiMinOfTs(formedTs));
+      const readyMs = taipeiMs(dateStr, readyMin);
+      const nReady = sorted.filter(m => (m.ts || 0) <= readyMs).length;
+      buffer = bufferOf(nReady);
+      departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
+    }
     return {
       id, activity: act, members: g, time: is, timeEnd: ie,
-      ok: canForm(act, g),
+      ok: okNow, readyMin, departMin, buffer,
       leader: g[hashStr(id + "L") % g.length],
       num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
       chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)

@@ -86,8 +86,8 @@ export async function onRequestPost({ request, env }) {
     const parties = buildParties(all.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), date);
     const target = parties.find(p => p.activity === activity && p.time === toMin(start) && p.timeEnd === toMin(end));
     if (!target) return bad("此時段已開始，無法登記");
-    if (target.ok && tw.min >= target.time) return bad("此團已開團，不再接受新成員加入");
-    // 未成團 → 允許加入
+    if (target.ok && target.departMin != null && tw.min >= target.departMin) return bad("此團已出發並關閉揪團，不再接受新成員加入");
+    // 揪團中或緩衝期（即將出發）→ 允許加入
   }
 
   // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）

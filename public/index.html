@@ -251,7 +251,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title">佈告欄規則</div>
       <div class="panel-body" style="font-size:14px;line-height:2">
         使用登記、加入、退出與留言功能，需先以 <b>Discord 登入</b>並為公會伺服器成員（點右上角按鈕）。<br>
-        每日類同一時段、同一目標滿 <b>3 人</b>即開團成功；單團上限 <b>12 人</b>，同時段人數過多會自動平均拆團。成團的隊伍<b>到開團時間即關閉揪團</b>不再收人；還在揪團中（未成團）的隊伍即使時段已開始仍<b>持續收人</b>。<br>
+        每日類同一時段、同一目標滿 <b>3 人</b>即開團成功；單團上限 <b>12 人</b>，同時段人數過多會自動平均拆團。成團且到時段起點後，機器人先通知「請準備」並進入<b>緩衝期</b>（依當下人數：3 人以下 30 分、5 人以下 20 分、7 人以下 15 分、8 人以上 10 分），期間顯示「即將出發」<b>仍可加入</b>；緩衝結束即<b>關閉揪團</b>、建立語音房並通知出發。未成團的隊伍任何時候都持續收人。<br>
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）登記時從「<b>大腿／坦／補／打／便當</b>」擇一：團內<b>有大腿即成團</b>（其餘可全便當）；<b>沒大腿則需坦、打各 1</b> 才成團。拆團時每團都會分到核心（大腿或坦＋打），便當平均分配。<br>
         集合地點不由系統指派，請團員在揪團明細的<b>留言板</b>自行溝通協調。<br>
@@ -320,6 +320,19 @@ const ROLES = ["大腿","坦","補","打","便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (members, r) => members.filter(m=>roleOf(m)===r).length;
 // 成團條件：副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
+// 緩衝分鐘數：以「準備通知當下」的人數決定，之後加人不改變出發時間
+const bufferOf = n => n <= 3 ? 30 : n <= 5 ? 20 : n <= 7 ? 15 : 10;
+// 將絕對時間戳(ms)換算為台北時區的當日分鐘數
+function taipeiMinOfTs(ts){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts));
+  const g = t => Number(p.find(x=>x.type===t).value);
+  return (g("hour")%24)*60 + g("minute");
+}
+// 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
+function taipeiMs(dateStr, min){
+  const [y,mo,d] = dateStr.split("-").map(Number);
+  return Date.UTC(y, mo-1, d, 0, 0) + min*60000 - 8*3600000;
+}
 const canForm = (act, members) => {
   if(!isDungeon(act)) return members.length >= MIN_PARTY;
   return roleCount(members,"大腿") >= 1 || (roleCount(members,"坦") >= 1 && roleCount(members,"打") >= 1);
@@ -585,9 +598,26 @@ function splitCluster(act, members, is, ie, removedRegs){
       }
     }
     const stable = act+"|"+anchor.charId+"|"+(anchor.ts||0);
+    // 兩階段出發時程（成團的團才有）：
+    // ready = max(時段起點, 成團時刻)＝發「請準備」通知的時刻
+    // depart = ready + 依當下人數的緩衝（壓縮不超過時段終點）＝關團、開語音、發「出發」通知
+    const okNow = canForm(act, g);
+    let readyMin = null, departMin = null, buffer = null;
+    if(okNow){
+      const sorted = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
+      let formedTs = sorted[sorted.length-1].ts || 0;
+      for(let i=0;i<sorted.length;i++){
+        if(canForm(act, sorted.slice(0, i+1))){ formedTs = sorted[i].ts || 0; break; }
+      }
+      readyMin = Math.max(is, taipeiMinOfTs(formedTs));
+      const readyMs = taipeiMs(todayKey(), readyMin);
+      const nReady = sorted.filter(m=>(m.ts||0) <= readyMs).length;
+      buffer = bufferOf(nReady);
+      departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
+    }
     return {
       id, activity:act, members:g, time:is, timeEnd:ie,
-      ok: canForm(act, g),
+      ok: okNow, readyMin, departMin, buffer,
       leader: g[hashStr(id+"L") % g.length],
       // 四位數揪團編號：錨定創團者，方便遊戲內廣播
       num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
@@ -632,7 +662,8 @@ function cardHTML(p, source){
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
     <div class="act">${esc(p.activity)}</div>
-    <div class="row"><b>開團時間</b>${toHM(p.time)}（可至 ${toHM(p.timeEnd)}）</div>
+    <div class="row"><b>時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
+    ${p.ok ? `<div class="row"><b>出發時間</b>${toHM(p.departMin)}${nowMin()<p.departMin?"（緩衝 "+p.buffer+" 分）":""}</div>` : `<div class="row"><b>出發時間</b>成團後依人數緩衝 10～30 分</div>`}
     <div class="row"><b>目前人數</b>${countText}</div>
     ${!full && remain<=3 ? `<div class="row"><span class="almost">⚡ 即將滿團（剩 ${remain} 位）</span></div>` : ""}
     <div class="count-bar"><i class="${full?"full":""}" style="width:${pct}%"></i></div>
@@ -643,9 +674,9 @@ function renderAll(){
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
   let upcoming = PARTIES.filter(p=>p.timeEnd >= now);
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
-  // 收人中的在前（時間近→遠）；已關閉（成團且時間到）的排在後面
+  // 收人中的在前（時間近→遠）；已關閉（出發後）的排在後面
   upcoming = upcoming.slice().sort((a,b)=>{
-    const as = (a.ok && now >= a.time) ? 1 : 0, bs = (b.ok && now >= b.time) ? 1 : 0;
+    const as = isClosed(a) ? 1 : 0, bs = isClosed(b) ? 1 : 0;
     return as - bs || a.time - b.time || b.members.length - a.members.length;
   });
   $("all-cards").innerHTML = upcoming.map(p=>cardHTML(p,"all")).join("");
@@ -669,41 +700,46 @@ let openSource = "all";
 // 產生明細左欄（資訊＋成員名單＋動作區）的 HTML；供開啟與背景局部更新共用
 function detailMainHTML(p){
   const st = statusOf(p);
-  const started = p.ok && nowMin() >= p.time;
+  const ready = isReady(p);      // 即將出發（緩衝期，仍收人）
+  const closed = isClosed(p);    // 已出發關團
   const viewerMember = p.members.find(m=>m.mine) || null;
   // 只有系統指派的隊長恰好是「我的登記」，才顯示您是隊長
-  const iAmLeader = started && !!p.leader.mine;
+  const iAmLeader = ready && !!p.leader.mine;
   const dg = isDungeon(p.activity);
 
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">開團時間</b>${toHM(p.time)}（時段 ${toHM(p.time)}～${toHM(p.timeEnd)}）</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b>${p.ok?toHM(p.departMin)+(nowMin()<p.departMin?"（成團後緩衝 "+p.buffer+" 分鐘）":""):"成團後依人數緩衝 10～30 分鐘出發"}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}）</div>
     <ul class="member-list">` +
-    p.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${started && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
+    p.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${ready && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
     `</ul>`;
-  if(started){
+  if(ready && !closed){
+    main += `<div class="notice member">🔔 <b>即將出發</b>：人數已足夠，請先準備，<b>${toHM(p.departMin)}</b> 出發（緩衝期間仍可加入）。</div>`;
+  }
+  if(ready){
     main += iAmLeader
       ? `<div class="notice leader"><b>您是隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請上列成員入隊。</div>`
-      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，集合地點請於留言板協調。</div>`;
+      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，集合細節請於留言板協調。</div>`;
   }
 
   if(viewerMember){
-    // 成員視角：退出按鈕（留言板在右欄，由 openDetail 建立）
-    if(!started){
+    // 成員視角：退出按鈕（關團前皆可退；留言板在右欄，由 openDetail 建立）
+    if(!closed){
       main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出揪團</button></div>`;
     }
   }else{
     // 不含我的登記的團：顯示加入（滿團擋下；未登入/未加入伺服器不顯示加入表單）
-    if(!started && p.members.length >= MAX_PARTY){
+    if(!closed && p.members.length >= MAX_PARTY){
       main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
-    }else if(!started && store.online && !USER){
+    }else if(!closed && store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
-    }else if(!started && store.online && !USER.member){
+    }else if(!closed && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
-    }else if(started){
-      main += `<div class="notice member" style="margin-top:14px">此團已開團，不再接受新成員加入。</div>`;
+    }else if(closed){
+      main += `<div class="notice member" style="margin-top:14px">此團已出發並關閉揪團，不再接受新成員加入。</div>`;
     }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
@@ -906,6 +942,7 @@ async function joinParty(){
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
   if(p.members.length >= MAX_PARTY) return toast("此團已滿 "+MAX_PARTY+" 人");
+  if(isClosed(p)) return toast("此團已出發並關閉揪團");
   const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
     role, bento: role==="便當",
