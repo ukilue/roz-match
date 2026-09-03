@@ -2,6 +2,7 @@
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
 import { getSession, needLogin, needMember } from "./_auth.js";
+import { buildParties } from "./_party.js";
 
 const ACTS = ["90級每日","100級每日","100+105級每日","副本4困1普","副本3困2普"];
 const ROLES = ["大腿","坦","補","打","便當"];
@@ -75,7 +76,19 @@ export async function onRequestPost({ request, env }) {
   const tw = taipeiNow();
   if (date !== tw.date) return bad("只能登記今天的揪團");
   if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
-  if (toMin(start) < tw.min - 2) return bad("此團已開團或時段已開始，不再接受登記加入");
+  // 開始時間已過的登記＝「加入」已在進行時段的團：
+  // 只有「已成團且已開團」的團關閉收人；還在揪團中（未成團）的團持續收人
+  if (toMin(start) < tw.min - 2) {
+    const { results: all } = await env.DB
+      .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
+                FROM regs WHERE date = ?`)
+      .bind(date).all();
+    const parties = buildParties(all.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), date);
+    const target = parties.find(p => p.activity === activity && p.time === toMin(start) && p.timeEnd === toMin(end));
+    if (!target) return bad("此時段已開始，無法登記");
+    if (target.ok && tw.min >= target.time) return bad("此團已開團，不再接受新成員加入");
+    // 未成團 → 允許加入
+  }
 
   // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）
   const { results: myRegs } = await env.DB

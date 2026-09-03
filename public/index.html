@@ -131,6 +131,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 }
 .stamp.ok{color:var(--green-dark);border-color:var(--green-dark);background:#2F9E4F1a}
 .stamp.wait{color:#555;border-color:#777;background:#00000008}
+.stamp.blue{color:var(--ro-blue-dark);border-color:var(--ro-blue);background:#4A6FA51f}
 .stamp.live{color:var(--red);border-color:var(--red);background:#C0452F14}
 .count-bar{height:8px;background:#00000015;border-radius:99px;margin-top:8px;overflow:hidden}
 .count-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:99px}
@@ -250,7 +251,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title">佈告欄規則</div>
       <div class="panel-body" style="font-size:14px;line-height:2">
         使用登記、加入、退出與留言功能，需先以 <b>Discord 登入</b>並為公會伺服器成員（點右上角按鈕）。<br>
-        每日類同一時段、同一目標滿 <b>3 人</b>即開團成功；單團上限 <b>12 人</b>，同時段人數過多會自動平均拆團。<b>開團時間一到即關團</b>，不再接受新成員。<br>
+        每日類同一時段、同一目標滿 <b>3 人</b>即開團成功；單團上限 <b>12 人</b>，同時段人數過多會自動平均拆團。成團的隊伍<b>到開團時間即關閉揪團</b>不再收人；還在揪團中（未成團）的隊伍即使時段已開始仍<b>持續收人</b>。<br>
         等級門檻：<b>90級每日與副本需 90 級以上</b>、<b>100級每日需 100 級以上</b>、<b>100+105級每日需 105 級以上</b>，角色等級上限 <b>110</b>。<br>
         副本（4困1普／3困2普）登記時從「<b>大腿／坦／補／打／便當</b>」擇一：團內<b>有大腿即成團</b>（其餘可全便當）；<b>沒大腿則需坦、打各 1</b> 才成團。拆團時每團都會分到核心（大腿或坦＋打），便當平均分配。<br>
         集合地點不由系統指派，請團員在揪團明細的<b>留言板</b>自行溝通協調。<br>
@@ -642,9 +643,9 @@ function renderAll(){
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
   let upcoming = PARTIES.filter(p=>p.timeEnd >= now);
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
-  // 尚未開團的在前（時間近→遠）；時間已到的排在後面
+  // 收人中的在前（時間近→遠）；已關閉（成團且時間到）的排在後面
   upcoming = upcoming.slice().sort((a,b)=>{
-    const as = now >= a.time ? 1 : 0, bs = now >= b.time ? 1 : 0;
+    const as = (a.ok && now >= a.time) ? 1 : 0, bs = (b.ok && now >= b.time) ? 1 : 0;
     return as - bs || a.time - b.time || b.members.length - a.members.length;
   });
   $("all-cards").innerHTML = upcoming.map(p=>cardHTML(p,"all")).join("");
