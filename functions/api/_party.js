@@ -9,8 +9,9 @@ const ROLES = ["大腿", "坦", "補", "打", "便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
 // 副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
-// 緩衝分鐘數：以「準備通知當下」的人數決定，之後加人不改變出發時間
-const bufferOf = n => n <= 3 ? 30 : n <= 5 ? 20 : n <= 7 ? 15 : 10;
+// 緩衝分鐘數：一律 10 分鐘（成團「請準備」通知後 10 分鐘出發）
+const BUFFER_MIN = 10;
+const bufferOf = () => BUFFER_MIN;
 // 將絕對時間戳(ms)換算為台北時區的當日分鐘數
 function taipeiMinOfTs(ts){
   const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts));
@@ -37,6 +38,33 @@ export function taipeiNow() {
     hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
   const g = t => p.find(x => x.type === t).value;
   return { date: `${g("year")}-${g("month")}-${g("day")}`, min: (Number(g("hour")) % 24) * 60 + Number(g("minute")) };
+}
+
+// 成團後的兩階段時程（成團的團才有；未成團回傳 null）：
+//   readyMin  = max(時段起點, 成團時刻)＝發「請準備」通知的時刻；成團時刻由成員登記時間戳依序推算
+//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、開語音、發「出發」通知
+function scheduleOf(act, g, is, ie, dateStr) {
+  if (!canForm(act, g)) return null;
+  const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  let formedTs = sorted[sorted.length - 1].ts || 0;
+  for (let i = 0; i < sorted.length; i++) {
+    if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
+  }
+  const readyMin = Math.max(is, taipeiMinOfTs(formedTs));
+  const buffer = bufferOf(sorted.length);
+  const departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
+  return { readyMin, departMin, buffer };
+}
+// 一筆登記能否併入目前這群人（以登記時間戳判斷，結果與「現在幾點」無關 → 各端一致）：
+//   1. 這群人已出發（登記時間 ≥ 出發時刻）→ 不收人，另起新團（避免已出發的團被後來的登記「復活」）
+//   2. 「請準備」已發出（登記時間 ≥ ready）→ 只接受同時段加入，不接受會把出發時間往後推的登記
+function canJoinCluster(act, members, is, ie, dateStr, r) {
+  const sch = scheduleOf(act, members, is, ie, dateStr);
+  if (!sch) return true;
+  const ts = r.ts || 0;
+  if (ts >= taipeiMs(dateStr, sch.departMin)) return false;
+  if (ts >= taipeiMs(dateStr, sch.readyMin) && toMin(r.start) > is) return false;
+  return true;
 }
 
 function splitCluster(act, members, is, ie, dateStr, removedRegs) {
@@ -84,21 +112,9 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       }
     }
     const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
-    // 兩階段出發時程：ready = max(時段起點, 成團時刻)；depart = ready + 依人數緩衝（不超過時段終點）
-    const okNow = canForm(act, g);
-    let readyMin = null, departMin = null, buffer = null;
-    if (okNow) {
-      const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
-      let formedTs = sorted[sorted.length - 1].ts || 0;
-      for (let i = 0; i < sorted.length; i++) {
-        if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
-      }
-      readyMin = Math.max(is, taipeiMinOfTs(formedTs));
-      const readyMs = taipeiMs(dateStr, readyMin);
-      const nReady = sorted.filter(m => (m.ts || 0) <= readyMs).length;
-      buffer = bufferOf(nReady);
-      departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
-    }
+    const sch = scheduleOf(act, g, is, ie, dateStr);
+    const okNow = !!sch;
+    const readyMin = sch ? sch.readyMin : null, departMin = sch ? sch.departMin : null, buffer = sch ? sch.buffer : null;
     return {
       id, activity: act, members: g, time: is, timeEnd: ie,
       ok: okNow, readyMin, departMin, buffer,
@@ -123,7 +139,7 @@ export function buildParties(regs, dateStr) {
     for (const r of list) {
       const s = toMin(r.start), e = toMin(r.end);
       if (!cluster.length) { cluster = [r]; is = s; ie = e; continue; }
-      if (s <= ie) { cluster.push(r); is = Math.max(is, s); ie = Math.min(ie, e); }
+      if (s <= ie && canJoinCluster(act, cluster, is, ie, dateStr, r)) { cluster.push(r); is = Math.max(is, s); ie = Math.min(ie, e); }
       else { flush(); cluster = [r]; is = s; ie = e; }
     }
     flush();

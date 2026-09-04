@@ -76,29 +76,40 @@ export async function onRequestPost({ request, env }) {
   const tw = taipeiNow();
   if (date !== tw.date) return bad("只能登記今天的揪團");
   if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
+
+  // 以今日全部登記重算分團（下方「加入進行中的團」與「時段重疊」檢查共用）
+  const { results: all } = await env.DB
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
+              FROM regs WHERE date = ?`)
+    .bind(date).all();
+  const parties = buildParties(all.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), date);
+
   // 開始時間已過的登記＝「加入」已在進行時段的團：
   // 只有「已成團且已開團」的團關閉收人；還在揪團中（未成團）的團持續收人
   if (toMin(start) < tw.min - 2) {
-    const { results: all } = await env.DB
-      .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
-                FROM regs WHERE date = ?`)
-      .bind(date).all();
-    const parties = buildParties(all.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), date);
     const target = parties.find(p => p.activity === activity && p.time === toMin(start) && p.timeEnd === toMin(end));
     if (!target) return bad("此時段已開始，無法登記");
     if (target.ok && target.departMin != null && tw.min >= target.departMin) return bad("此團已出發並關閉揪團，不再接受新成員加入");
     // 揪團中或緩衝期（即將出發）→ 允許加入
   }
 
-  // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）
-  const { results: myRegs } = await env.DB
-    .prepare("SELECT startHM, endHM, activity FROM regs WHERE date = ? AND discordId = ? AND removed = 0")
-    .bind(date, user.id).all();
+  // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）。
+  // 佔用的時段以「該筆登記所屬的團」實際狀態為準，而不是登記時填的原始時段：
+  //   - 團已出發 → 這筆登記完全釋放，之後可自由登記其他時段（登記 10:00～24:00 但 14:10 就出發的人不會被卡死一整天）
+  //   - 已成團、尚未出發 → 只佔用「團的時段起點～出發時刻」
+  //   - 尚未成團 → 維持原始登記時段（還不知道最後會幾點出發）
   const ns = toMin(start), ne = toMin(end);
-  for (const r of myRegs) {
-    const os = toMin(r.startHM), oe = toMin(r.endHM);
+  for (const r of all) {
+    if (r.discordId !== user.id || r.removed) continue;
+    const p = parties.find(x => x.members.some(m => m.uid === r.uid));
+    let os = toMin(r.start), oe = toMin(r.end);
+    if (p && p.ok && p.departMin != null) {
+      if (tw.min >= p.departMin) continue;   // 已出發 → 釋放
+      os = p.time; oe = p.departMin;          // 已成團 → 只佔用到出發
+    }
     if (ns < oe && os < ne) {
-      return bad(`你已在 ${r.startHM}～${r.endHM} 登記「${r.activity}」，時段重疊無法再登記；若要改時段請先退出原團`);
+      const hm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+      return bad(`你已在 ${hm(os)}～${hm(oe)} 登記「${r.activity}」，時段重疊無法再登記；若要改時段請先退出原團`);
     }
   }
 
