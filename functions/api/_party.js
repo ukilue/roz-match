@@ -2,7 +2,7 @@
 // 與前端 public/index.html 及 cron-worker.js 的演算法「完全一致」。
 // ⚠ 若修改組團規則，三處必須同步修改。
 
-const DUNGEONS = ["副本4困1普", "副本3困2普"];
+const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普"];
 const MAX_PARTY = 12, MIN_PARTY = 3;
 const isDungeon = act => DUNGEONS.includes(act);
 const ROLES = ["大腿", "坦", "補", "打", "便當"];
