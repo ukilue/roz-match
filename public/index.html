@@ -268,7 +268,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           </li>
           <li>開團成功顯示「即將出發」，系統指派一名隊長，機器人通知團員準備，其他玩家仍可再加入，緩衝時間為 10 分鐘</li>
           <li>緩衝時間結束時，機器人會再次通知所有團員加入專屬的 DC 語音群一起出發完成目標</li>
-          <li>專屬語音群於 3 小時後消失</li>
+          <li>語音群全伺服器都看得到、但只有團員能進入；3 小時後自動消失</li>
+          <li>緩衝階段機器人也會在 DC 群公告頻道發布「即將出發」訊息，方便其他人補位</li>
         </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
       </div>
@@ -290,7 +291,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   <!-- ═══ 所有揪團 ═══ -->
   <section class="view" id="view-all">
     <div class="panel">
-      <div class="panel-title">即將到來的揪團 <small>時間由近到遠</small></div>
+      <div class="panel-title">今日揪團 <small>時間由近到遠，已出發的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
         <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
@@ -705,9 +706,10 @@ function cardHTML(p, source){
 function renderAll(){
   const now = nowMin();
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
-  let upcoming = PARTIES.filter(p=>p.timeEnd >= now);
+  // 時段未結束的團都顯示；今日已出發關閉的團即使時段已過也保留（排在最後面）
+  let upcoming = PARTIES.filter(p=>p.timeEnd >= now || isClosed(p));
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
-  // 收人中的在前（時間近→遠）；已關閉（出發後）的排在後面
+  // 收人中的在前（時間近→遠）；已關閉（出發後）的一律排在最後面
   upcoming = upcoming.slice().sort((a,b)=>{
     const as = isClosed(a) ? 1 : 0, bs = isClosed(b) ? 1 : 0;
     return as - bs || a.time - b.time || b.members.length - a.members.length;
