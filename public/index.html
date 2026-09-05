@@ -267,8 +267,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             </ul>
           </li>
           <li>開團成功顯示「即將出發」，系統指派一名隊長，機器人通知團員準備，其他玩家仍可再加入，緩衝時間為 10 分鐘</li>
-          <li>緩衝時間結束時，機器人會再次通知所有團員加入專屬的 DC 語音群一起出發完成目標</li>
-          <li>語音群全伺服器都看得到、但只有團員能進入；3 小時後自動消失</li>
+          <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
+          <li>語音群全伺服器都看得到、但只有團員能進入；出發 3 小時後自動消失</li>
           <li>緩衝階段機器人也會在 DC 群公告頻道發布「即將出發」訊息，方便其他人補位</li>
         </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
@@ -569,7 +569,7 @@ function buildParties(regs){
 }
 // 成團後的兩階段時程（成團的團才有；未成團回傳 null）：
 //   readyMin  = max(時段起點, 成團時刻)＝發「請準備」通知的時刻；成團時刻由成員登記時間戳依序推算
-//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、開語音、發「出發」通知
+//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、發「出發」通知（語音房在 ready 時就開好）
 function scheduleOf(act, g, is, ie){
   if(!canForm(act, g)) return null;
   const sorted = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
