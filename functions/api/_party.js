@@ -3,8 +3,9 @@
 // ⚠ 若修改組團規則，三處必須同步修改。
 
 const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普"];
-const MAX_PARTY = 12, MIN_PARTY = 3;
+const MAX_DAILY = 8, MAX_DUNGEON = 12, MIN_PARTY = 3;   // 每日團上限 8 人、副本團上限 12 人
 const isDungeon = act => DUNGEONS.includes(act);
+const maxOf = act => isDungeon(act) ? MAX_DUNGEON : MAX_DAILY;
 const ROLES = ["大腿", "坦", "補", "打", "便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
@@ -41,8 +42,9 @@ export function taipeiNow() {
 }
 
 // 成團後的兩階段時程（成團的團才有；未成團回傳 null）：
-//   readyMin  = max(時段起點, 成團時刻)＝發「請準備」通知的時刻；成團時刻由成員登記時間戳依序推算
-//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、開語音、發「出發」通知
+//   readyMin  = max(時段起點 − 10 分, 成團時刻)＝發「請準備」通知、開語音房的時刻（10:00 出團 → 09:50 提醒）
+//               成團時刻由成員登記時間戳依序推算；成團太晚（不足 10 分）則以成團當下為 ready
+//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、發「出發」通知
 function scheduleOf(act, g, is, ie, dateStr) {
   if (!canForm(act, g)) return null;
   const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
@@ -50,7 +52,7 @@ function scheduleOf(act, g, is, ie, dateStr) {
   for (let i = 0; i < sorted.length; i++) {
     if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
   }
-  const readyMin = Math.max(is, taipeiMinOfTs(formedTs));
+  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs));
   const buffer = bufferOf(sorted.length);
   const departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
   return { readyMin, departMin, buffer };
@@ -71,7 +73,8 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
   const groups = [];
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
   if (canForm(act, members)) {
-    let count = Math.ceil(members.length / MAX_PARTY);
+    const max = maxOf(act);
+    let count = Math.ceil(members.length / max);
     if (isDungeon(act)) {
       // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
       const pool = r => byTs(members.filter(m => roleOf(m) === r));
@@ -84,7 +87,7 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       for (let i = legs.length; i < count; i++) { groups[i].push(tanks.shift()); groups[i].push(dps.shift()); }
       const place = m => {
         let tries = 0;
-        while (groups[gi % count].length >= MAX_PARTY && tries < count) { gi++; tries++; }
+        while (groups[gi % count].length >= max && tries < count) { gi++; tries++; }
         if (tries >= count) overflow.push(m);
         else { groups[gi % count].push(m); gi++; }
       };
@@ -92,8 +95,19 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       bens.forEach(place);
       if (overflow.length) groups.push(overflow);
     } else {
+      // 每日團拆多團：依登記順序逐一分配，優先放到「同職業人數最少」的組（再比總人數、再比組序）
+      // → 職業盡量平均；因為只看先登記者的分佈，後加入的人不會洗牌既有成員
       for (let i = 0; i < count; i++) groups.push([]);
-      byTs(members).forEach((m, i) => groups[i % count].push(m));
+      byTs(members).forEach(m => {
+        let best = -1;
+        for (let i = 0; i < count; i++) {
+          if (groups[i].length >= max) continue;
+          if (best < 0) { best = i; continue; }
+          const cj = groups[i].filter(x => x.job === m.job).length, bj = groups[best].filter(x => x.job === m.job).length;
+          if (cj < bj || (cj === bj && groups[i].length < groups[best].length)) best = i;
+        }
+        groups[best].push(m);
+      });
     }
   } else groups.push(byTs(members));
   // 錨點：退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動

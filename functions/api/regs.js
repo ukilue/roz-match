@@ -6,6 +6,7 @@ import { buildParties } from "./_party.js";
 
 const ACTS = ["90級每日","100級每日","100+105級每日","90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普"];
 const ROLES = ["大腿","坦","補","打","便當"];
+const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
 const LEVEL_REQ = { "90級每日":90, "100級每日":100, "100+105級每日":105, "90級↑副本4困1普":90, "90級↑副本3困2普":90, "80級↑副本3困1普":80 };
 const isDungeon = a => a === "90級↑副本4困1普" || a === "90級↑副本3困2普" || a === "80級↑副本3困1普";
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -66,6 +67,7 @@ export async function onRequestPost({ request, env }) {
 
   if (!charId || !job) return bad("資料不完整");
   if (!ACTS.includes(activity)) return bad("目標不存在");
+  if (!JOBS.includes(job)) return bad("職業選項錯誤");
   if (!Number.isInteger(level) || level < 1 || level > 110) return bad("角色等級須為 1～110");
   const needLv = LEVEL_REQ[activity];
   if (needLv && level < needLv) return bad(`此活動需 ${needLv} 級以上`);
@@ -96,7 +98,7 @@ export async function onRequestPost({ request, env }) {
   // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）。
   // 佔用的時段以「該筆登記所屬的團」實際狀態為準，而不是登記時填的原始時段：
   //   - 團已出發 → 這筆登記完全釋放，之後可自由登記其他時段（登記 10:00～24:00 但 14:10 就出發的人不會被卡死一整天）
-  //   - 已成團、尚未出發 → 只佔用「團的時段起點～出發時刻」
+  //   - 已成團、尚未出發 → 只佔用「提醒時刻（出發前 10 分）～出發時刻」
   //   - 尚未成團 → 維持原始登記時段（還不知道最後會幾點出發）
   const ns = toMin(start), ne = toMin(end);
   for (const r of all) {
@@ -105,7 +107,7 @@ export async function onRequestPost({ request, env }) {
     let os = toMin(r.start), oe = toMin(r.end);
     if (p && p.ok && p.departMin != null) {
       if (tw.min >= p.departMin) continue;   // 已出發 → 釋放
-      os = p.time; oe = p.departMin;          // 已成團 → 只佔用到出發
+      os = p.readyMin; oe = p.departMin;      // 已成團 → 只佔用提醒～出發
     }
     if (ns < oe && os < ne) {
       const hm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
