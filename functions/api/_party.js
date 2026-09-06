@@ -3,9 +3,9 @@
 // ⚠ 若修改組團規則，三處必須同步修改。
 
 const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普"];
-const MAX_DAILY = 8, MAX_DUNGEON = 12, MIN_PARTY = 3;   // 每日團上限 8 人、副本團上限 12 人
+const MAX_PARTY = 12, DAILY_SPLIT = 8, MIN_PARTY = 3;   // 顯示／報名上限 12 人；每日團超過 8 人即由系統拆團平均分配
 const isDungeon = act => DUNGEONS.includes(act);
-const maxOf = act => isDungeon(act) ? MAX_DUNGEON : MAX_DAILY;
+const maxOf = act => isDungeon(act) ? MAX_PARTY : DAILY_SPLIT;   // 拆團門檻：副本 12、每日 8
 const ROLES = ["大腿", "坦", "補", "打", "便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
@@ -13,16 +13,14 @@ const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
 // 緩衝分鐘數：一律 10 分鐘（成團「請準備」通知後 10 分鐘出發）
 const BUFFER_MIN = 10;
 const bufferOf = () => BUFFER_MIN;
-// 將絕對時間戳(ms)換算為台北時區的當日分鐘數
-function taipeiMinOfTs(ts){
-  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts));
-  const g = t => Number(p.find(x=>x.type===t).value);
-  return (g("hour")%24)*60 + g("minute");
-}
 // 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
 function taipeiMs(dateStr, min){
   const [y,mo,d] = dateStr.split("-").map(Number);
   return Date.UTC(y, mo-1, d, 0, 0) + min*60000 - 8*3600000;
+}
+// 將絕對時間戳(ms)換算為「dateStr 這一天」的台北分鐘數；落在前一天 → 0、落在隔天 → 1439（不會跨日誤判）
+function taipeiMinOfTs(ts, dateStr){
+  return Math.max(0, Math.min(1439, Math.floor((ts - taipeiMs(dateStr, 0)) / 60000)));
 }
 const canForm = (act, ms) => {
   if (!isDungeon(act)) return ms.length >= MIN_PARTY;
@@ -52,7 +50,7 @@ function scheduleOf(act, g, is, ie, dateStr) {
   for (let i = 0; i < sorted.length; i++) {
     if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
   }
-  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs));
+  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs, dateStr));
   const buffer = bufferOf(sorted.length);
   const departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
   return { readyMin, departMin, buffer };
@@ -95,19 +93,15 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       bens.forEach(place);
       if (overflow.length) groups.push(overflow);
     } else {
-      // 每日團拆多團：依登記順序逐一分配，優先放到「同職業人數最少」的組（再比總人數、再比組序）
-      // → 職業盡量平均；因為只看先登記者的分佈，後加入的人不會洗牌既有成員
+      // 每日團超過 8 人拆多團：每次有人加入都重新分配一次 →
+      // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
       for (let i = 0; i < count; i++) groups.push([]);
-      byTs(members).forEach(m => {
-        let best = -1;
-        for (let i = 0; i < count; i++) {
-          if (groups[i].length >= max) continue;
-          if (best < 0) { best = i; continue; }
-          const cj = groups[i].filter(x => x.job === m.job).length, bj = groups[best].filter(x => x.job === m.job).length;
-          if (cj < bj || (cj === bj && groups[i].length < groups[best].length)) best = i;
-        }
-        groups[best].push(m);
-      });
+      const byJob = {};
+      members.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
+      const seq = [];
+      Object.keys(byJob).sort((a, b) => byJob[b].length - byJob[a].length || a.localeCompare(b))
+        .forEach(j => seq.push(...byTs(byJob[j])));
+      seq.forEach((m, i) => groups[i % count].push(m));
     }
   } else groups.push(byTs(members));
   // 錨點：退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動

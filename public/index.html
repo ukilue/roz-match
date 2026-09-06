@@ -244,7 +244,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             <div class="time-row">
               <select id="f-start"></select><span>～</span><select id="f-end"></select>
             </div>
-            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團；每日團最多 8 人、副本團最多 12 人，超過自動拆團並平均分配職業。</p>
+            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團；每日團超過 8 人時系統會自動拆團並平均分配職業。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -267,7 +267,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             </ul>
           </li>
           <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
-          <li>每日團最多 8 人、副本團最多 12 人；同時段同目標人數超過時自動拆成多團，職業盡量平均分配</li>
+          <li>同時段同目標的每日團超過 8 人時，系統自動拆成多團，並在每次有人加入時重新平均分配職業</li>
           <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
           <li>語音群全伺服器都看得到、但只有團員能進入；出發 3 小時後自動消失</li>
           <li>緩衝階段機器人也會在 DC 群公告頻道發布「即將出發」訊息，方便其他人補位</li>
@@ -329,10 +329,10 @@ const API = "/api";
 const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
 const DUNGEONS = ["90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普"];
-const MAX_DAILY = 8, MAX_DUNGEON = 12, MIN_PARTY = 3, POLL_MS = 25000;   // 每日團上限 8 人、副本團上限 12 人
+const MAX_PARTY = 12, DAILY_SPLIT = 8, MIN_PARTY = 3, POLL_MS = 25000;   // 顯示／報名上限 12 人；每日團超過 8 人即由系統拆團平均分配
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
 const isDungeon = act => DUNGEONS.includes(act);
-const maxOf = act => isDungeon(act) ? MAX_DUNGEON : MAX_DAILY;
+const maxOf = act => isDungeon(act) ? MAX_PARTY : DAILY_SPLIT;   // 拆團門檻：副本 12、每日 8（僅演算法用，介面一律顯示 12）
 const ROLES = ["大腿","坦","補","打","便當"];
 // 副本職責（舊資料相容：便當旗標→便當、其餘→打）
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
@@ -341,16 +341,14 @@ const roleCount = (members, r) => members.filter(m=>roleOf(m)===r).length;
 // 緩衝分鐘數：一律 10 分鐘（成團「請準備」通知後 10 分鐘出發）
 const BUFFER_MIN = 10;
 const bufferOf = () => BUFFER_MIN;
-// 將絕對時間戳(ms)換算為台北時區的當日分鐘數
-function taipeiMinOfTs(ts){
-  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts));
-  const g = t => Number(p.find(x=>x.type===t).value);
-  return (g("hour")%24)*60 + g("minute");
-}
 // 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
 function taipeiMs(dateStr, min){
   const [y,mo,d] = dateStr.split("-").map(Number);
   return Date.UTC(y, mo-1, d, 0, 0) + min*60000 - 8*3600000;
+}
+// 將絕對時間戳(ms)換算為「dateStr 這一天」的台北分鐘數；落在前一天 → 0、落在隔天 → 1439（不會跨日誤判）
+function taipeiMinOfTs(ts, dateStr){
+  return Math.max(0, Math.min(1439, Math.floor((ts - taipeiMs(dateStr, 0)) / 60000)));
 }
 const canForm = (act, members) => {
   if(!isDungeon(act)) return members.length >= MIN_PARTY;
@@ -544,7 +542,7 @@ const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.char
 /* ─── 組團演算法（各端結果一致） ───
    1. 只看今天的登記，依「要做的事情」分堆
    2. 依開始時間排序，貪婪找出「時間區間有交集」的一群人
-   3. 交集起點 = 開團時間；滿 3 人開團成功，超過上限（每日 8 人／副本 12 人）自動拆團
+   3. 交集起點 = 開團時間；滿 3 人開團成功，超過拆團門檻（每日 8 人／副本 12 人）自動拆團
    4. 隊長以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
 function buildParties(regs){
   const t = todayKey();
@@ -581,7 +579,7 @@ function scheduleOf(act, g, is, ie){
   for(let i=0;i<sorted.length;i++){
     if(canForm(act, sorted.slice(0, i+1))){ formedTs = sorted[i].ts || 0; break; }
   }
-  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs));
+  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs, todayKey()));
   const buffer = bufferOf(sorted.length);
   const departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
   return { readyMin, departMin, buffer };
@@ -626,19 +624,15 @@ function splitCluster(act, members, is, ie, removedRegs){
       bens.forEach(place);                                              // 便當最後平均分配
       if(overflow.length) groups.push(overflow);                        // 塞不下的成為候補團
     }else{
-      // 每日團拆多團：依登記順序逐一分配，優先放到「同職業人數最少」的組（再比總人數、再比組序）
-      // → 職業盡量平均；因為只看先登記者的分佈，後加入的人不會洗牌既有成員
+      // 每日團超過 8 人拆多團：每次有人加入都重新分配一次 →
+      // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
       for(let i=0;i<count;i++) groups.push([]);
-      byTs(members).forEach(m=>{
-        let best = -1;
-        for(let i=0;i<count;i++){
-          if(groups[i].length >= max) continue;
-          if(best < 0){ best = i; continue; }
-          const cj = groups[i].filter(x=>x.job===m.job).length, bj = groups[best].filter(x=>x.job===m.job).length;
-          if(cj < bj || (cj === bj && groups[i].length < groups[best].length)) best = i;
-        }
-        groups[best].push(m);
-      });
+      const byJob = {};
+      members.forEach(m=>{ (byJob[m.job||""] ||= []).push(m); });
+      const seq = [];
+      Object.keys(byJob).sort((a,b)=> byJob[b].length-byJob[a].length || a.localeCompare(b))
+        .forEach(j=> seq.push(...byTs(byJob[j])));
+      seq.forEach((m,i)=>groups[i%count].push(m));
     }
   }else groups.push(byTs(members));
   // 錨點：編號/留言板繫於「創團者」。退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
@@ -687,7 +681,7 @@ function statusOf(p){
   // 揪團中(藍,收人) → 尚有位置(綠,收人) → 即將出發(紅章,緩衝期仍收人) → 關閉揪團(紅,關團)
   const now = nowMin();
   if(p.ok && p.departMin != null && now >= p.departMin) return {cls:"live", label:"關閉揪團", frame:"ok"};
-  if(p.members.length >= maxOf(p.activity)) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
+  if(p.members.length >= MAX_PARTY) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
   if(p.ok && p.readyMin != null && now >= p.readyMin) return {cls:"live", label:"即將出發", frame:"ok"};
   if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
   return {cls:"ok", label:"尚有位置", frame:"ok"};
@@ -702,13 +696,12 @@ function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
   const n = p.members.length;
-  const max = maxOf(p.activity);
-  const remain = max - n;
-  const pct = Math.min(100, Math.round(n/max*100));   // bar 條＝實際佔比（每日 8 人／副本 12 人）
-  const full = n >= max;
+  const remain = MAX_PARTY - n;
+  const pct = Math.min(100, Math.round(n/MAX_PARTY*100));   // bar 條＝實際 12 人佔比
+  const full = n >= MAX_PARTY;
   const countText = dg
-    ? `${n} / ${max} 人（${roleSummary(p.members)}）${p.ok?"":"（缺大腿，或坦＋打各 1）"}`
-    : `${n} / ${max} 人${p.ok?"":"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
+    ? `${n} / ${MAX_PARTY} 人（${roleSummary(p.members)}）${p.ok?"":"（缺大腿，或坦＋打各 1）"}`
+    : `${n} / ${MAX_PARTY} 人${p.ok?"":"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
   return `<div class="card ${st.frame}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
@@ -784,8 +777,8 @@ function detailMainHTML(p){
     }
   }else{
     // 不含我的登記的團：顯示加入（滿團擋下；未登入/未加入伺服器不顯示加入表單）
-    if(!closed && p.members.length >= maxOf(p.activity)){
-      main += `<div class="notice member" style="margin-top:14px">此團已滿 ${maxOf(p.activity)} 人，無法加入，請改登記其他時段。</div>`;
+    if(!closed && p.members.length >= MAX_PARTY){
+      main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
     }else if(!closed && store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
     }else if(!closed && store.online && !USER.member){
@@ -993,7 +986,7 @@ async function joinParty(){
   const lvErr = levelCheck(p.activity, level);
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
-  if(p.members.length >= maxOf(p.activity)) return toast("此團已滿 "+maxOf(p.activity)+" 人");
+  if(p.members.length >= MAX_PARTY) return toast("此團已滿 "+MAX_PARTY+" 人");
   if(isClosed(p)) return toast("此團已出發並關閉揪團");
   const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
