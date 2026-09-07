@@ -70,12 +70,21 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
 function splitCluster(act, members, is, ie, dateStr, removedRegs) {
   const groups = [];
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
-  if (canForm(act, members)) {
+  // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
+  // 只在分好的團裡挑「人數最少」的一團直接補進去，讓既有團員名單不再變動
+  let core = members, late = [];
+  const whole = scheduleOf(act, members, is, ie, dateStr);
+  if (whole) {
+    const readyMs = taipeiMs(dateStr, whole.readyMin);
+    const c = members.filter(m => (m.ts || 0) < readyMs);
+    if (c.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
+  }
+  if (canForm(act, core)) {
     const max = maxOf(act);
-    let count = Math.ceil(members.length / max);
+    let count = Math.ceil(core.length / max);
     if (isDungeon(act)) {
       // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
-      const pool = r => byTs(members.filter(m => roleOf(m) === r));
+      const pool = r => byTs(core.filter(m => roleOf(m) === r));
       const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
       const maxCore = legs.length + Math.min(tanks.length, dps.length);
       count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
@@ -97,13 +106,14 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
       for (let i = 0; i < count; i++) groups.push([]);
       const byJob = {};
-      members.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
+      core.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
       const seq = [];
       Object.keys(byJob).sort((a, b) => byJob[b].length - byJob[a].length || a.localeCompare(b))
         .forEach(j => seq.push(...byTs(byJob[j])));
       seq.forEach((m, i) => groups[i % count].push(m));
     }
-  } else groups.push(byTs(members));
+  } else groups.push(byTs(core));
+  late.forEach(m => { let bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
   // 錨點：退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
   const founderOf = g => g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId))[0];
   const owns = groups.map(founderOf);

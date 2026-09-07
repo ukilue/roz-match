@@ -5,6 +5,9 @@
 // 4. 必須是 DISCORD_GUILD_ID 指定伺服器的成員，才發放 Session Cookie
 import { createSession, sessionCookie } from "../_auth.js";
 
+// 自動加入伺服器時預設給的身份組（可用環境變數 DISCORD_JOIN_ROLE_ID 覆寫；機器人需有 Manage Roles 且此身份組低於機器人）
+const DEFAULT_JOIN_ROLE_ID = "1545357171821379684";
+
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const fail = reason => new Response(null, { status: 302, headers: { Location: "/?auth=" + reason } });
@@ -44,15 +47,19 @@ export async function onRequestGet({ request, env }) {
 
   // 非成員 → 用 Bot 自動把用戶加入伺服器（需 guilds.join 範圍 ＋ Bot 在伺服器內且有「建立邀請」權限）
   if (!isMember && env.DISCORD_BOT_TOKEN) {
-    const jr = await fetch(
+    const roleId = env.DISCORD_JOIN_ROLE_ID || DEFAULT_JOIN_ROLE_ID;
+    const joinReq = body => fetch(
       `https://discord.com/api/guilds/${env.DISCORD_GUILD_ID}/members/${user.id}`, {
         method: "PUT",
         headers: {
           "Authorization": "Bot " + env.DISCORD_BOT_TOKEN,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ access_token: tok.access_token })
+        body: JSON.stringify(body)
       });
+    // 先帶預設身份組加入；若因身份組權限問題失敗，退回不帶身份組再試一次，確保至少能加入
+    let jr = await joinReq({ access_token: tok.access_token, roles: /^\d{17,20}$/.test(roleId) ? [roleId] : [] });
+    if (jr.status !== 201 && jr.status !== 204) jr = await joinReq({ access_token: tok.access_token });
     if (jr.status === 201) { isMember = true; autoJoined = true; }   // 201 = 已幫他加入
     else if (jr.status === 204) { isMember = true; }                 // 204 = 其實已是成員
     // 其他狀態（Bot 權限不足等）→ 落回未加入流程，前端仍會引導手動加入

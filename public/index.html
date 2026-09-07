@@ -267,11 +267,11 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             </ul>
           </li>
           <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
-          <li>同時段同目標的每日團超過 8 人時，系統自動拆成多團，並在每次有人加入時重新平均分配職業</li>
+          <li>同時段同目標的每日團超過 8 人時，系統自動拆成多團，並在每次有人加入時重新平均分配職業；「即將出發」提醒發出後加入的人則直接補進人數較少的團，不再變動既有團員</li>
+          <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息</li>
           <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
           <li>語音群全伺服器都看得到、但只有團員能進入；出發 3 小時後自動消失</li>
-          <li>緩衝階段機器人也會在 DC 群公告頻道發布「即將出發」訊息，方便其他人補位</li>
-        </ul>
+                  </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
       </div>
     </div>
@@ -598,15 +598,22 @@ function canJoinCluster(act, members, is, ie, r){
 
 function splitCluster(act, members, is, ie, removedRegs){
   const groups = [];
-  // 依「登記時間」排序後再分組：新加入者永遠排在最後，
-  // 既有成員的分組不會因為有人加入而重新洗牌 → 揪團編號、留言板都不變動
   const byTs = arr => arr.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
-  if(canForm(act, members)){
+  // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
+  // 只在分好的團裡挑「人數最少」的一團直接補進去，讓既有團員名單不再變動
+  let core = members, late = [];
+  const whole = scheduleOf(act, members, is, ie);
+  if(whole){
+    const readyMs = taipeiMs(todayKey(), whole.readyMin);
+    const c = members.filter(m=>(m.ts||0) < readyMs);
+    if(c.length && canForm(act, c)){ core = c; late = byTs(members.filter(m=>(m.ts||0) >= readyMs)); }
+  }
+  if(canForm(act, core)){
     const max = maxOf(act);
-    let count = Math.ceil(members.length / max);
+    let count = Math.ceil(core.length / max);
     if(isDungeon(act)){
       // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
-      const pool = r => byTs(members.filter(m=>roleOf(m)===r));
+      const pool = r => byTs(core.filter(m=>roleOf(m)===r));
       const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
       const maxCore = legs.length + Math.min(tanks.length, dps.length);
       count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
@@ -628,13 +635,14 @@ function splitCluster(act, members, is, ie, removedRegs){
       // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
       for(let i=0;i<count;i++) groups.push([]);
       const byJob = {};
-      members.forEach(m=>{ (byJob[m.job||""] ||= []).push(m); });
+      core.forEach(m=>{ (byJob[m.job||""] ||= []).push(m); });
       const seq = [];
       Object.keys(byJob).sort((a,b)=> byJob[b].length-byJob[a].length || a.localeCompare(b))
         .forEach(j=> seq.push(...byTs(byJob[j])));
       seq.forEach((m,i)=>groups[i%count].push(m));
     }
-  }else groups.push(byTs(members));
+  }else groups.push(byTs(core));
+  late.forEach(m=>{ let bi = 0; groups.forEach((g,i)=>{ if(g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
   // 錨點：編號/留言板繫於「創團者」。退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
   const founderOf = g => g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
   const owns = groups.map(founderOf);
