@@ -174,6 +174,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   padding:7px 10px;border-bottom:1px dashed #8a6f3f66;
 }
 .member-list li .lead{color:var(--red);font-weight:900}
+.member-list li .mine-tag{font-size:11px;color:#fff;background:var(--ro-blue);border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:middle}
+.exit-btn{font-family:inherit;font-weight:700;font-size:12px;letter-spacing:1px;cursor:pointer;color:#fff;background:linear-gradient(180deg,#D45A44,#A83A26);border:1px solid #6E2314;border-radius:4px;padding:3px 9px}
 .notice{
   margin-top:14px;border-radius:6px;padding:12px;font-size:14px;line-height:1.7;
 }
@@ -258,7 +260,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-body" style="font-size:14px;line-height:1.9">
         <ul class="rules">
           <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
-          <li>同一帳號同一時間只能在一個團；團出發後原登記即釋放，可再登記其他時段的揪團</li>
+          <li>同一 Discord 帳號可登記多個角色 ID；同一角色 ID 同一時間只能在一個團（以出發時間劃分，不論目標），團出發後即釋放可再登記</li>
+          <li>要退出揪團，請點開明細，在自己角色 ID 後面按「退出」</li>
           <li>玩家登記每日可以遊玩的時間及目標，系統會自動安排組隊並以 DC 機器人通知</li>
           <li>點開自己的團可以先在留言版與團員協調相關內容</li>
           <li>開團成功規則
@@ -769,7 +772,7 @@ function detailMainHTML(p){
     p.squads.map(s=>`
     ${multi ? `<div class="squad-head">第 ${s.index} 團 <small>${s.members.length} 人${p.ok?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
-      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
+      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}${m.mine?' <span class="mine-tag">我的</span>':""}</span><span style="display:flex;gap:8px;align-items:center">${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}${m.mine && !closed?`<button class="exit-btn" onclick="exitParty('${esc(m.uid).replace(/'/g,"\\'")}')">退出</button>`:""}</span></li>`).join("") +
     `</ul>`).join("");
   if(multi && !ready){
     main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>，有人加入時會動態調整；提醒發出後即固定。全體共用同一個留言板。</div>`;
@@ -783,13 +786,9 @@ function detailMainHTML(p){
       : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，隊員請自主聯繫隊長入隊，集合細節請於留言板協調。</div>`;
   }
 
-  if(viewerMember){
-    // 成員視角：退出按鈕（關團前皆可退；留言板在右欄，由 openDetail 建立）
-    if(!closed){
-      main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出揪團</button></div>`;
-    }
-  }else{
-    // 不含我的登記的團：顯示加入（未登入/未加入伺服器不顯示加入表單；報名不設上限）
+  // 退出：在名單中自己的角色後面按「退出」（他人的登記沒有按鈕）；留言板在右欄，由 openDetail 建立
+  // 加入表單對所有人開放（同一帳號可用其他角色 ID 再報名；報名不設上限）
+  {
     if(!closed && store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
     }else if(!closed && store.online && !USER.member){
@@ -799,7 +798,7 @@ function detailMainHTML(p){
     }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
-        <label style="margin-bottom:8px">加入這個揪團</label>
+        <label style="margin-bottom:8px">${viewerMember ? "用其他角色再加入這個揪團" : "加入這個揪團"}</label>
         <div class="form-grid">
           <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
           <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
@@ -865,18 +864,20 @@ function updateDetail(p){
   $("d-title").textContent = "揪團明細 #"+p.num;
 }
 function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
-async function exitParty(){
+async function exitParty(uid){
   if(!requireLogin()) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
   if(!p) return;
-  const m = p.members.find(x=>x.mine);
+  const m = p.members.find(x=>x.mine && x.uid===uid);
   if(!m) return toast("找不到你的登記資料");
   const removed = await store.remove(m);
   if(!removed) return;
   await refresh();
-  closeModal();
-  renderMine();
-  toast("已退出揪團");
+  const still = PARTIES.find(x=>x.id===openPartyId);
+  if(still && still.members.some(x=>x.mine)) updateDetail(still);   // 還有其他角色在團內 → 留在明細
+  else closeModal();
+  if(currentView==="mine") renderMine();
+  toast("已讓「"+m.charId+"」退出揪團");
 }
 
 /* ─── 團員留言板 ───

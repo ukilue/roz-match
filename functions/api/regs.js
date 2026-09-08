@@ -95,14 +95,14 @@ export async function onRequestPost({ request, env }) {
     // 揪團中或緩衝期（即將出發）→ 允許加入
   }
 
-  // 同一帳號不能同時報兩個「時段重疊」的團（人不可能同時在兩處）。
-  // 佔用的時段以「該筆登記所屬的團」實際狀態為準，而不是登記時填的原始時段：
+  // 同一個 Discord 帳號可以登記多個角色 ID；但「同一個角色 ID」不能同時在兩個「時段重疊」的團（不論目標是否相同）。
+  // 佔用的時段以「該筆登記所屬的團」實際狀態為準（以出發時間劃分），而不是登記時填的原始時段：
   //   - 團已出發 → 這筆登記完全釋放，之後可自由登記其他時段（登記 10:00～24:00 但 14:10 就出發的人不會被卡死一整天）
   //   - 已成團、尚未出發 → 只佔用「提醒時刻（出發前 10 分）～出發時刻」
   //   - 尚未成團 → 維持原始登記時段（還不知道最後會幾點出發）
   const ns = toMin(start), ne = toMin(end);
   for (const r of all) {
-    if (r.discordId !== user.id || r.removed) continue;
+    if (r.discordId !== user.id || r.removed || r.charId !== charId) continue;
     const p = parties.find(x => x.members.some(m => m.uid === r.uid));
     let os = toMin(r.start), oe = toMin(r.end);
     if (p && p.ok && p.departMin != null) {
@@ -111,15 +111,9 @@ export async function onRequestPost({ request, env }) {
     }
     if (ns < oe && os < ne) {
       const hm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
-      return bad(`你已在 ${hm(os)}～${hm(oe)} 登記「${r.activity}」，時段重疊無法再登記；若要改時段請先退出原團`);
+      return bad(`角色「${charId}」已在 ${hm(os)}～${hm(oe)} 登記「${r.activity}」，同一角色時段重疊無法再登記；若要改時段請先退出原團`);
     }
   }
-
-  // 防灌水：同 Discord 帳號同日登記數上限
-  const cnt = await env.DB
-    .prepare("SELECT COUNT(*) AS c FROM regs WHERE date = ? AND discordId = ?")
-    .bind(date, user.id).first();
-  if (cnt && cnt.c >= 20) return bad("你今日的登記次數已達上限");
 
   const uid = crypto.randomUUID();
   await env.DB
