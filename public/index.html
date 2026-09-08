@@ -167,6 +167,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 }
 .close-x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1}
 .member-list{list-style:none;margin-top:8px}
+.squad-head{margin-top:12px;font-weight:900;letter-spacing:1px;color:var(--ro-blue-dark);border-left:4px solid var(--ro-blue);padding-left:8px}
+.squad-head small{font-weight:400;color:#7A6845;letter-spacing:0;margin-left:6px}
 .member-list li{
   display:flex;justify-content:space-between;gap:8px;font-size:14.5px;
   padding:7px 10px;border-bottom:1px dashed #8a6f3f66;
@@ -244,7 +246,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             <div class="time-row">
               <select id="f-start"></select><span>～</span><select id="f-end"></select>
             </div>
-            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團；每日團超過 8 人時系統會自動拆團並平均分配職業。</p>
+            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團；人多時會在明細顯示依職業平均的預期分團（12 人一團）。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -267,10 +269,11 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             </ul>
           </li>
           <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
-          <li>同時段同目標的每日團超過 8 人時，系統自動拆成多團，並在每次有人加入時重新平均分配職業；「即將出發」提醒發出後加入的人則直接補進人數較少的團，不再變動既有團員</li>
+          <li>同時段同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。人數超過 12 人時，明細會顯示系統依職業平均的<b>預期分團</b>（12 人一團），有人加入時動態調整；「即將出發」提醒發出後加入的人直接補進人數較少的團，不再變動既有分團</li>
+          <li>出發時機器人依預期分團各開一間語音頻道（揪團-編號-目標-1、-2…），全體團員都能進入任何一間，臨時要換團可自行協調</li>
           <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息</li>
           <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
-          <li>語音群全伺服器都看得到、但只有團員能進入；出發 3 小時後自動消失</li>
+          <li>語音群全伺服器都看得到、但只有本揪團的團員能進入；出發 3 小時後自動消失</li>
                   </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
       </div>
@@ -329,10 +332,10 @@ const API = "/api";
 const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
 const DUNGEONS = ["90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普"];
-const MAX_PARTY = 12, DAILY_SPLIT = 8, MIN_PARTY = 3, POLL_MS = 25000;   // 顯示／報名上限 12 人；每日團超過 8 人即由系統拆團平均分配
+const SQUAD_SIZE = 12, MIN_PARTY = 3, POLL_MS = 25000;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
 const isDungeon = act => DUNGEONS.includes(act);
-const maxOf = act => isDungeon(act) ? MAX_PARTY : DAILY_SPLIT;   // 拆團門檻：副本 12、每日 8（僅演算法用，介面一律顯示 12）
+const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）
 const ROLES = ["大腿","坦","補","打","便當"];
 // 副本職責（舊資料相容：便當旗標→便當、其餘→打）
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
@@ -542,8 +545,9 @@ const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.char
 /* ─── 組團演算法（各端結果一致） ───
    1. 只看今天的登記，依「要做的事情」分堆
    2. 依開始時間排序，貪婪找出「時間區間有交集」的一群人
-   3. 交集起點 = 開團時間；滿 3 人開團成功，超過拆團門檻（每日 8 人／副本 12 人）自動拆團
-   4. 隊長以團體資訊雜湊決定 → 每個玩家看到的結果相同 */
+   3. 交集起點 = 開團時間；整群人就是一個揪團（同編號、同留言板），滿 3 人（副本：有核心）開團成功
+   4. 群內另算「預期分團」（一律 12 人一團，職業平均），供明細顯示與開語音房；
+      各預期分團的隊長＝該團最早登記者 → 每個玩家看到的結果相同 */
 function buildParties(regs){
   const t = todayKey();
   const todays = regs.filter(r=>r.date===t);
@@ -555,7 +559,7 @@ function buildParties(regs){
   for(const act in byAct){
     const list = byAct[act].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || a.charId.localeCompare(b.charId));
     let cluster=[], is=0, ie=0;
-    const flush = ()=>{ if(cluster.length) parties.push(...splitCluster(act,cluster,is,ie,removedByAct[act]||[])); };
+    const flush = ()=>{ if(cluster.length) parties.push(splitCluster(act,cluster,is,ie,t,removedByAct[act]||[])); };
     for(const r of list){
       const s=toMin(r.start), e=toMin(r.end);
       if(!cluster.length){ cluster=[r]; is=s; ie=e; continue; }
@@ -596,81 +600,78 @@ function canJoinCluster(act, members, is, ie, r){
   return true;
 }
 
-function splitCluster(act, members, is, ie, removedRegs){
-  const groups = [];
-  const byTs = arr => arr.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId));
+// ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
+// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心，職業盡量平均），
+// 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
+function buildSquads(act, members, is, ie, dateStr) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
   // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
-  // 只在分好的團裡挑「人數最少」的一團直接補進去，讓既有團員名單不再變動
+  // 直接補進人數最少的預期分團，讓已通知的分團名單不再變動
   let core = members, late = [];
-  const whole = scheduleOf(act, members, is, ie);
-  if(whole){
-    const readyMs = taipeiMs(todayKey(), whole.readyMin);
-    const c = members.filter(m=>(m.ts||0) < readyMs);
-    if(c.length && canForm(act, c)){ core = c; late = byTs(members.filter(m=>(m.ts||0) >= readyMs)); }
+  const whole = scheduleOf(act, members, is, ie, dateStr);
+  if (whole) {
+    const readyMs = taipeiMs(dateStr, whole.readyMin);
+    const c = members.filter(m => (m.ts || 0) < readyMs);
+    if (c.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
   }
-  if(canForm(act, core)){
+  const groups = [];
+  if (canForm(act, core)) {
     const max = maxOf(act);
     let count = Math.ceil(core.length / max);
-    if(isDungeon(act)){
-      // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
-      const pool = r => byTs(core.filter(m=>roleOf(m)===r));
+    if (isDungeon(act)) {
+      // 每個預期分團都要有核心：一隻大腿、或一組坦＋打
+      const pool = r => byTs(core.filter(m => roleOf(m) === r));
       const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
       const maxCore = legs.length + Math.min(tanks.length, dps.length);
       count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
-      for(let i=0;i<count;i++) groups.push([]);
+      for (let i = 0; i < count; i++) groups.push([]);
       let gi = 0; const overflow = [];
-      legs.forEach(l=>{ groups[gi%count].push(l); gi++; });            // 大腿先各組一隻
-      for(let i=legs.length; i<count; i++){ groups[i].push(tanks.shift()); groups[i].push(dps.shift()); } // 沒大腿的組補坦＋打
-      const place = m => {                                              // 其餘依登記順序平均，滿 12 人跳下一組
-        let tries=0;
-        while(groups[gi%count].length>=max && tries<count){ gi++; tries++; }
-        if(tries>=count) overflow.push(m);
-        else { groups[gi%count].push(m); gi++; }
+      legs.forEach(l => { groups[gi % count].push(l); gi++; });
+      for (let i = legs.length; i < count; i++) { groups[i].push(tanks.shift()); groups[i].push(dps.shift()); }
+      const place = m => {
+        let tries = 0;
+        while (groups[gi % count].length >= max && tries < count) { gi++; tries++; }
+        if (tries >= count) overflow.push(m);
+        else { groups[gi % count].push(m); gi++; }
       };
-      byTs([...tanks, ...dps, ...heals]).forEach(place);                // 剩餘坦/打/補
-      bens.forEach(place);                                              // 便當最後平均分配
-      if(overflow.length) groups.push(overflow);                        // 塞不下的成為候補團
-    }else{
-      // 每日團超過 8 人拆多團：每次有人加入都重新分配一次 →
-      // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
-      for(let i=0;i<count;i++) groups.push([]);
+      byTs([...tanks, ...dps, ...heals]).forEach(place);
+      bens.forEach(place);
+      if (overflow.length) groups.push(overflow);
+    } else {
+      // 每日團超過 12 人分多團：依「職業人數多→少、職業名、登記順序」排成一列，輪流發牌 → 職業與人數都平均
+      for (let i = 0; i < count; i++) groups.push([]);
       const byJob = {};
-      core.forEach(m=>{ (byJob[m.job||""] ||= []).push(m); });
+      core.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
       const seq = [];
-      Object.keys(byJob).sort((a,b)=> byJob[b].length-byJob[a].length || a.localeCompare(b))
-        .forEach(j=> seq.push(...byTs(byJob[j])));
-      seq.forEach((m,i)=>groups[i%count].push(m));
+      Object.keys(byJob).sort((a, b) => byJob[b].length - byJob[a].length || a.localeCompare(b))
+        .forEach(j => seq.push(...byTs(byJob[j])));
+      seq.forEach((m, i) => groups[i % count].push(m));
     }
-  }else groups.push(byTs(core));
-  late.forEach(m=>{ let bi = 0; groups.forEach((g,i)=>{ if(g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
-  // 錨點：編號/留言板繫於「創團者」。退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
-  const founderOf = g => g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || a.charId.localeCompare(b.charId))[0];
-  const owns = groups.map(founderOf);
-  let primaryIdx = 0;
-  owns.forEach((f,i)=>{ const p0=owns[primaryIdx];
-    if((f.ts||0)<(p0.ts||0) || ((f.ts||0)===(p0.ts||0) && f.charId.localeCompare(p0.charId)<0)) primaryIdx=i; });
-  const cands = (removedRegs||[]).filter(r=> toMin(r.start) <= ie && is <= toMin(r.end));
-  return groups.map((g,gi)=>{
-    const id = act+"|"+toHM(is)+"|"+g.map(m=>m.charId).sort().join(",");
-    let anchor = owns[gi];
-    if(gi===primaryIdx){
-      for(const c of cands){
-        if((c.ts||0)<(anchor.ts||0) || ((c.ts||0)===(anchor.ts||0) && c.charId.localeCompare(anchor.charId)<0)) anchor=c;
-      }
-    }
-    const stable = act+"|"+anchor.charId+"|"+(anchor.ts||0);
-    const sch = scheduleOf(act, g, is, ie);
-    const okNow = !!sch;
-    const readyMin = sch ? sch.readyMin : null, departMin = sch ? sch.departMin : null, buffer = sch ? sch.buffer : null;
-    return {
-      id, activity:act, members:g, time:is, timeEnd:ie,
-      ok: okNow, readyMin, departMin, buffer,
-      leader: g[hashStr(id+"L") % g.length],
-      // 四位數揪團編號：錨定創團者，方便遊戲內廣播
-      num: String(hashStr(stable+"|"+todayKey()+"|num") % 10000).padStart(4,"0"),
-      chatKey: "c"+hashStr(stable+"|"+todayKey()).toString(36)+hashStr(stable+"|chat").toString(36)
-    };
-  });
+  } else groups.push(byTs(core));
+  late.forEach(m => { let bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
+  // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
+}
+
+function splitCluster(act, members, is, ie, dateStr, removedRegs) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const sorted = byTs(members);
+  const id = act + "|" + toHM(is) + "|" + sorted.map(m => m.charId).sort().join(",");
+  // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
+  let anchor = sorted[0];
+  for (const c of (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end))) {
+    if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
+  }
+  const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
+  const sch = scheduleOf(act, members, is, ie, dateStr);
+  const squads = buildSquads(act, members, is, ie, dateStr);
+  return {
+    id, activity: act, members: sorted, time: is, timeEnd: ie,
+    ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
+    squads, leader: squads[0].leader,
+    num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
+    chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
+  };
 }
 
 /* ─── 畫面 ─── */
@@ -689,7 +690,6 @@ function statusOf(p){
   // 揪團中(藍,收人) → 尚有位置(綠,收人) → 即將出發(紅章,緩衝期仍收人) → 關閉揪團(紅,關團)
   const now = nowMin();
   if(p.ok && p.departMin != null && now >= p.departMin) return {cls:"live", label:"關閉揪團", frame:"ok"};
-  if(p.members.length >= MAX_PARTY) return {cls:"live", label:"已滿團", frame:p.ok?"ok":""};
   if(p.ok && p.readyMin != null && now >= p.readyMin) return {cls:"live", label:"即將出發", frame:"ok"};
   if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
   return {cls:"ok", label:"尚有位置", frame:"ok"};
@@ -703,13 +703,12 @@ function roleSummary(members){
 function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
-  const n = p.members.length;
-  const remain = MAX_PARTY - n;
-  const pct = Math.min(100, Math.round(n/MAX_PARTY*100));   // bar 條＝實際 12 人佔比
-  const full = n >= MAX_PARTY;
+  const n = p.members.length, sq = p.squads.length, max = maxOf(p.activity);
+  const pct = Math.min(100, Math.round(n/(sq*max)*100));   // bar 條＝相對於預期分團總容量
+  const squadText = sq > 1 ? `，預計分 ${sq} 團` : "";
   const countText = dg
-    ? `${n} / ${MAX_PARTY} 人（${roleSummary(p.members)}）${p.ok?"":"（缺大腿，或坦＋打各 1）"}`
-    : `${n} / ${MAX_PARTY} 人${p.ok?"":"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
+    ? `${n} 人（${roleSummary(p.members)}）${p.ok?squadText:"（缺大腿，或坦＋打各 1）"}`
+    : `${n} 人${p.ok?squadText:"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
   return `<div class="card ${st.frame}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
@@ -717,8 +716,7 @@ function cardHTML(p, source){
     <div class="row"><b>時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     ${p.ok ? `<div class="row"><b>出發時間</b>${toHM(p.departMin)}${nowMin()<p.departMin?"（"+toHM(p.readyMin)+" 提醒）":""}</div>` : `<div class="row"><b>出發時間</b>成團後緩衝 10 分</div>`}
     <div class="row"><b>目前人數</b>${countText}</div>
-    ${!full && remain<=3 ? `<div class="row"><span class="almost">⚡ 即將滿團（剩 ${remain} 位）</span></div>` : ""}
-    <div class="count-bar"><i class="${full?"full":""}" style="width:${pct}%"></i></div>
+    <div class="count-bar"><i style="width:${pct}%"></i></div>
   </div>`;
 }
 function renderAll(){
@@ -756,26 +754,33 @@ function detailMainHTML(p){
   const ready = isReady(p);      // 即將出發（緩衝期，仍收人）
   const closed = isClosed(p);    // 已出發關團
   const viewerMember = p.members.find(m=>m.mine) || null;
-  // 只有系統指派的隊長恰好是「我的登記」，才顯示您是隊長
-  const iAmLeader = ready && !!p.leader.mine;
+  // 只有系統指派的隊長（各預期分團最早登記者）恰好是「我的登記」，才顯示您是隊長
+  const mySquad = p.squads.find(s=>s.members.some(m=>m.mine)) || null;
+  const iAmLeader = ready && !!mySquad && !!mySquad.leader.mine;
   const dg = isDungeon(p.activity);
+  const multi = p.squads.length > 1;
 
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b>${p.ok?toHM(p.departMin)+(nowMin()<p.departMin?"（"+toHM(p.readyMin)+" 提醒準備）":""):"成團後緩衝 10 分鐘出發"}</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}）</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}${multi?"，預計分 "+p.squads.length+" 團":""}）</div>` +
+    p.squads.map(s=>`
+    ${multi ? `<div class="squad-head">第 ${s.index} 團 <small>${s.members.length} 人${p.ok?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
-    p.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${ready && m.charId===p.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
-    `</ul>`;
+      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}</span>${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</li>`).join("") +
+    `</ul>`).join("");
+  if(multi && !ready){
+    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>，有人加入時會動態調整；提醒發出後即固定。全體共用同一個留言板。</div>`;
+  }
   if(ready && !closed){
-    main += `<div class="notice member">🔔 <b>即將出發</b>：人數已足夠，請先準備，<b>${toHM(p.departMin)}</b> 出發（緩衝期間仍可加入）。</div>`;
+    main += `<div class="notice member">🔔 <b>即將出發</b>：人數已足夠，請先準備，<b>${toHM(p.departMin)}</b> 出發（緩衝期間仍可加入）。${multi?"語音頻道依上方分團各開一間（-1、-2…），全體團員皆可進入任一間，可自行協調換團。":""}</div>`;
   }
   if(ready){
     main += iAmLeader
-      ? `<div class="notice leader"><b>您是隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請上列成員入隊。</div>`
-      : `<div class="notice member">隊長為 <b>${esc(p.leader.charId)}</b>，隊員請自主聯繫隊長入隊，集合細節請於留言板協調。</div>`;
+      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請${multi?"本團":"上列"}成員入隊。</div>`
+      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，隊員請自主聯繫隊長入隊，集合細節請於留言板協調。</div>`;
   }
 
   if(viewerMember){
@@ -784,10 +789,8 @@ function detailMainHTML(p){
       main += `<div style="margin-top:14px"><button class="btn red" onclick="exitParty()">退出揪團</button></div>`;
     }
   }else{
-    // 不含我的登記的團：顯示加入（滿團擋下；未登入/未加入伺服器不顯示加入表單）
-    if(!closed && p.members.length >= MAX_PARTY){
-      main += `<div class="notice member" style="margin-top:14px">此團已滿 ${MAX_PARTY} 人，無法加入，請改登記其他時段。</div>`;
-    }else if(!closed && store.online && !USER){
+    // 不含我的登記的團：顯示加入（未登入/未加入伺服器不顯示加入表單；報名不設上限）
+    if(!closed && store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
     }else if(!closed && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
@@ -994,7 +997,6 @@ async function joinParty(){
   const lvErr = levelCheck(p.activity, level);
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
-  if(p.members.length >= MAX_PARTY) return toast("此團已滿 "+MAX_PARTY+" 人");
   if(isClosed(p)) return toast("此團已出發並關閉揪團");
   const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),

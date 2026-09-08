@@ -3,9 +3,9 @@
 // ⚠ 若修改組團規則，三處必須同步修改。
 
 const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普"];
-const MAX_PARTY = 12, DAILY_SPLIT = 8, MIN_PARTY = 3;   // 顯示／報名上限 12 人；每日團超過 8 人即由系統拆團平均分配
+const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
 const isDungeon = act => DUNGEONS.includes(act);
-const maxOf = act => isDungeon(act) ? MAX_PARTY : DAILY_SPLIT;   // 拆團門檻：副本 12、每日 8
+const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）
 const ROLES = ["大腿", "坦", "補", "打", "便當"];
 const roleOf = m => m.role || (m.bento ? "便當" : "打");
 const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
@@ -67,11 +67,13 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
   return true;
 }
 
-function splitCluster(act, members, is, ie, dateStr, removedRegs) {
-  const groups = [];
+// ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
+// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心，職業盡量平均），
+// 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
+function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
   // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
-  // 只在分好的團裡挑「人數最少」的一團直接補進去，讓既有團員名單不再變動
+  // 直接補進人數最少的預期分團，讓已通知的分團名單不再變動
   let core = members, late = [];
   const whole = scheduleOf(act, members, is, ie, dateStr);
   if (whole) {
@@ -79,11 +81,12 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
     const c = members.filter(m => (m.ts || 0) < readyMs);
     if (c.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
   }
+  const groups = [];
   if (canForm(act, core)) {
     const max = maxOf(act);
     let count = Math.ceil(core.length / max);
     if (isDungeon(act)) {
-      // 每個拆出的團都要有核心：一隻大腿、或一組坦＋打
+      // 每個預期分團都要有核心：一隻大腿、或一組坦＋打
       const pool = r => byTs(core.filter(m => roleOf(m) === r));
       const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
       const maxCore = legs.length + Math.min(tanks.length, dps.length);
@@ -102,8 +105,7 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
       bens.forEach(place);
       if (overflow.length) groups.push(overflow);
     } else {
-      // 每日團超過 8 人拆多團：每次有人加入都重新分配一次 →
-      // 依「職業人數多→少、職業名、登記順序」排成一列，再輪流發牌到各組，讓每個職業與總人數都平均散在各團
+      // 每日團超過 12 人分多團：依「職業人數多→少、職業名、登記順序」排成一列，輪流發牌 → 職業與人數都平均
       for (let i = 0; i < count; i++) groups.push([]);
       const byJob = {};
       core.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
@@ -114,33 +116,29 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs) {
     }
   } else groups.push(byTs(core));
   late.forEach(m => { let bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
-  // 錨點：退出採軟刪除，退出者仍是錨點候選 → 編號創團後永不變動
-  const founderOf = g => g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId))[0];
-  const owns = groups.map(founderOf);
-  let primaryIdx = 0;
-  owns.forEach((f, i) => { const p0 = owns[primaryIdx];
-    if ((f.ts || 0) < (p0.ts || 0) || ((f.ts || 0) === (p0.ts || 0) && f.charId.localeCompare(p0.charId) < 0)) primaryIdx = i; });
-  const cands = (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end));
-  return groups.map((g, gi) => {
-    const id = act + "|" + toHM(is) + "|" + g.map(m => m.charId).sort().join(",");
-    let anchor = owns[gi];
-    if (gi === primaryIdx) {
-      for (const c of cands) {
-        if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
-      }
-    }
-    const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
-    const sch = scheduleOf(act, g, is, ie, dateStr);
-    const okNow = !!sch;
-    const readyMin = sch ? sch.readyMin : null, departMin = sch ? sch.departMin : null, buffer = sch ? sch.buffer : null;
-    return {
-      id, activity: act, members: g, time: is, timeEnd: ie,
-      ok: okNow, readyMin, departMin, buffer,
-      leader: g[hashStr(id + "L") % g.length],
-      num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
-      chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
-    };
-  });
+  // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
+}
+
+function splitCluster(act, members, is, ie, dateStr, removedRegs) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const sorted = byTs(members);
+  const id = act + "|" + toHM(is) + "|" + sorted.map(m => m.charId).sort().join(",");
+  // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
+  let anchor = sorted[0];
+  for (const c of (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end))) {
+    if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
+  }
+  const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
+  const sch = scheduleOf(act, members, is, ie, dateStr);
+  const squads = buildSquads(act, members, is, ie, dateStr);
+  return {
+    id, activity: act, members: sorted, time: is, timeEnd: ie,
+    ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
+    squads, leader: squads[0].leader,
+    num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
+    chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
+  };
 }
 
 export function buildParties(regs, dateStr) {
@@ -153,7 +151,7 @@ export function buildParties(regs, dateStr) {
   for (const act in byAct) {
     const list = byAct[act].slice().sort((a, b) => toMin(a.start) - toMin(b.start) || a.charId.localeCompare(b.charId));
     let cluster = [], is = 0, ie = 0;
-    const flush = () => { if (cluster.length) parties.push(...splitCluster(act, cluster, is, ie, dateStr, removedByAct[act] || [])); };
+    const flush = () => { if (cluster.length) parties.push(splitCluster(act, cluster, is, ie, dateStr, removedByAct[act] || [])); };
     for (const r of list) {
       const s = toMin(r.start), e = toMin(r.end);
       if (!cluster.length) { cluster = [r]; is = s; ie = e; continue; }
