@@ -2,7 +2,7 @@
 // 與前端 public/index.html 及 cron-worker.js 的演算法「完全一致」。
 // ⚠ 若修改組團規則，三處必須同步修改。
 
-const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普"];
+const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普", "105級副本"];
 const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
 const isDungeon = act => DUNGEONS.includes(act);
 const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）
@@ -99,36 +99,29 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (best < 0) { groups.push([]); best = groups.length - 1; }
     groups[best].push(...unit);
   };
-  // 分數：同帳號成員所在的團最優先 → 該單位職業在團內已有的人數愈少愈好 → 團人數少 → 組序小
-  const balanceScore = (g, unit, i) =>
-    (hasMate(g, unit) ? 0 : 1) * 1e6 + unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 + g.length * 10 + i;
   if (canForm(act, core)) {
-    const max = maxOf(act);
-    let count = Math.ceil(core.length / max);
-    if (isDungeon(act)) {
-      // 每個預期分團都要有核心：一隻大腿、或一組坦＋打；核心先放，其餘以帳號為單位放入
-      const pool = r => byTs(core.filter(m => roleOf(m) === r));
-      const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打");
-      const maxCore = legs.length + Math.min(tanks.length, dps.length);
-      count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
+    const max = maxOf(act), dg = isDungeon(act);
+    const isLeg = m => roleOf(m) === "大腿", isTank = m => roleOf(m) === "坦", isDps = m => roleOf(m) === "打";
+    const hasCore = g => g.some(isLeg) || (g.some(isTank) && g.some(isDps));
+    // 單位順序：角色多的帳號先放；副本再依「有大腿 → 有坦或打 → 其他」；接著職業人數多→少、職業名、登記順序
+    const jobFreq = {};
+    core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
+    const corePri = u => u.some(isLeg) ? 0 : (u.some(isTank) || u.some(isDps)) ? 1 : 2;
+    const units = unitsOf(core).sort((a, b) =>
+      b.length - a.length || (dg ? corePri(a) - corePri(b) : 0) ||
+      (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || String(a[0].job).localeCompare(String(b[0].job)) ||
+      (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
+    // 分數：同帳號成員所在的團最優先 →（副本）還缺核心、而這個單位能補上核心的團優先 → 同職業少 → 人數少 → 組序
+    const score = (g, unit, i) =>
+      (hasMate(g, unit) ? 0 : 1) * 1e6 +
+      (dg && !hasCore(g) && hasCore([...g, ...unit]) ? 0 : 1) * 1e5 +
+      unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 + g.length * 10 + i;
+    // 從 ceil(人數/12) 團開始放；副本若有團湊不出核心（例如大腿都在同一個帳號），就少開一團重放，直到每團都有核心或只剩一團
+    for (let count = Math.ceil(core.length / max); count >= 1; count--) {
+      groups.length = 0;
       for (let i = 0; i < count; i++) groups.push([]);
-      const placed = new Set();
-      legs.forEach((l, i) => { if (i < count) { groups[i].push(l); placed.add(l.uid); } });
-      for (let i = legs.length; i < count; i++) {
-        const t = tanks.shift(), d = dps.shift();
-        if (t) { groups[i].push(t); placed.add(t.uid); }
-        if (d) { groups[i].push(d); placed.add(d.uid); }
-      }
-      unitsOf(core.filter(m => !placed.has(m.uid))).forEach(u => place(u, max, balanceScore));
-    } else {
-      for (let i = 0; i < count; i++) groups.push([]);
-      // 每日：多角色帳號先放（一起進同團），其餘依「職業人數多→少、職業名、登記順序」逐一放進同職業最少的團
-      const jobFreq = {};
-      core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-      const units = unitsOf(core).sort((a, b) =>
-        b.length - a.length || (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) ||
-        String(a[0].job).localeCompare(String(b[0].job)) || (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
-      units.forEach(u => place(u, max, balanceScore));
+      units.forEach(u => place(u, max, score));
+      if (!dg || groups.every(hasCore) || count === 1) break;
     }
   } else groups.push(byTs(core));
   late.forEach(m => {
