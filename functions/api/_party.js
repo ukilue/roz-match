@@ -68,12 +68,14 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
 }
 
 // ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
-// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心，職業盡量平均），
+// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心；同一 Discord 帳號的角色優先同團；再依職業盡量平均），
 // 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
 function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
+  const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
   // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
-  // 直接補進人數最少的預期分團，讓已通知的分團名單不再變動
+  // 直接補進「已有同帳號成員的團」，否則補進人數最少的團，讓已通知的分團名單不再變動
   let core = members, late = [];
   const whole = scheduleOf(act, members, is, ie, dateStr);
   if (whole) {
@@ -82,40 +84,59 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (c.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
   }
   const groups = [];
+  const jobCount = (g, j) => g.filter(x => x.job === j).length;
+  const hasMate = (g, unit) => g.some(x => unit.some(y => acctOf(x) === acctOf(y)));
+  // 同一 Discord 帳號登記的多個角色綁成一個「單位」，一起放進同一團
+  const unitsOf = arr => { const map = {}; byTs(arr).forEach(m => { (map[acctOf(m)] ||= []).push(m); }); return Object.values(map); };
+  // 放置單位：在還放得下的團中挑分數最低者；全都放不下 → 另開候補團
+  const place = (unit, max, score) => {
+    let best = -1, bestScore = null;
+    for (let i = 0; i < groups.length; i++) {
+      if (groups[i].length + unit.length > max) continue;
+      const sc = score(groups[i], unit, i);
+      if (best < 0 || sc < bestScore) { best = i; bestScore = sc; }
+    }
+    if (best < 0) { groups.push([]); best = groups.length - 1; }
+    groups[best].push(...unit);
+  };
+  // 分數：同帳號成員所在的團最優先 → 該單位職業在團內已有的人數愈少愈好 → 團人數少 → 組序小
+  const balanceScore = (g, unit, i) =>
+    (hasMate(g, unit) ? 0 : 1) * 1e6 + unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 + g.length * 10 + i;
   if (canForm(act, core)) {
     const max = maxOf(act);
     let count = Math.ceil(core.length / max);
     if (isDungeon(act)) {
-      // 每個預期分團都要有核心：一隻大腿、或一組坦＋打
+      // 每個預期分團都要有核心：一隻大腿、或一組坦＋打；核心先放，其餘以帳號為單位放入
       const pool = r => byTs(core.filter(m => roleOf(m) === r));
-      const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打"), heals = pool("補"), bens = pool("便當");
+      const legs = pool("大腿"), tanks = pool("坦"), dps = pool("打");
       const maxCore = legs.length + Math.min(tanks.length, dps.length);
       count = Math.max(1, Math.min(count, Math.max(1, maxCore)));
       for (let i = 0; i < count; i++) groups.push([]);
-      let gi = 0; const overflow = [];
-      legs.forEach(l => { groups[gi % count].push(l); gi++; });
-      for (let i = legs.length; i < count; i++) { groups[i].push(tanks.shift()); groups[i].push(dps.shift()); }
-      const place = m => {
-        let tries = 0;
-        while (groups[gi % count].length >= max && tries < count) { gi++; tries++; }
-        if (tries >= count) overflow.push(m);
-        else { groups[gi % count].push(m); gi++; }
-      };
-      byTs([...tanks, ...dps, ...heals]).forEach(place);
-      bens.forEach(place);
-      if (overflow.length) groups.push(overflow);
+      const placed = new Set();
+      legs.forEach((l, i) => { if (i < count) { groups[i].push(l); placed.add(l.uid); } });
+      for (let i = legs.length; i < count; i++) {
+        const t = tanks.shift(), d = dps.shift();
+        if (t) { groups[i].push(t); placed.add(t.uid); }
+        if (d) { groups[i].push(d); placed.add(d.uid); }
+      }
+      unitsOf(core.filter(m => !placed.has(m.uid))).forEach(u => place(u, max, balanceScore));
     } else {
-      // 每日團超過 12 人分多團：依「職業人數多→少、職業名、登記順序」排成一列，輪流發牌 → 職業與人數都平均
       for (let i = 0; i < count; i++) groups.push([]);
-      const byJob = {};
-      core.forEach(m => { (byJob[m.job || ""] ||= []).push(m); });
-      const seq = [];
-      Object.keys(byJob).sort((a, b) => byJob[b].length - byJob[a].length || a.localeCompare(b))
-        .forEach(j => seq.push(...byTs(byJob[j])));
-      seq.forEach((m, i) => groups[i % count].push(m));
+      // 每日：多角色帳號先放（一起進同團），其餘依「職業人數多→少、職業名、登記順序」逐一放進同職業最少的團
+      const jobFreq = {};
+      core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
+      const units = unitsOf(core).sort((a, b) =>
+        b.length - a.length || (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) ||
+        String(a[0].job).localeCompare(String(b[0].job)) || (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
+      units.forEach(u => place(u, max, balanceScore));
     }
   } else groups.push(byTs(core));
-  late.forEach(m => { let bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); groups[bi].push(m); });
+  late.forEach(m => {
+    let bi = -1;
+    groups.forEach((g, i) => { if (bi < 0 && hasMate(g, [m])) bi = i; });
+    if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
+    groups[bi].push(m);
+  });
   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
 }

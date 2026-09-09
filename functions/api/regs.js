@@ -39,8 +39,12 @@ export async function onRequestGet({ request, env }) {
     .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
+  // acct：同一 Discord 帳號在同一天會拿到相同的匿名鍵（雜湊，每日不同、無法反推 discordId），
+  // 讓前端的預期分團能把同帳號的角色放在同一團，與伺服器／Worker 的結果一致
+  const hashStr = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
+  const acctOf = id => "a" + hashStr(id + "|" + date + "|acct").toString(36) + hashStr(date + "|" + id).toString(36);
   return json(results.map(({ discordId, ...r }) =>
-    ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, mine: !!(user && discordId === user.id) })));
+    ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
