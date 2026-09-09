@@ -299,7 +299,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   <!-- ═══ 所有揪團 ═══ -->
   <section class="view" id="view-all">
     <div class="panel">
-      <div class="panel-title">今日揪團 <small>時間由近到遠，已出發的排在最後</small></div>
+      <div class="panel-title">今日揪團 <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
         <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
@@ -706,13 +706,16 @@ function showView(v){
 
 function statusOf(p){
   // 揪團中(藍,收人) → 尚有位置(綠,收人) → 即將出發(紅章,緩衝期仍收人) → 關閉揪團(紅,關團)
+  // 已出發、或時段已結束（未成團也算）都是「關閉揪團」
   const now = nowMin();
-  if(p.ok && p.departMin != null && now >= p.departMin) return {cls:"live", label:"關閉揪團", frame:"ok"};
+  if(isClosed(p)) return {cls:"live", label:"關閉揪團", frame:p.ok?"ok":""};
   if(p.ok && p.readyMin != null && now >= p.readyMin) return {cls:"live", label:"即將出發", frame:"ok"};
   if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
   return {cls:"ok", label:"尚有位置", frame:"ok"};
 }
-const isClosed = p => p.ok && p.departMin != null && nowMin() >= p.departMin;
+const isDeparted = p => p.ok && p.departMin != null && nowMin() >= p.departMin;   // 已出發
+const isExpired  = p => p.timeEnd < nowMin();                                     // 時段已結束
+const isClosed   = p => isDeparted(p) || isExpired(p);                            // 關閉揪團（不再收人）
 const isReady  = p => p.ok && p.readyMin  != null && nowMin() >= p.readyMin;
 function roleSummary(members){
   const c = r => roleCount(members, r);
@@ -740,11 +743,11 @@ function cardHTML(p, source){
 function renderAll(){
   const now = nowMin();
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
-  // 時段未結束的團都顯示；今日已出發關閉的團即使時段已過也保留（排在最後面）
-  let upcoming = PARTIES.filter(p=>p.timeEnd >= now || isClosed(p));
+  // 今日所有揪團都顯示：已出發或時段已結束的掛「關閉揪團」紅章、排在最後面
+  let upcoming = PARTIES.slice();
   if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
-  // 收人中的在前（時間近→遠）；已關閉（出發後）的一律排在最後面
-  upcoming = upcoming.slice().sort((a,b)=>{
+  // 收人中的在前（時間近→遠、同時間人多優先）；已關閉的一律排最後（依時段起點）
+  upcoming = upcoming.sort((a,b)=>{
     const as = isClosed(a) ? 1 : 0, bs = isClosed(b) ? 1 : 0;
     return as - bs || a.time - b.time || b.members.length - a.members.length;
   });
@@ -809,7 +812,7 @@ function detailMainHTML(p){
     }else if(!closed && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(closed){
-      main += `<div class="notice member" style="margin-top:14px">此團已出發並關閉揪團，不再接受新成員加入。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">${isDeparted(p) ? "此團已出發並關閉揪團" : "此揪團時段已結束，已關閉揪團"}，不再接受新成員加入。</div>`;
     }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
@@ -1013,7 +1016,7 @@ async function joinParty(){
   const lvErr = levelCheck(p.activity, level);
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
-  if(isClosed(p)) return toast("此團已出發並關閉揪團");
+  if(isClosed(p)) return toast(isDeparted(p) ? "此團已出發並關閉揪團" : "此揪團時段已結束，已關閉");
   const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
     role, bento: role==="便當",
