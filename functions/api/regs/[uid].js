@@ -21,9 +21,9 @@ export async function onRequestDelete({ request, env, params }) {
 }
 
 // PATCH /api/regs/:uid — 手動微調預期分團：body { dir: 1 | -1 }（↓ 移到下一團／↑ 移到上一團）
-// 任何「本揪團成員」都可以移動團內任何人（團員先在留言板協調）；已關閉（已出發或時段結束）的揪團不可再調整。
+// 只限「副本」揪團；只能移動自己 Discord 帳號登記的角色；已關閉（已出發或時段結束）的揪團不可再調整。
 // 結果寫入 regs.squad（目標團序），三端演算法在系統分配之後套用，所以網站、機器人私訊、語音房一致。
-import { buildParties, taipeiNow } from "../_party.js";
+import { buildParties, taipeiNow, isDungeon } from "../_party.js";
 export async function onRequestPatch({ request, env, params }) {
   const user = await getSession(request, env);
   if (!user) return needLogin();
@@ -41,7 +41,9 @@ export async function onRequestPatch({ request, env, params }) {
   const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, squad: r.squad == null ? null : Number(r.squad) })), tw.date);
   const party = parties.find(p => p.members.some(m => m.uid === uid));
   if (!party) return json({ error: "找不到這筆登記所屬的揪團" }, 404);
-  if (!party.members.some(m => m.discordId === user.id)) return json({ error: "只有本揪團成員能調整分團" }, 403);
+  const target0 = party.members.find(m => m.uid === uid);
+  if (!target0 || target0.discordId !== user.id) return json({ error: "只能移動自己 Discord 帳號登記的角色" }, 403);
+  if (!isDungeon(party.activity)) return json({ error: "只有副本揪團可以手動調整分團" }, 400);
   const closed = (party.ok && party.departMin != null && tw.min >= party.departMin) || party.timeEnd < tw.min;
   if (closed) return json({ error: "此揪團已關閉，無法再調整分團" }, 400);
   if (party.squads.length < 2) return json({ error: "此揪團目前只有一團，不需調整" }, 400);
