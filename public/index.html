@@ -176,6 +176,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .member-list li .lead{color:var(--red);font-weight:900}
 .member-list li .mine-tag{font-size:11px;color:#fff;background:var(--ro-blue);border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:middle}
 .exit-btn{font-family:inherit;font-weight:700;font-size:12px;letter-spacing:1px;cursor:pointer;color:#fff;background:linear-gradient(180deg,#D45A44,#A83A26);border:1px solid #6E2314;border-radius:4px;padding:3px 9px}
+.mv-btn{font-family:inherit;font-weight:900;font-size:13px;cursor:pointer;color:var(--ro-blue-dark);background:#FFFDF6;border:1.5px solid var(--ro-blue);border-radius:4px;padding:1px 7px;line-height:1.3}
+.mv-btn:disabled{opacity:.3;cursor:default}
+.member-list li .manual-tag{font-size:11px;color:var(--wood-dark);background:#D9A44166;border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:middle}
 .notice{
   margin-top:14px;border-radius:6px;padding:12px;font-size:14px;line-height:1.7;
 }
@@ -274,7 +277,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           </li>
           <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
           <li>同時段同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整；「即將出發」提醒發出後加入的人直接補進人數較少的團，不再變動既有分團</li>
-          <li>提醒時機器人依預期分團各開一間語音頻道（揪團-編號-目標-1、-2…），私訊只給你所屬那一團的名單與語音連結；全體團員都能進入任何一間，臨時要換團可自行協調跳轉</li>
+          <li>預期分團可微調：團員先在留言板協調，再按名單中每個人後面的 ↑↓ 移到上一團／下一團（第 1 團只能 ↓、最後一團只能 ↑）</li>
+          <li>提醒時機器人依預期分團各開一間語音頻道（揪團-編號-目標-1、-2…），私訊只給你所屬那一團的名單與語音連結；全體團員都能進入任何一間，也有「移動成員」權限，可把待在公開語音大廳的人直接拉進本團語音</li>
           <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息</li>
           <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
           <li>語音群全伺服器都看得到、但只有本揪團的團員能進入；出發 3 小時後自動消失</li>
@@ -508,6 +512,16 @@ const store = {
     localStorage.setItem("ro-party-regs", JSON.stringify(list.map(r=>r.uid===reg.uid?{...r,removed:true}:r)));
     return true;
   },
+  async moveSquad(uid, dir){
+    if(!this.online){ toast("單機模式不支援調整分團"); return false; }
+    try{
+      const r = await fetch(API+"/regs/"+encodeURIComponent(uid), {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({dir})});
+      const d = await r.json();
+      if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
+      if(!r.ok){ toast(d.error||"調整失敗"); return false; }
+      return true;
+    }catch(e){ toast("連線失敗，請稍後再試"); return false; }
+  },
   async chatLoad(key, after){
     if(this.online){
       try{
@@ -605,7 +619,7 @@ function canJoinCluster(act, members, is, ie, r){
 }
 
 // ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
-// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心；同一 Discord 帳號的角色優先同團；再依職業盡量平均），
+// 群內另外算出「預期分團」squads（一律 12 人一團；同一 Discord 帳號的角色優先同團；再依職業平均；副本再依便當平均；可由玩家 ↑↓ 手動微調），
 // 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
 function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
@@ -638,28 +652,25 @@ function buildSquads(act, members, is, ie, dateStr) {
   };
   if (canForm(act, core)) {
     const max = maxOf(act), dg = isDungeon(act);
-    const isLeg = m => roleOf(m) === "大腿", isTank = m => roleOf(m) === "坦", isDps = m => roleOf(m) === "打";
-    const hasCore = g => g.some(isLeg) || (g.some(isTank) && g.some(isDps));
-    // 單位順序：角色多的帳號先放；副本再依「有大腿 → 有坦或打 → 其他」；接著職業人數多→少、職業名、登記順序
+    const isBento = m => roleOf(m) === "便當";
+    const bentoCount = g => g.filter(isBento).length;
+    // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
     core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const corePri = u => u.some(isLeg) ? 0 : (u.some(isTank) || u.some(isDps)) ? 1 : 2;
     const units = unitsOf(core).sort((a, b) =>
-      b.length - a.length || (dg ? corePri(a) - corePri(b) : 0) ||
+      b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || String(a[0].job).localeCompare(String(b[0].job)) ||
       (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
-    // 分數：同帳號成員所在的團最優先 →（副本）還缺核心、而這個單位能補上核心的團優先 → 同職業少 → 人數少 → 組序
+    // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→（副本）便當少（便當平均）→ 人數少 → 組序
+    // 每日與副本用同一套；副本各團是否湊得出核心不在此保證，玩家可在明細用 ↑↓ 手動微調
     const score = (g, unit, i) =>
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
-      (dg && !hasCore(g) && hasCore([...g, ...unit]) ? 0 : 1) * 1e5 +
-      unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 + g.length * 10 + i;
-    // 從 ceil(人數/12) 團開始放；副本若有團湊不出核心（例如大腿都在同一個帳號），就少開一團重放，直到每團都有核心或只剩一團
-    for (let count = Math.ceil(core.length / max); count >= 1; count--) {
-      groups.length = 0;
-      for (let i = 0; i < count; i++) groups.push([]);
-      units.forEach(u => place(u, max, score));
-      if (!dg || groups.every(hasCore) || count === 1) break;
-    }
+      unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
+      (dg ? unit.filter(isBento).length * bentoCount(g) * 100 : 0) +
+      g.length * 10 + i;
+    const count = Math.ceil(core.length / max);
+    for (let i = 0; i < count; i++) groups.push([]);
+    units.forEach(u => place(u, max, score));
   } else groups.push(byTs(core));
   late.forEach(m => {
     let bi = -1;
@@ -667,6 +678,17 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
     groups[bi].push(m);
   });
+  // 手動微調：登記上有 squad（玩家在明細按 ↑↓ 設定的目標團序）的人，從系統分配的團移到指定團（超出範圍取最後一團）
+  const manual = members.filter(m => Number.isInteger(m.squad) && m.squad >= 1);
+  if (manual.length && groups.length > 1) {
+    byTs(manual).forEach(m => {
+      const target = Math.min(m.squad, groups.length) - 1;
+      const from = groups.findIndex(g => g.includes(m));
+      if (from < 0 || from === target) return;
+      groups[from].splice(groups[from].indexOf(m), 1);
+      groups[target].push(m);
+    });
+  }
   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
 }
@@ -780,6 +802,8 @@ function detailMainHTML(p){
   const iAmLeader = ready && !!mySquad && !!mySquad.leader.mine;
   const dg = isDungeon(p.activity);
   const multi = p.squads.length > 1;
+  // 分團微調：多團、未關閉、且我是本揪團成員（單機模式亦可）→ 每個人後面有 ↑↓
+  const canMove = multi && !closed && !!viewerMember;
 
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
@@ -790,10 +814,10 @@ function detailMainHTML(p){
     p.squads.map(s=>`
     ${multi ? `<div class="squad-head">第 ${s.index} 團 <small>${s.members.length} 人${p.ok?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
-      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}${m.mine?' <span class="mine-tag">我的</span>':""}</span><span style="display:flex;gap:8px;align-items:center">${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}${m.mine && !closed?`<button class="exit-btn" onclick="exitParty('${esc(m.uid).replace(/'/g,"\\'")}')">退出</button>`:""}</span></li>`).join("") +
+      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}${m.mine?' <span class="mine-tag">我的</span>':""}${m.squad?' <span class="manual-tag" title="已手動調整">手調</span>':""}</span><span style="display:flex;gap:6px;align-items:center">${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}${canMove?`<button class="mv-btn" ${s.index===1?"disabled":""} title="移到上一團" onclick="moveSquad('${esc(m.uid).replace(/'/g,"\\'")}',-1)">↑</button><button class="mv-btn" ${s.index===p.squads.length?"disabled":""} title="移到下一團" onclick="moveSquad('${esc(m.uid).replace(/'/g,"\\'")}',1)">↓</button>`:""}${m.mine && !closed?`<button class="exit-btn" onclick="exitParty('${esc(m.uid).replace(/'/g,"\\'")}')">退出</button>`:""}</span></li>`).join("") +
     `</ul>`).join("");
-  if(multi && !ready){
-    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>，有人加入時會動態調整；提醒發出後即固定。全體共用同一個留言板。</div>`;
+  if(multi && !closed){
+    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均${dg?"、便當平均":""}的<b>預期分團</b>${ready?"":"，有人加入時會動態調整；提醒發出後即固定"}。${canMove?"團員可先在留言板協調，再按每個人後面的 ↑↓ 把人移到上一團／下一團（標「手調」者不再被系統重排）。":""}全體共用同一個留言板。</div>`;
   }
   if(ready && !closed){
     main += `<div class="notice member">🔔 <b>即將出發</b>：人數已足夠，請先準備，<b>${toHM(p.departMin)}</b> 出發（緩衝期間仍可加入）。${multi?"語音頻道依上方分團各開一間（-1、-2…），全體團員皆可進入任一間，可自行協調換團。":""}</div>`;
@@ -882,6 +906,18 @@ function updateDetail(p){
   $("d-title").textContent = "揪團明細 #"+p.num;
 }
 function closeModal(){ $("overlay").classList.remove("show"); openPartyId=null; stopChat(); }
+async function moveSquad(uid, dir){
+  if(!requireLogin()) return;
+  const p = PARTIES.find(x=>x.id===openPartyId); if(!p) return;
+  if(!store.online){
+    // 單機預覽：直接改本機資料的 squad
+    const list = await store.load(); const cur = p.squads.find(s=>s.members.some(m=>m.uid===uid));
+    if(!cur) return; const target = Math.min(Math.max(1, cur.index+dir), p.squads.length);
+    localStorage.setItem("ro-party-regs", JSON.stringify(list.map(r=>r.uid===uid?{...r,squad:target}:r)));
+  }else if(!(await store.moveSquad(uid, dir))) return;
+  await refresh();
+  const still = PARTIES.find(x=>x.id===openPartyId); if(still) updateDetail(still);
+}
 async function exitParty(uid){
   if(!requireLogin()) return;
   const p = PARTIES.find(x=>x.id===openPartyId);
@@ -902,17 +938,18 @@ async function exitParty(uid){
    即時顯示機制：不再整段重畫。送出時「樂觀顯示」（先上畫面再送出、依序排隊），
    背景每 3 秒向伺服器做「增量拉取」（?after=最後一則時間），只把新訊息附加到底部，
    輸入框、捲動位置完全不受影響。伺服器端會驗證成員資格並代為署名。 */
-let chatTimer = null, chatLastTs = 0, chatFirstLoad = true, chatSending = false;
+let chatTimer = null, chatLastTs = 0, chatFirstLoad = true, chatSending = false, chatPolling = false;
 const chatQueue = [];
+const chatSeen = new Set();   // 已顯示過的留言 id（伺服器版）→ 送出後的補拉與 3 秒輪詢同時發生也不會重複顯示
 function startChat(p){
-  chatLastTs = 0; chatFirstLoad = true;
+  chatLastTs = 0; chatFirstLoad = true; chatSeen.clear();
   pollChat(p);
   chatTimer = setInterval(()=>{
     const cur = PARTIES.find(x=>x.id===openPartyId);
     if(cur) pollChat(cur);
   }, 3000);
 }
-function stopChat(){ if(chatTimer){ clearInterval(chatTimer); chatTimer=null; } chatQueue.length=0; chatSending=false; }
+function stopChat(){ if(chatTimer){ clearInterval(chatTimer); chatTimer=null; } chatQueue.length=0; chatSending=false; chatPolling=false; chatSeen.clear(); }
 function chatMsgEl(m, pending){
   const d = document.createElement("div");
   d.className = "chat-msg" + (pending ? " pending" : "");
@@ -924,16 +961,21 @@ function chatMsgEl(m, pending){
   return d;
 }
 async function pollChat(p){
-  const msgs = await store.chatLoad(p.chatKey, chatLastTs);
+  if(chatPolling) return;          // 同一時間只允許一次拉取，避免兩次都以同一個 after 值取回同批訊息
+  chatPolling = true;
+  let msgs;
+  try { msgs = await store.chatLoad(p.chatKey, chatLastTs); }
+  finally { chatPolling = false; }
   const box = $("chat-msgs");
-  if(!box) return;
+  if(!box || !msgs) return;
+  msgs = msgs.filter(m => { const k = m.id != null ? "i"+m.id : m.ts+"|"+m.name+"|"+m.text; if(chatSeen.has(k)) return false; chatSeen.add(k); return true; });
   if(chatFirstLoad){
     box.innerHTML = "";
     if(!msgs.length) box.innerHTML = '<div id="chat-empty" style="color:#9a8c6c">還沒有留言，跟團員打個招呼吧！</div>';
     chatFirstLoad = false;
   }
   if(!msgs.length) return;
-  const emptyHint = $("chat-empty"); if(emptyHint) emptyHint.remove();
+  const emptyHint2 = $("chat-empty"); if(emptyHint2) emptyHint2.remove();
   const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
   for(const m of msgs){
     box.appendChild(chatMsgEl(m));
@@ -965,6 +1007,7 @@ async function processChatQueue(){   // 依序送出，狂按也不會漏或亂�
     const ok = await store.chatAdd(job.p.chatKey, {text: job.text});
     if(ok){
       job.el.remove();                 // 移除樂觀氣泡，改由增量拉取補上伺服器版本
+      while(chatPolling) await new Promise(r=>setTimeout(r,50));
       await pollChat(job.p);
     }else{
       job.el.classList.remove("pending");

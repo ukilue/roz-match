@@ -19,3 +19,36 @@ export async function onRequestDelete({ request, env, params }) {
   await env.DB.prepare("UPDATE regs SET removed = 1 WHERE uid = ?").bind(uid).run();
   return json({ deleted: true });
 }
+
+// PATCH /api/regs/:uid — 手動微調預期分團：body { dir: 1 | -1 }（↓ 移到下一團／↑ 移到上一團）
+// 任何「本揪團成員」都可以移動團內任何人（團員先在留言板協調）；已關閉（已出發或時段結束）的揪團不可再調整。
+// 結果寫入 regs.squad（目標團序），三端演算法在系統分配之後套用，所以網站、機器人私訊、語音房一致。
+import { buildParties, taipeiNow } from "../_party.js";
+export async function onRequestPatch({ request, env, params }) {
+  const user = await getSession(request, env);
+  if (!user) return needLogin();
+  if (!user.member) return needMember();
+  const uid = String(params.uid || "");
+  let b; try { b = await request.json(); } catch { return json({ error: "JSON 格式錯誤" }, 400); }
+  const dir = Number(b.dir);
+  if (dir !== 1 && dir !== -1) return json({ error: "參數錯誤" }, 400);
+
+  const tw = taipeiNow();
+  const { results } = await env.DB
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, ts
+              FROM regs WHERE date = ?`)
+    .bind(tw.date).all();
+  const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, squad: r.squad == null ? null : Number(r.squad) })), tw.date);
+  const party = parties.find(p => p.members.some(m => m.uid === uid));
+  if (!party) return json({ error: "找不到這筆登記所屬的揪團" }, 404);
+  if (!party.members.some(m => m.discordId === user.id)) return json({ error: "只有本揪團成員能調整分團" }, 403);
+  const closed = (party.ok && party.departMin != null && tw.min >= party.departMin) || party.timeEnd < tw.min;
+  if (closed) return json({ error: "此揪團已關閉，無法再調整分團" }, 400);
+  if (party.squads.length < 2) return json({ error: "此揪團目前只有一團，不需調整" }, 400);
+
+  const cur = party.squads.find(s => s.members.some(m => m.uid === uid)).index;
+  const target = cur + dir;
+  if (target < 1 || target > party.squads.length) return json({ error: cur === 1 ? "已在第 1 團" : "已在最後一團" }, 400);
+  await env.DB.prepare("UPDATE regs SET squad = ? WHERE uid = ?").bind(target, uid).run();
+  return json({ ok: true, squad: target });
+}

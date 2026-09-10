@@ -37,7 +37,7 @@ export async function onRequestGet({ request, env }) {
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   // acct：同一 Discord 帳號在同一天會拿到相同的匿名鍵（雜湊，每日不同、無法反推 discordId），
@@ -45,7 +45,7 @@ export async function onRequestGet({ request, env }) {
   const hashStr = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
   const acctOf = id => "a" + hashStr(id + "|" + date + "|acct").toString(36) + hashStr(date + "|" + id).toString(36);
   return json(results.map(({ discordId, ...r }) =>
-    ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
+    ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed, squad: r.squad == null ? null : Number(r.squad), acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
@@ -86,7 +86,7 @@ export async function onRequestPost({ request, env }) {
 
   // 以今日全部登記重算分團（下方「加入進行中的團」與「時段重疊」檢查共用）
   const { results: all } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   const parties = buildParties(all.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), date);

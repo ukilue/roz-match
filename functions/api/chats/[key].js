@@ -16,7 +16,7 @@ async function authorize(env, request, key) {
   if (!user.member) return { err: needMember() };
   const tw = taipeiNow();
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, ts
               FROM regs WHERE date = ?`)
     .bind(tw.date).all();
   const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), tw.date);
@@ -34,12 +34,12 @@ export async function onRequestGet({ request, env, params }) {
   const after = Number(new URL(request.url).searchParams.get("after") || 0);
   if (after > 0) {
     const { results } = await env.DB
-      .prepare("SELECT name, text, ts FROM chats WHERE key = ? AND ts > ? ORDER BY ts ASC LIMIT 100")
+      .prepare("SELECT id, name, text, ts FROM chats WHERE key = ? AND ts > ? ORDER BY ts ASC LIMIT 100")
       .bind(key, after).all();
     return json(results);
   }
   const { results } = await env.DB
-    .prepare("SELECT name, text, ts FROM chats WHERE key = ? ORDER BY ts DESC LIMIT 60")
+    .prepare("SELECT id, name, text, ts FROM chats WHERE key = ? ORDER BY ts DESC LIMIT 60")
     .bind(key).all();
   return json(results.reverse());
 }

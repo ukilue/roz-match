@@ -68,7 +68,7 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
 }
 
 // ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
-// 群內另外算出「預期分團」squads（一律 12 人一團；副本各團另需有核心；同一 Discord 帳號的角色優先同團；再依職業盡量平均），
+// 群內另外算出「預期分團」squads（一律 12 人一團；同一 Discord 帳號的角色優先同團；再依職業平均；副本再依便當平均；可由玩家 ↑↓ 手動微調），
 // 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
 function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
@@ -101,28 +101,25 @@ function buildSquads(act, members, is, ie, dateStr) {
   };
   if (canForm(act, core)) {
     const max = maxOf(act), dg = isDungeon(act);
-    const isLeg = m => roleOf(m) === "大腿", isTank = m => roleOf(m) === "坦", isDps = m => roleOf(m) === "打";
-    const hasCore = g => g.some(isLeg) || (g.some(isTank) && g.some(isDps));
-    // 單位順序：角色多的帳號先放；副本再依「有大腿 → 有坦或打 → 其他」；接著職業人數多→少、職業名、登記順序
+    const isBento = m => roleOf(m) === "便當";
+    const bentoCount = g => g.filter(isBento).length;
+    // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
     core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const corePri = u => u.some(isLeg) ? 0 : (u.some(isTank) || u.some(isDps)) ? 1 : 2;
     const units = unitsOf(core).sort((a, b) =>
-      b.length - a.length || (dg ? corePri(a) - corePri(b) : 0) ||
+      b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || String(a[0].job).localeCompare(String(b[0].job)) ||
       (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
-    // 分數：同帳號成員所在的團最優先 →（副本）還缺核心、而這個單位能補上核心的團優先 → 同職業少 → 人數少 → 組序
+    // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→（副本）便當少（便當平均）→ 人數少 → 組序
+    // 每日與副本用同一套；副本各團是否湊得出核心不在此保證，玩家可在明細用 ↑↓ 手動微調
     const score = (g, unit, i) =>
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
-      (dg && !hasCore(g) && hasCore([...g, ...unit]) ? 0 : 1) * 1e5 +
-      unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 + g.length * 10 + i;
-    // 從 ceil(人數/12) 團開始放；副本若有團湊不出核心（例如大腿都在同一個帳號），就少開一團重放，直到每團都有核心或只剩一團
-    for (let count = Math.ceil(core.length / max); count >= 1; count--) {
-      groups.length = 0;
-      for (let i = 0; i < count; i++) groups.push([]);
-      units.forEach(u => place(u, max, score));
-      if (!dg || groups.every(hasCore) || count === 1) break;
-    }
+      unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
+      (dg ? unit.filter(isBento).length * bentoCount(g) * 100 : 0) +
+      g.length * 10 + i;
+    const count = Math.ceil(core.length / max);
+    for (let i = 0; i < count; i++) groups.push([]);
+    units.forEach(u => place(u, max, score));
   } else groups.push(byTs(core));
   late.forEach(m => {
     let bi = -1;
@@ -130,6 +127,17 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
     groups[bi].push(m);
   });
+  // 手動微調：登記上有 squad（玩家在明細按 ↑↓ 設定的目標團序）的人，從系統分配的團移到指定團（超出範圍取最後一團）
+  const manual = members.filter(m => Number.isInteger(m.squad) && m.squad >= 1);
+  if (manual.length && groups.length > 1) {
+    byTs(manual).forEach(m => {
+      const target = Math.min(m.squad, groups.length) - 1;
+      const from = groups.findIndex(g => g.includes(m));
+      if (from < 0 || from === target) return;
+      groups[from].splice(groups[from].indexOf(m), 1);
+      groups[target].push(m);
+    });
+  }
   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
 }
