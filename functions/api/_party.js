@@ -144,8 +144,10 @@ function buildSquads(act, members, is, ie, dateStr) {
       groups[target].push(m);
     });
   }
-  // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
-  return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: byTs(g)[0] }));
+  // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）；
+  // 手動換團的人不搶隊長（避免有人 ↑↓ 之後隊長跟著變動、與已發出的通知不一致），除非該團全是手調者
+  const leaderOf = g => { const auto = g.filter(m => !(Number.isInteger(m.squad) && m.squad >= 1)); return byTs(auto.length ? auto : g)[0]; };
+  return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g) }));
 }
 
 function splitCluster(act, members, is, ie, dateStr, removedRegs) {
