@@ -2,7 +2,7 @@
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
 import { getSession, needLogin, needMember } from "./_auth.js";
-import { buildParties } from "./_party.js";
+import { buildParties, addDays } from "./_party.js";
 
 const ACTS = ["90級每日","100級每日","100+105級每日","90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普","105級副本"];
 const ROLES = ["大腿","坦","補","打","便當"];
@@ -81,8 +81,10 @@ export async function onRequestPost({ request, env }) {
   if (toMin(end) <= toMin(start)) return bad("結束時間必須晚於開始時間");
 
   const tw = taipeiNow();
-  if (date !== tw.date) return bad("只能登記今天的揪團");
-  if (toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
+  const tomorrow = addDays(tw.date, 1);
+  if (date !== tw.date && date !== tomorrow) return bad("只能登記今天或明天的揪團");
+  const isToday = date === tw.date;
+  if (isToday && toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
 
   // 以今日全部登記重算分團（下方「加入進行中的團」與「時段重疊」檢查共用）
   const { results: all } = await env.DB
@@ -93,7 +95,7 @@ export async function onRequestPost({ request, env }) {
 
   // 開始時間已過的登記＝「加入」已在進行時段的團：
   // 只有「已成團且已開團」的團關閉收人；還在揪團中（未成團）的團持續收人
-  if (toMin(start) < tw.min - 2) {
+  if (isToday && toMin(start) < tw.min - 2) {
     const target = parties.find(p => p.activity === activity && p.time === toMin(start) && p.timeEnd === toMin(end));
     if (!target) return bad("此時段已開始，無法登記");
     if (target.ok && target.departMin != null && tw.min >= target.departMin) return bad("此團已出發並關閉揪團，不再接受新成員加入");
@@ -111,7 +113,7 @@ export async function onRequestPost({ request, env }) {
     const p = parties.find(x => x.members.some(m => m.uid === r.uid));
     let os = toMin(r.start), oe = toMin(r.end);
     if (p && p.ok && p.departMin != null) {
-      if (tw.min >= p.departMin) continue;   // 已出發 → 釋放
+      if (isToday && tw.min >= p.departMin) continue;   // 已出發 → 釋放（明日的團不可能已出發）
       os = p.readyMin; oe = p.departMin;      // 已成團 → 只佔用提醒～出發
     }
     if (ns < oe && os < ne) {

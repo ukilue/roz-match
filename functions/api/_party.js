@@ -31,6 +31,12 @@ const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m;
 const toHM = m => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
 const hashStr = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
 
+// yyyy-mm-dd 加減天數（台北日期字串運算，不受時區影響）
+export function addDays(dateStr, n) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, mo - 1, d + n)).toISOString().slice(0, 10);
+}
+
 export function taipeiNow() {
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei",
     year: "numeric", month: "2-digit", day: "2-digit",

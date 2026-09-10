@@ -5,7 +5,7 @@
 // 留言署名由伺服器決定（請求者在該團登記的角色 ID），無法冒名。
 // GET 支援 ?after=<ts> 增量讀取，前端只需附加新訊息、不必整段重畫。
 import { getSession, needLogin, needMember, json } from "../_auth.js";
-import { buildParties, taipeiNow } from "../_party.js";
+import { buildParties, taipeiNow, addDays } from "../_party.js";
 
 const KEY = /^[a-z0-9]{1,48}$/i;
 
@@ -17,9 +17,10 @@ async function authorize(env, request, key) {
   const tw = taipeiNow();
   const { results } = await env.DB
     .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, ts
-              FROM regs WHERE date = ?`)
-    .bind(tw.date).all();
-  const parties = buildParties(results.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed })), tw.date);
+              FROM regs WHERE date IN (?, ?)`)
+    .bind(tw.date, addDays(tw.date, 1)).all();
+  const rows = results.map(r => ({ ...r, bento: !!r.bento, role: r.role || "", removed: !!r.removed }));
+  const parties = [...buildParties(rows, tw.date), ...buildParties(rows, addDays(tw.date, 1))];   // 今日＋明日（預先報名）的揪團都能用留言板
   const party = parties.find(p => p.chatKey === key);
   if (!party) return { err: json({ error: "找不到這個揪團的留言板" }, 404) };
   const me = party.members.find(m => m.discordId === user.id);
