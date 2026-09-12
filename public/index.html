@@ -136,6 +136,21 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .stamp.wait{color:#555;border-color:#777;background:#00000008}
 .stamp.blue{color:var(--ro-blue-dark);border-color:var(--ro-blue);background:#4A6FA51f}
 .stamp.live{color:var(--red);border-color:var(--red);background:#C0452F14}
+/* 私人房間：紅色外框＋鎖頭 */
+.card.priv{border-color:var(--red);box-shadow:0 6px 16px #00000059, 0 0 0 3px #C0452F2e}
+.card.priv:hover{box-shadow:0 8px 18px #00000066, 0 0 0 3px #C0452F55}
+.card.priv .pnum{color:var(--red);text-shadow:1px 1px 0 #ffffffcc}
+.lock-ic{font-size:15px;vertical-align:-1px;margin-right:2px;filter:drop-shadow(0 1px 0 #0003)}
+.lock-tag{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:900;color:#fff;background:var(--red);border-radius:3px;padding:1px 7px;letter-spacing:1px;vertical-align:middle}
+.lock-box{margin-top:14px;border:2px solid var(--red);border-radius:6px;background:#C0452F0f;padding:16px 14px;text-align:center}
+.lock-box .lock-big{font-size:36px;line-height:1}
+.lock-box h4{margin:8px 0 4px;color:var(--red);letter-spacing:2px;font-size:16px}
+.lock-box p{font-size:13.5px;color:#7d2416;margin-bottom:12px;line-height:1.6}
+.lock-row{display:flex;gap:8px;justify-content:center;align-items:stretch}
+.lock-row input{width:150px;text-align:center;font-size:20px;letter-spacing:8px;font-weight:900;font-family:'Noto Sans TC',monospace}
+.lock-row button{width:auto}
+.pw-wrap{margin-top:8px;padding:10px 12px;border:1.5px dashed var(--red);border-radius:6px;background:#C0452F0a}
+.pw-wrap input{width:170px;text-align:center;letter-spacing:6px;font-weight:900;font-size:18px}
 .count-bar{height:8px;background:#00000015;border-radius:99px;margin-top:8px;overflow:hidden}
 .count-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:99px}
 .empty{
@@ -271,6 +286,12 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
               <select id="f-start"></select><span>～</span><select id="f-end"></select>
             </div>
             <label class="chk-row"><input type="checkbox" id="f-tomorrow" onchange="fillTimeSelects()"> 預先報名明日的團 <small id="f-tomorrow-date"></small></label>
+            <label class="chk-row"><input type="checkbox" id="f-priv" onchange="togglePriv()"> 🔒 設為私人房間 <small>需輸入房間密碼才能加入；同時段的一般登記不會被併進來</small></label>
+            <div id="f-pw-wrap" class="pw-wrap" style="display:none">
+              <label>房間密碼（4 位數字）</label>
+              <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
+              <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
+            </div>
             <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起，滿 3 人即開團；人多時會在明細顯示依職業平均的預期分團（12 人一團）。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
@@ -285,6 +306,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
           <li>同一 Discord 帳號可登記多個角色 ID；同一角色 ID 同一時間只能在一個團（以出發時間劃分，不論目標），團出發後即釋放可再登記</li>
           <li>要退出揪團，請點開明細，在自己角色 ID 後面按「退出」</li>
+          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同時段、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）</li>
           <li>勾選「預先報名明日的團」可登記明天任一時段（00:00～23:59）；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
           <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、ID 與上次時段</li>
           <li>玩家登記每日可以遊玩的時間及目標，系統會自動安排組隊並以 DC 機器人通知</li>
@@ -451,7 +473,7 @@ function updateRegForm(){
     else if(!USER.member) mode = "join";
   }
   const disabled = mode !== "ok";
-  ["f-id","f-lv","f-job","f-act","f-start","f-end","f-tomorrow"].forEach(id=>{
+  ["f-id","f-lv","f-job","f-act","f-start","f-end","f-tomorrow","f-priv","f-pw"].forEach(id=>{
     const el = $(id); if(el) el.disabled = disabled;
   });
   document.querySelectorAll('input[name="f-role"]').forEach(el=>{ el.disabled = disabled; });
@@ -512,6 +534,9 @@ const store = {
       try{ return JSON.parse(localStorage.getItem("ro-party-regs")||"[]").filter(r=>r.date===viewDate()); }catch(x){ return []; }
     }
   },
+  // 單機備援：完整清單（不分日期）讀寫
+  localAll(){ try{ return JSON.parse(localStorage.getItem("ro-party-regs")||"[]"); }catch(e){ return []; } },
+  localSave(list){ localStorage.setItem("ro-party-regs", JSON.stringify(list)); },
   async add(reg){
     if(this.online){
       try{
@@ -523,8 +548,34 @@ const store = {
         return true;
       }catch(e){ this.online=false; toast("連線失敗，已存到本機"); }
     }
-    const list = await this.load(); list.push({...reg, mine:true});
-    localStorage.setItem("ro-party-regs", JSON.stringify(list));
+    // 單機模式的私人房間：密碼以明文存在本機（僅預覽用；正式模式密碼只在伺服器端雜湊比對）
+    const list = this.localAll();
+    const {pw, priv, ...rest} = reg;
+    let room = reg.room || "", _pw;
+    if(priv && !room){ room = newUid(); _pw = pw; }
+    else if(room){
+      const host = list.find(r=>r.room===room && r._pw);
+      const already = list.some(r=>r.room===room && r.mine && !r.removed);
+      if(host && !already && host._pw !== pw){ toast("房間密碼錯誤"); return false; }
+      _pw = host ? host._pw : undefined;
+    }
+    list.push({...rest, room, _pw, mine:true});
+    this.localSave(list);
+    return true;
+  },
+  // 私人房間密碼驗證（伺服器端比對雜湊；成功回 true）
+  async verifyRoom(room, pw){
+    if(this.online){
+      try{
+        const r = await fetch(API+"/rooms/"+encodeURIComponent(room), {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw})});
+        const d = await r.json().catch(()=>({}));
+        if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
+        if(!r.ok){ toast(d.error||"房間密碼錯誤"); return false; }
+        return true;
+      }catch(e){ toast("連線失敗，請稍後再試"); return false; }
+    }
+    const host = this.localAll().find(r=>r.room===room && r._pw);
+    if(!host || host._pw !== pw){ toast("房間密碼錯誤"); return false; }
     return true;
   },
   async remove(reg){
@@ -537,8 +588,7 @@ const store = {
         return true;
       }catch(e){ toast("連線失敗，請稍後再試"); return false; }
     }
-    const list = await this.load();
-    localStorage.setItem("ro-party-regs", JSON.stringify(list.map(r=>r.uid===reg.uid?{...r,removed:true}:r)));
+    this.localSave(this.localAll().map(r=>r.uid===reg.uid?{...r,removed:true}:r));
     return true;
   },
   async moveSquad(uid, dir){
@@ -584,6 +634,7 @@ const store = {
 
 let REGS = [];          // 所有登記
 let PARTIES = [];       // 演算後的揪團
+const ROOM_PW = new Map();   // 本次瀏覽已通過驗證的私人房間密碼（房間 ID → 密碼；只存在記憶體，供加入時附上讓伺服器再驗一次）
 let currentView = "home";
 let openPartyId = null;
 // 「我的」判定：伺服器依 Discord 帳號在每筆登記標上 mine 旗標（單機模式則本機登記皆為 mine）
@@ -598,15 +649,18 @@ const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.char
 function buildParties(regs, dateStr){
   const t = dateStr || todayKey();
   const todays = regs.filter(r=>r.date===t);
-  const byAct = {};
-  todays.filter(r=>!r.removed).forEach(r=>{ (byAct[r.activity] ||= []).push(r); });
-  const removedByAct = {};
-  todays.filter(r=>r.removed).forEach(r=>{ (removedByAct[r.activity] ||= []).push(r); });
+  // 分堆鍵＝目標＋房間：私人房間（room 非空）自成一堆，同時段的公開登記絕不會被併入私人房間（只能從所有揪團輸入密碼加入）
+  const keyOf = r => r.activity + "\u0001" + (r.room || "");
+  const byKey = {};
+  todays.filter(r=>!r.removed).forEach(r=>{ (byKey[keyOf(r)] ||= []).push(r); });
+  const removedByKey = {};
+  todays.filter(r=>r.removed).forEach(r=>{ (removedByKey[keyOf(r)] ||= []).push(r); });
   const parties = [];
-  for(const act in byAct){
-    const list = byAct[act].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || a.charId.localeCompare(b.charId));
+  for(const key in byKey){
+    const act = byKey[key][0].activity, room = byKey[key][0].room || "";
+    const list = byKey[key].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || a.charId.localeCompare(b.charId));
     let cluster=[], is=0, ie=0;
-    const flush = ()=>{ if(cluster.length) parties.push(splitCluster(act,cluster,is,ie,t,removedByAct[act]||[])); };
+    const flush = ()=>{ if(cluster.length) parties.push(splitCluster(act,cluster,is,ie,t,removedByKey[key]||[],room)); };
     for(const r of list){
       const s=toMin(r.start), e=toMin(r.end);
       if(!cluster.length){ cluster=[r]; is=s; ie=e; continue; }
@@ -724,20 +778,22 @@ function buildSquads(act, members, is, ie, dateStr) {
   return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g) }));
 }
 
-function splitCluster(act, members, is, ie, dateStr, removedRegs) {
+function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
   const sorted = byTs(members);
-  const id = act + "|" + toHM(is) + "|" + sorted.map(m => m.charId).sort().join(",");
+  room = room || "";
+  const rk = room ? "|room:" + room : "";   // 私人房間鍵（公開登記為空字串 → 既有公開揪團的 id／編號完全不受影響）
+  const id = act + rk + "|" + toHM(is) + "|" + sorted.map(m => m.charId).sort().join(",");
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
   for (const c of (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end))) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
   }
-  const stable = act + "|" + anchor.charId + "|" + (anchor.ts || 0);
+  const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const sch = scheduleOf(act, members, is, ie, dateStr);
   const squads = buildSquads(act, members, is, ie, dateStr);
   return {
-    id, activity: act, members: sorted, time: is, timeEnd: ie,
+    id, activity: act, room, priv: !!room, members: sorted, time: is, timeEnd: ie,
     ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
     squads, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
@@ -783,10 +839,11 @@ function cardHTML(p, source){
   const countText = dg
     ? `${n} 人（${roleSummary(p.members)}）${p.ok?squadText:"（缺大腿，或坦＋打各 1）"}`
     : `${n} 人${p.ok?squadText:"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
-  return `<div class="card ${st.frame}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
+  return `<div class="card ${st.frame}${p.priv?" priv":""}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
-    <div class="act">${esc(p.activity)}</div>
+    <div class="act">${p.priv?'<span class="lock-ic" title="私人房間">🔒</span>':""}${esc(p.activity)}</div>
+    ${p.priv?`<div class="row"><b>房間</b><span class="lock-tag">🔒 私人房間</span><span style="font-size:12.5px;color:#7d2416">需密碼加入</span></div>`:""}
     <div class="row"><b>時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     ${p.ok ? `<div class="row"><b>出發時間</b>${toHM(p.departMin)}${viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒）":""}</div>` : `<div class="row"><b>出發時間</b>成團後緩衝 10 分</div>`}
     <div class="row"><b>目前人數</b>${countText}</div>
@@ -798,7 +855,7 @@ function renderAll(){
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
   // 今日所有揪團都顯示：已出發或時段已結束的掛「關閉揪團」紅章、排在最後面
   let upcoming = PARTIES.slice();
-  if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q));
+  if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q) || (p.priv && "私人房間".includes(q)));
   // 收人中的在前（時間近→遠、同時間人多優先）；已關閉的一律排最後（依時段起點）
   upcoming = upcoming.sort((a,b)=>{
     const as = isClosed(a) ? 1 : 0, bs = isClosed(b) ? 1 : 0;
@@ -835,14 +892,40 @@ function detailMainHTML(p){
   const multi = p.squads.length > 1;
   // 分團微調：只有「副本」、多團、未關閉；且只能移動自己 Discord 帳號登記的角色（他人的列沒有 ↑↓）
   const canMove = dg && multi && !closed && !!viewerMember;
+  // 私人房間：本團成員、或本次已輸入正確密碼者才能看名單與加入；其他人只看到基本資訊＋密碼輸入
+  const unlocked = !p.priv || !!viewerMember || ROOM_PW.has(p.room);
 
   let main = `
-    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px">#${p.num}</span></div>
+    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${p.priv?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':""}</div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b>${p.ok?toHM(p.departMin)+(viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒準備）":""):"成團後緩衝 10 分鐘出發"}</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}${multi?"，預計分 "+p.squads.length+" 團":""}）</div>` +
-    p.squads.map(s=>`
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${dg?"，"+roleSummary(p.members):""}${multi?"，預計分 "+p.squads.length+" 團":""}）</div>`;
+  if(!unlocked){
+    if(closed){
+      main += `<div class="notice member" style="margin-top:14px">此私人房間${isDeparted(p) ? "已出發並關閉揪團" : "時段已結束，已關閉揪團"}，不再接受新成員加入。</div>`;
+    }else if(store.online && !USER){
+      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。想加入請先點右上角以 <b>Discord 登入</b>，再輸入房間密碼。</div>`;
+    }else if(store.online && !USER.member){
+      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證，再輸入房間密碼。</div>`;
+    }else{
+      main += `
+      <div class="lock-box">
+        <div class="lock-big">🔒</div>
+        <h4>私人房間</h4>
+        <p>此揪團為私人房間，需輸入房主設定的 <b>4 位數房間密碼</b>，才能查看成員名單並加入。<br>請向房主索取密碼（連續輸錯 5 次會鎖 10 分鐘）。</p>
+        <div class="lock-row">
+          <input id="pw-in" type="password" inputmode="numeric" maxlength="4" pattern="\\d{4}" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')unlockRoom()">
+          <button class="btn red small" id="pw-btn" onclick="unlockRoom()">解鎖</button>
+        </div>
+      </div>`;
+    }
+    return main;
+  }
+  if(p.priv){
+    main += `<div class="hint" style="margin-top:6px">🔒 私人房間：只有輸入房間密碼的人能加入，同時段、同目標的一般登記不會被併進來。${viewerMember?"請把密碼私下告知想邀請的隊友。":""}</div>`;
+  }
+  main += p.squads.map(s=>`
     ${multi ? `<div class="squad-head">第 ${s.index} 團 <small>${s.members.length} 人${p.ok?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
       s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${dg?"｜"+esc(roleOf(m)):""}${m.mine?' <span class="mine-tag">我的</span>':""}${m.squad?' <span class="manual-tag" title="已手動調整">手調</span>':""}</span><span style="display:flex;gap:6px;align-items:center">${ready && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}${canMove && m.mine?`<button class="mv-btn" ${s.index===1?"disabled":""} title="移到上一團" onclick="moveSquad('${esc(m.uid).replace(/'/g,"\\'")}',-1)">↑</button><button class="mv-btn" ${s.index===p.squads.length?"disabled":""} title="移到下一團" onclick="moveSquad('${esc(m.uid).replace(/'/g,"\\'")}',1)">↓</button>`:""}${m.mine && !closed?`<button class="exit-btn" onclick="exitParty('${esc(m.uid).replace(/'/g,"\\'")}')">退出</button>`:""}</span></li>`).join("") +
@@ -885,14 +968,31 @@ function detailMainHTML(p){
   return main;
 }
 function captureJoinDraft(){
+  const pw = $("pw-in") ? $("pw-in").value : "";
   return $("j-id") ? { id:$("j-id").value, lv:$("j-lv").value, job:$("j-job").value,
-    role: pickedRole("j-role") } : null;
+    role: pickedRole("j-role"), pw } : (pw ? { pw } : null);
 }
 function restoreJoinDraft(d){
-  if(!d || !$("j-id")) return;
+  if(!d) return;
+  if($("pw-in") && d.pw) $("pw-in").value = d.pw;
+  if(!$("j-id") || d.id === undefined) return;
   $("j-id").value=d.id; $("j-lv").value=d.lv; $("j-job").value=d.job;
   const el = document.querySelector('input[name="j-role"][value="'+d.role+'"]');
   if(el) el.checked = true;
+}
+// 私人房間解鎖：把密碼送到伺服器比對雜湊；通過後只在記憶體記住，供加入時附上讓伺服器再驗一次
+async function unlockRoom(){
+  if(!requireLogin()) return;
+  const p = PARTIES.find(x=>x.id===openPartyId); if(!p || !p.priv) return;
+  const pw = ($("pw-in") ? $("pw-in").value : "").trim();
+  if(!/^\d{4}$/.test(pw)) return toast("請輸入 4 位數房間密碼");
+  const btn = $("pw-btn"); if(btn) btn.disabled = true;
+  const ok = await store.verifyRoom(p.room, pw);
+  if(btn) btn.disabled = false;
+  if(!ok){ if($("pw-in")){ $("pw-in").value=""; $("pw-in").focus(); } return; }
+  ROOM_PW.set(p.room, pw);
+  toast("已解鎖私人房間 #"+p.num);
+  updateDetail(p);
 }
 function openDetail(pid, source){
   const p = PARTIES.find(x=>x.id===pid);
@@ -942,9 +1042,9 @@ async function moveSquad(uid, dir){
   const p = PARTIES.find(x=>x.id===openPartyId); if(!p) return;
   if(!store.online){
     // 單機預覽：直接改本機資料的 squad
-    const list = await store.load(); const cur = p.squads.find(s=>s.members.some(m=>m.uid===uid));
+    const cur = p.squads.find(s=>s.members.some(m=>m.uid===uid));
     if(!cur) return; const target = Math.min(Math.max(1, cur.index+dir), p.squads.length);
-    localStorage.setItem("ro-party-regs", JSON.stringify(list.map(r=>r.uid===uid?{...r,squad:target}:r)));
+    store.localSave(store.localAll().map(r=>r.uid===uid?{...r,squad:target}:r));
   }else if(!(await store.moveSquad(uid, dir))) return;
   await refresh();
   const still = PARTIES.find(x=>x.id===openPartyId); if(still) updateDetail(still);
@@ -1062,6 +1162,11 @@ function levelCheck(activity, level){
 function toggleRole(){
   $("f-role-wrap").style.display = isDungeon($("f-act").value) ? "block" : "none";
 }
+function togglePriv(){
+  const on = $("f-priv").checked;
+  $("f-pw-wrap").style.display = on ? "block" : "none";
+  if(on) $("f-pw").focus();
+}
 const pickedRole = name => { const el = document.querySelector('input[name="'+name+'"]:checked'); return el ? el.value : "打"; };
 const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 async function submitReg(){
@@ -1075,14 +1180,18 @@ async function submitReg(){
   if(!forTomorrow && toMin(s) < nowMin()) { fillTimeSelects(); return toast("開始時間不能早於現在，已為你更新時段"); }
   if(toMin(e)<=toMin(s)) return toast("結束時間必須晚於開始時間");
   const role = isDungeon($("f-act").value) ? pickedRole("f-role") : "";
+  const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
+  if(priv && !/^\d{4}$/.test(pw)) return toast("私人房間密碼須為 4 位數字");
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
     role, bento: role==="便當",
+    priv, pw: priv ? pw : "",
     date: forTomorrow ? addDays(todayKey(),1) : todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
+  $("f-pw").value=""; $("f-priv").checked=false; togglePriv();
   if(forTomorrow && VIEW_DAY!==1) VIEW_DAY = 1; else if(!forTomorrow && VIEW_DAY!==0) VIEW_DAY = 0;   // 切到登記的那一天
   syncDayTabs();
   await refresh(); loadIdCards();
-  toast(forTomorrow ? "已預先登記明日的揪團！可到「我的揪團」切到明日查看" : "登記完成！可到「我的揪團」查看進度");
+  toast(priv ? "已建立私人房間！請把 4 位數密碼私下告知隊友" : (forTomorrow ? "已預先登記明日的揪團！可到「我的揪團」切到明日查看" : "登記完成！可到「我的揪團」查看進度"));
   $("f-id").value=$("f-lv").value="";
 }
 async function joinParty(){
@@ -1097,11 +1206,12 @@ async function joinParty(){
   const role = isDungeon(p.activity) ? pickedRole("j-role") : "";
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
     role, bento: role==="便當",
+    room: p.room || "", pw: p.priv ? (ROOM_PW.get(p.room) || "") : "",   // 私人房間：附上已驗證的密碼，伺服器再驗一次
     date:viewDate(), ts:Date.now(), uid:newUid()});
   if(!added) return;
   await refresh(); loadIdCards();
   closeModal();
-  toast("已為你登記加入這個揪團！");
+  toast(p.priv ? "已加入這個私人房間！" : "已為你登記加入這個揪團！");
 }
 
 /* ─── 初始化與輪詢 ─── */
