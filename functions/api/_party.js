@@ -2,7 +2,7 @@
 // 與前端 public/index.html 及 cron-worker.js 的演算法「完全一致」。
 // ⚠ 若修改組團規則，三處必須同步修改。
 
-const DUNGEONS = ["90級↑副本4困1普", "90級↑副本3困2普", "80級↑副本3困1普", "105級副本"];
+const DUNGEONS = ["副本團：59~90級", "副本團：105級奧丁"];
 const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
 export const isDungeon = act => DUNGEONS.includes(act);
 const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）

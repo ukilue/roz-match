@@ -261,13 +261,10 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <div>
             <label>要做的事情</label>
             <select id="f-act" onchange="toggleRole()">
-              <option value="90級每日">90級每日</option>
-              <option value="100級每日">100級每日</option>
-              <option value="100+105級每日">100+105級每日</option>
-              <option value="90級↑副本4困1普">90級↑副本4困1普</option>
-              <option value="90級↑副本3困2普">90級↑副本3困2普</option>
-              <option value="80級↑副本3困1普">80級↑副本3困1普</option>
-              <option value="105級副本">105級副本</option>
+              <option value="每日團：90級">每日團：90級</option>
+              <option value="每日團：100~110">每日團：100~110</option>
+              <option value="副本團：59~90級">副本團：59~90級</option>
+              <option value="副本團：105級奧丁">副本團：105級奧丁</option>
             </select>
             <div id="f-role-wrap" style="display:none;margin-top:8px">
               <label>副本職責（擇一）</label>
@@ -304,7 +301,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-body" style="font-size:14px;line-height:1.9">
         <ul class="rules">
           <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
-          <li>同一 Discord 帳號可登記多個角色 ID；同一角色 ID 同一時間只能在一個團（以出發時間劃分，不論目標），團出發後即釋放可再登記</li>
+          <li>同一 Discord 帳號可登記多個角色 ID，同一角色也可同時登記多個時段或目標</li>
           <li>要退出揪團，請點開明細，在自己角色 ID 後面按「退出」</li>
           <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同時段、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）</li>
           <li>勾選「預先報名明日的團」可登記明天任一時段（00:00～23:59）；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
@@ -350,7 +347,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title"><span><span class="day-word">今日</span>揪團</span> <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="day-tabs"><button class="day-tab" data-day="0" onclick="setViewDay(0)">今日</button><button class="day-tab" data-day="1" onclick="setViewDay(1)">明日</button></div>
-        <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、90級" oninput="renderAll()">
+        <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、每日、奧丁" oninput="renderAll()">
         <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
       </div>
     </div>
@@ -384,7 +381,7 @@ const API = "/api";
 // 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
 const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
-const DUNGEONS = ["90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普","105級副本"];
+const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
 const SQUAD_SIZE = 12, MIN_PARTY = 3, POLL_MS = 25000;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
 const isDungeon = act => DUNGEONS.includes(act);
@@ -1150,7 +1147,7 @@ async function processChatQueue(){   // 依序送出，狂按也不會漏或亂�
 }
 
 /* ─── 登記 / 加入 ─── */
-const LEVEL_REQ = {"90級每日":90, "100級每日":100, "100+105級每日":105, "90級↑副本4困1普":90, "90級↑副本3困2普":90, "80級↑副本3困1普":80, "105級副本":105};
+const LEVEL_REQ = {"每日團：90級":90,"每日團：100~110":100,"副本團：59~90級":59,"副本團：105級奧丁":105};
 function levelCheck(activity, level){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";

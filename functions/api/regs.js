@@ -1,15 +1,15 @@
 // /api/regs — GET 查詢當日登記、POST 新增登記（需 Discord 登入＋公會伺服器成員）
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
-// 登記會綁定 Discord 帳號，退團只有本人帳號可操作。
+// 登記會綁定 Discord 帳號，退團只有本人帳號可操作。同一角色可登記多個時段／目標（不檢查時段重疊）。
 import { getSession, needLogin, needMember } from "./_auth.js";
 import { buildParties, addDays } from "./_party.js";
 import { findRoom, checkRoomPw, roomPwHash, ROOM_ID, PW } from "./_room.js";
 
-const ACTS = ["90級每日","100級每日","100+105級每日","90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普","105級副本"];
+const ACTS = ["每日團：90級","每日團：100~110","副本團：59~90級","副本團：105級奧丁"];
 const ROLES = ["大腿","坦","補","打","便當"];
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
-const LEVEL_REQ = { "90級每日":90, "100級每日":100, "100+105級每日":105, "90級↑副本4困1普":90, "90級↑副本3困2普":90, "80級↑副本3困1普":80, "105級副本":105 };
-const DUNGEONS = ["90級↑副本4困1普","90級↑副本3困2普","80級↑副本3困1普","105級副本"];
+const LEVEL_REQ = { "每日團：90級":90, "每日團：100~110":100, "副本團：59~90級":59, "副本團：105級奧丁":105 };
+const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
 const isDungeon = a => DUNGEONS.includes(a);
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -93,7 +93,7 @@ export async function onRequestPost({ request, env }) {
   const isToday = date === tw.date;
   if (isToday && toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
 
-  // 以今日全部登記重算分團（下方「加入進行中的團」與「時段重疊」檢查共用）
+  // 以當日全部登記重算分團（下方「私人房間」「加入進行中的團」「重複登記」檢查共用）
   const { results: all } = await env.DB
     .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, bento, role, removed, squad, room, ts
               FROM regs WHERE date = ?`)
@@ -125,25 +125,14 @@ export async function onRequestPost({ request, env }) {
     // 揪團中或緩衝期（即將出發）→ 允許加入
   }
 
-  // 同一個 Discord 帳號可以登記多個角色 ID；但「同一個角色 ID」不能同時在兩個「時段重疊」的團（不論目標是否相同）。
-  // 佔用的時段以「該筆登記所屬的團」實際狀態為準（以出發時間劃分），而不是登記時填的原始時段：
-  //   - 團已出發 → 這筆登記完全釋放，之後可自由登記其他時段（登記 10:00～24:00 但 14:10 就出發的人不會被卡死一整天）
-  //   - 已成團、尚未出發 → 只佔用「提醒時刻（出發前 10 分）～出發時刻」
-  //   - 尚未成團 → 維持原始登記時段（還不知道最後會幾點出發）
+  // 同一個 Discord 帳號可以登記多個角色 ID；同一角色 ID 也可同時登記多個時段／目標（不再檢查時段重疊）。
+  // 僅擋「同一角色重複登記到同一個揪團」。
   const ns = toMin(start), ne = toMin(end);
-  for (const r of all) {
-    if (r.discordId !== user.id || r.removed || r.charId !== charId) continue;
-    const p = parties.find(x => x.members.some(m => m.uid === r.uid));
-    let os = toMin(r.start), oe = toMin(r.end);
-    if (p && p.ok && p.departMin != null) {
-      if (isToday && tw.min >= p.departMin) continue;   // 已出發 → 釋放（明日的團不可能已出發）
-      os = p.readyMin; oe = p.departMin;      // 已成團 → 只佔用提醒～出發
-    }
-    if (ns < oe && os < ne) {
-      const hm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
-      return bad(`角色「${charId}」已在 ${hm(os)}～${hm(oe)} 登記「${r.activity}」，同一角色時段重疊無法再登記；若要改時段請先退出原團`);
-    }
-  }
+  const dup = parties.find(p => p.activity === activity && (p.room || "") === room
+    && ns <= p.timeEnd && p.time <= ne                                          // 時段有交集 → 會被併入同一個揪團
+    && !(isToday && p.ok && p.departMin != null && tw.min >= p.departMin)      // 已出發的團不算（之後的登記會另起新團）
+    && p.members.some(m => m.charId === charId && m.discordId === user.id));
+  if (dup) return bad(`角色「${charId}」已在同時段的「${activity}」揪團 #${dup.num} 內，不需重複登記`);
 
   const uid = crypto.randomUUID();
   await env.DB
