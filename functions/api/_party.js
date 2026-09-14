@@ -3,13 +3,61 @@
 // ⚠ 若修改組團規則，三處必須同步修改。
 
 const DUNGEONS = ["副本團：59~90級", "副本團：105級奧丁"];
-const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 預期分團人數：每日與副本一律 12 人一團（報名不設上限）
+const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 每日團預期分團 12 人一團、滿 3 人成團（報名不設上限）
 export const isDungeon = act => DUNGEONS.includes(act);
 const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）
-const ROLES = ["大腿", "坦", "補", "打", "便當"];
-const roleOf = m => m.role || (m.bento ? "便當" : "打");
-const roleCount = (ms, r) => ms.filter(m => roleOf(m) === r).length;
-// 副本→有「大腿」直接成團；沒大腿則需「坦」「打」各 1；每日→滿 3 人
+export const ODIN = "副本團：105級奧丁";
+export const isOdin = act => act === ODIN;
+// 各職業可勾選的職能（登記副本團時至少勾一項，可多選；前端表單、regs.js 驗證、明細顯示、機器人私訊共用）
+export const SKILLS = {
+  "騎士": ["物理近傷"], "十字軍": ["犧牲坦", "加農砲", "聖十字審判"], "巫師": ["暴風雪", "怒雷強擊", "隕石術"],
+  "賢者": ["地領", "魔力拳"], "鐵匠": ["物理近傷"], "鍊金": ["護貝", "強酸火煙瓶投擲"], "刺客": ["音速投擲", "心靈震波"],
+  "流氓": ["背刺", "魅影唸咒(弓)"], "祭司": ["純讚美", "二道聖光", "十字驅魔"], "武僧": ["阿修羅霸皇拳", "金剛不壞"],
+  "獵人": ["銳利射擊", "鳥獵普攻"], "詩人": ["奧義箭亂舞", "不萊奇"], "舞孃": ["奧義箭亂舞", "女神之吻", "為你服務"], "忍者": ["法忍", "投擲風魔飛鏢"]
+};
+export const skillsOf = m => Array.isArray(m.skills) ? m.skills : String(m.skills || "").split(",").filter(Boolean);
+// 105 級奧丁每團名額：犧牲坦 1、地領 1、護貝 1、祭司（任一職能）1、打手 2（下列職能任一）＝必要名額；其他成員最多 6 → 一團 12 人
+const ODIN_DPS = ["阿修羅霸皇拳", "銳利射擊", "奧義箭亂舞", "投擲風魔飛鏢", "心靈震波", "強酸火煙瓶投擲"];
+const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最後「其他」
+  { key: "tank",   label: "犧牲坦", n: 1, fits: m => m.job === "十字軍" && skillsOf(m).includes("犧牲坦") },
+  { key: "land",   label: "地領",   n: 1, fits: m => m.job === "賢者" && skillsOf(m).includes("地領") },
+  { key: "coat",   label: "護貝",   n: 1, fits: m => m.job === "鍊金" && skillsOf(m).includes("護貝") },
+  { key: "priest", label: "祭司",   n: 1, fits: m => m.job === "祭司" },
+  { key: "dps",    label: "打手",   n: 2, fits: m => skillsOf(m).some(s => ODIN_DPS.includes(s)) },
+  { key: "other",  label: "其他",   n: 6, fits: () => true }
+];
+const isOdinEssential = m => ODIN_SLOTS.some(s => s.key !== "other" && s.fits(m));
+// 奧丁分團：依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填必要名額的人另開新團、其他人進候補）。
+// 只往後加、不重排，所以各端結果一致、也不會與已發出的通知不符。一個團「成團」＝必要名額全滿；未成團的團不會收到機器人通知。
+// 第一位登記者不論職能一律開出第 1 團（否則整個揪團不存在）。
+export function odinTeams(members) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const teams = [], waitlist = [];
+  const newTeam = () => { const t = { members: [], slot: {}, used: {} }; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; }); teams.push(t); return t; };
+  const tryPlace = (t, m, essentialOnly) => {
+    for (const s of ODIN_SLOTS) {
+      if (essentialOnly && s.key === "other") break;
+      if (t.used[s.key] < s.n && s.fits(m)) { t.used[s.key]++; t.members.push(m); t.slot[m.uid || m.charId] = s.label; return true; }
+    }
+    return false;
+  };
+  for (const m of byTs(members)) {
+    if (teams.some(t => tryPlace(t, m, false))) continue;
+    const first = !teams.length;
+    if (first || isOdinEssential(m)) tryPlace(newTeam(), m, !first);
+    else waitlist.push(m);
+  }
+  const out = teams.map(t => {
+    const missing = ODIN_SLOTS.filter(s => s.key !== "other" && t.used[s.key] < s.n).map(s => s.label + (s.n - t.used[s.key] > 1 ? "×" + (s.n - t.used[s.key]) : ""));
+    return { members: t.members, slot: t.slot, complete: missing.length === 0, missing };
+  });
+  return { teams: out, waitlist };
+}
+// 成團條件：奧丁→第 1 團必要名額全滿；每日團、59~90 級副本→滿 3 人
+const canForm = (act, ms) => {
+  if (isOdin(act)) { const t = odinTeams(ms).teams; return t.length > 0 && t[0].complete; }
+  return ms.length >= MIN_PARTY;
+};
 // 緩衝分鐘數：一律 10 分鐘（成團「請準備」通知後 10 分鐘出發）
 const BUFFER_MIN = 10;
 const bufferOf = () => BUFFER_MIN;
@@ -22,10 +70,6 @@ function taipeiMs(dateStr, min){
 function taipeiMinOfTs(ts, dateStr){
   return Math.max(0, Math.min(1439, Math.floor((ts - taipeiMs(dateStr, 0)) / 60000)));
 }
-const canForm = (act, ms) => {
-  if (!isDungeon(act)) return ms.length >= MIN_PARTY;
-  return roleCount(ms, "大腿") >= 1 || (roleCount(ms, "坦") >= 1 && roleCount(ms, "打") >= 1);
-};
 const pad = n => String(n).padStart(2, "0");
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const toHM = m => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
@@ -73,11 +117,22 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
   return true;
 }
 
-// ── 一個「揪團」＝同目標、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
-// 群內另外算出「預期分團」squads（一律 12 人一團；同一 Discord 帳號的角色優先同團；再依職業平均；副本再依便當平均；可由玩家 ↑↓ 手動微調），
-// 只用於明細顯示與開語音房（揪團-編號-目標-1、-2…），加人時可動態變動，不影響揪團本身。
+// ── 一個「揪團」＝同目標、同房間、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
+// 群內另外算出「預期分團」squads，只用於明細顯示、機器人私訊與開語音房，加人時可動態變動，不影響揪團本身：
+//   每日團 → 12 人一團，同一 Discord 帳號的角色優先同團，再依職業平均
+//   副本團：59~90級 → 不分團、不控制職能，全員一團
+//   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團（必要名額未滿）不會收到通知
+// 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
 function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  if (isOdin(act)) {
+    const { teams, waitlist } = odinTeams(members);
+    return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot })), waitlist };
+  }
+  if (isDungeon(act)) {
+    return { squads: [{ index: 1, members: byTs(members), leader: leaderOf(members), complete: members.length >= MIN_PARTY, missing: [], slot: {} }], waitlist: [] };
+  }
   // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
   const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
   // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
@@ -106,9 +161,7 @@ function buildSquads(act, members, is, ie, dateStr) {
     groups[best].push(...unit);
   };
   if (canForm(act, core)) {
-    const max = maxOf(act), dg = isDungeon(act);
-    const isBento = m => roleOf(m) === "便當";
-    const bentoCount = g => g.filter(isBento).length;
+    const max = maxOf(act);
     // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
     core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
@@ -116,12 +169,10 @@ function buildSquads(act, members, is, ie, dateStr) {
       b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || String(a[0].job).localeCompare(String(b[0].job)) ||
       (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
-    // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→（副本）便當少（便當平均）→ 人數少 → 組序
-    // 每日與副本用同一套；副本各團是否湊得出核心不在此保證，玩家可在明細用 ↑↓ 手動微調
+    // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→ 人數少 → 組序
     const score = (g, unit, i) =>
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
-      (dg ? unit.filter(isBento).length * bentoCount(g) * 100 : 0) +
       g.length * 10 + i;
     const count = Math.ceil(core.length / max);
     for (let i = 0; i < count; i++) groups.push([]);
@@ -133,21 +184,7 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
     groups[bi].push(m);
   });
-  // 手動微調：登記上有 squad（玩家在明細按 ↑↓ 設定的目標團序）的人，從系統分配的團移到指定團（超出範圍取最後一團）
-  const manual = members.filter(m => Number.isInteger(m.squad) && m.squad >= 1);
-  if (manual.length && groups.length > 1) {
-    byTs(manual).forEach(m => {
-      const target = Math.min(m.squad, groups.length) - 1;
-      const from = groups.findIndex(g => g.includes(m));
-      if (from < 0 || from === target) return;
-      groups[from].splice(groups[from].indexOf(m), 1);
-      groups[target].push(m);
-    });
-  }
-  // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）；
-  // 手動換團的人不搶隊長（避免有人 ↑↓ 之後隊長跟著變動、與已發出的通知不一致），除非該團全是手調者
-  const leaderOf = g => { const auto = g.filter(m => !(Number.isInteger(m.squad) && m.squad >= 1)); return byTs(auto.length ? auto : g)[0]; };
-  return groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g) }));
+  return { squads: groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
 }
 
 function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
@@ -163,11 +200,11 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const sch = scheduleOf(act, members, is, ie, dateStr);
-  const squads = buildSquads(act, members, is, ie, dateStr);
+  const { squads, waitlist } = buildSquads(act, members, is, ie, dateStr);
   return {
     id, activity: act, room, priv: !!room, members: sorted, time: is, timeEnd: ie,
     ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
-    squads, leader: squads[0].leader,
+    squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
     chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
   };
