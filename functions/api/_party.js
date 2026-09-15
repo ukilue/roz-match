@@ -31,7 +31,7 @@ const isOdinEssential = m => ODIN_SLOTS.some(s => s.key !== "other" && s.fits(m)
 // 只往後加、不重排，所以各端結果一致、也不會與已發出的通知不符。一個團「成團」＝必要名額全滿；未成團的團不會收到機器人通知。
 // 第一位登記者不論職能一律開出第 1 團（否則整個揪團不存在）。
 export function odinTeams(members) {
-  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const teams = [], waitlist = [];
   const newTeam = () => { const t = { members: [], slot: {}, used: {} }; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; }); teams.push(t); return t; };
   const tryPlace = (t, m, essentialOnly) => {
@@ -70,6 +70,10 @@ function taipeiMs(dateStr, min){
 function taipeiMinOfTs(ts, dateStr){
   return Math.max(0, Math.min(1439, Math.floor((ts - taipeiMs(dateStr, 0)) / 60000)));
 }
+// 字串比較一律用 UTF-16 code unit 順序（cmpStr），不用 localeCompare：
+// localeCompare 依執行環境的預設語系排序（玩家瀏覽器 zh-TW、Cloudflare Worker en-US、伺服器可能不同），
+// 中文職業名／角色 ID 的排序結果會不一樣，導致網頁與機器人算出不同的分團。
+const cmpStr = (a, b) => { a = String(a); b = String(b); return a < b ? -1 : a > b ? 1 : 0; };
 const pad = n => String(n).padStart(2, "0");
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const toHM = m => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
@@ -95,7 +99,7 @@ export function taipeiNow() {
 //   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、發「出發」通知
 function scheduleOf(act, g, is, ie, dateStr) {
   if (!canForm(act, g)) return null;
-  const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const sorted = g.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   let formedTs = sorted[sorted.length - 1].ts || 0;
   for (let i = 0; i < sorted.length; i++) {
     if (canForm(act, sorted.slice(0, i + 1))) { formedTs = sorted[i].ts || 0; break; }
@@ -124,7 +128,7 @@ function canJoinCluster(act, members, is, ie, dateStr, r) {
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團（必要名額未滿）不會收到通知
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
 function buildSquads(act, members, is, ie, dateStr) {
-  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   if (isOdin(act)) {
     const { teams, waitlist } = odinTeams(members);
@@ -167,8 +171,8 @@ function buildSquads(act, members, is, ie, dateStr) {
     core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
     const units = unitsOf(core).sort((a, b) =>
       b.length - a.length ||
-      (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || String(a[0].job).localeCompare(String(b[0].job)) ||
-      (a[0].ts || 0) - (b[0].ts || 0) || a[0].charId.localeCompare(b[0].charId));
+      (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || cmpStr(a[0].job, b[0].job) ||
+      (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId));
     // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→ 人數少 → 組序
     const score = (g, unit, i) =>
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
@@ -188,7 +192,7 @@ function buildSquads(act, members, is, ie, dateStr) {
 }
 
 function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
-  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.charId.localeCompare(b.charId));
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const sorted = byTs(members);
   room = room || "";
   const rk = room ? "|room:" + room : "";   // 私人房間鍵（公開登記為空字串 → 既有公開揪團的 id／編號完全不受影響）
@@ -196,7 +200,7 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
   for (const c of (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end))) {
-    if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && c.charId.localeCompare(anchor.charId) < 0)) anchor = c;
+    if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const sch = scheduleOf(act, members, is, ie, dateStr);
@@ -221,7 +225,7 @@ export function buildParties(regs, dateStr) {
   const parties = [];
   for (const key in byKey) {
     const act = byKey[key][0].activity, room = byKey[key][0].room || "";
-    const list = byKey[key].slice().sort((a, b) => toMin(a.start) - toMin(b.start) || a.charId.localeCompare(b.charId));
+    const list = byKey[key].slice().sort((a, b) => toMin(a.start) - toMin(b.start) || cmpStr(a.charId, b.charId));
     let cluster = [], is = 0, ie = 0;
     const flush = () => { if (cluster.length) parties.push(splitCluster(act, cluster, is, ie, dateStr, removedByKey[key] || [], room)); };
     for (const r of list) {
