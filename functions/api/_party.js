@@ -16,42 +16,98 @@ export const SKILLS = {
   "獵人": ["銳利射擊", "鳥獵普攻"], "詩人": ["奧義箭亂舞", "不萊奇"], "舞孃": ["奧義箭亂舞", "女神之吻", "為你服務"], "忍者": ["法忍", "投擲風魔飛鏢"]
 };
 export const skillsOf = m => Array.isArray(m.skills) ? m.skills : String(m.skills || "").split(",").filter(Boolean);
-// 105 級奧丁每團名額：犧牲坦 1、地領 1、護貝 1、祭司（任一職能）1、打手 2（下列職能任一）＝必要名額；其他成員最多 6 → 一團 12 人
+// 105 級奧丁名額（每團相同，一團 12 人＝必要名額 6 ＋ 其他最多 6）：
+//   犧牲坦 1、地領 1、護貝 1、祭司（任一職能）1、打手 2（下列打手職能任一，不限阿修羅）
+//   打手戰力：阿修羅霸皇拳 3 ＞ 心靈震波 2 ＞ 其餘打手職能 1；團數 ≥ 2 時把所有團的打手（含報了打手職能、佔「其他」名額的人）
+//   重新分配，先讓每團湊滿 2 名打手（第 1 團優先），再讓各團總戰力平均（不偏袒第 1 團）
 const ODIN_DPS = ["阿修羅霸皇拳", "銳利射擊", "奧義箭亂舞", "投擲風魔飛鏢", "心靈震波", "強酸火煙瓶投擲"];
+const ODIN_POWER = { "阿修羅霸皇拳": 3, "心靈震波": 2 };
+const dpsPower = m => skillsOf(m).reduce((p, s) => Math.max(p, ODIN_DPS.includes(s) ? (ODIN_POWER[s] || 1) : 0), 0);
+const isDps = m => dpsPower(m) > 0;
 const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最後「其他」
   { key: "tank",   label: "犧牲坦", n: 1, fits: m => m.job === "十字軍" && skillsOf(m).includes("犧牲坦") },
   { key: "land",   label: "地領",   n: 1, fits: m => m.job === "賢者" && skillsOf(m).includes("地領") },
   { key: "coat",   label: "護貝",   n: 1, fits: m => m.job === "鍊金" && skillsOf(m).includes("護貝") },
   { key: "priest", label: "祭司",   n: 1, fits: m => m.job === "祭司" },
-  { key: "dps",    label: "打手",   n: 2, fits: m => skillsOf(m).some(s => ODIN_DPS.includes(s)) },
+  { key: "dps",    label: "打手",   n: 2, fits: isDps },
   { key: "other",  label: "其他",   n: 6, fits: () => true }
 ];
-const isOdinEssential = m => ODIN_SLOTS.some(s => s.key !== "other" && s.fits(m));
-// 奧丁分團：依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填必要名額的人另開新團、其他人進候補）。
-// 只往後加、不重排，所以各端結果一致、也不會與已發出的通知不符。一個團「成團」＝必要名額全滿；未成團的團不會收到機器人通知。
-// 第一位登記者不論職能一律開出第 1 團（否則整個揪團不存在）。
-export function odinTeams(members) {
+const ODIN_NEED_DPS = 2, ODIN_OTHER_MAX = 6;
+// 奧丁分團 odinTeams(members, readyMs)：
+//   1. 依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
+//   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額、且在「請準備」前登記（ts < readyMs）的打手全部集中，
+//      (a) 依第 1 團→第 2 團… 的順序先補滿每團 2 名打手（原則上以第 1 團能成團為主），
+//      (b) 剩下的依戰力高→低發給目前總戰力最低的團（受每團 12 人／其他 ≤ 6 名額限制），
+//      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團。readyMs 未給時全員可移動
+//   3. 「請準備」後才登記的人（ts ≥ readyMs）在分配之後才填入，不會動到已通知的名單
+//   結果只跟登記資料有關，各端一致。每團：members / slot（uid → 名額標籤）/ complete / missing / power
+export function odinTeams(members, readyMs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+  const keyOf = m => m.uid || m.charId;
   const teams = [], waitlist = [];
-  const newTeam = () => { const t = { members: [], slot: {}, used: {} }; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; }); teams.push(t); return t; };
-  const tryPlace = (t, m, essentialOnly) => {
-    for (const s of ODIN_SLOTS) {
-      if (essentialOnly && s.key === "other") break;
-      if (t.used[s.key] < s.n && s.fits(m)) { t.used[s.key]++; t.members.push(m); t.slot[m.uid || m.charId] = s.label; return true; }
+  // 依名額順序為一團的成員貼標籤，並更新 used / missing / complete / power
+  const fill = t => {
+    t.used = {}; t.slot = {}; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; });
+    for (const m of byTs(t.members)) {
+      const s = ODIN_SLOTS.find(x => t.used[x.key] < x.n && x.fits(m));
+      if (s) { t.used[s.key]++; t.slot[keyOf(m)] = s.label; } else { t.used.other++; t.slot[keyOf(m)] = "其他"; }
     }
-    return false;
+    t.missing = ODIN_SLOTS.filter(s => s.key !== "other" && t.used[s.key] < s.n).map(s => s.label + (s.n - t.used[s.key] > 1 ? "×" + (s.n - t.used[s.key]) : ""));
+    t.complete = t.missing.length === 0;
+    t.power = t.members.reduce((p, m) => p + dpsPower(m), 0);
+    return t;
   };
-  for (const m of byTs(members)) {
-    if (teams.some(t => tryPlace(t, m, false))) continue;
-    const first = !teams.length;
-    if (first || isOdinEssential(m)) tryPlace(newTeam(), m, !first);
+  const canTake = (t, m, essentialOnly) => ODIN_SLOTS.some(s => (!essentialOnly || s.key !== "other") && t.used[s.key] < s.n && s.fits(m));
+  const place = m => {
+    const t = teams.find(x => canTake(x, m, false));
+    if (t) { t.members.push(m); fill(t); return; }
+    const first = !teams.length, nt = { index: teams.length + 1, members: [] };
+    fill(nt);
+    if (first || canTake(nt, m, true)) { teams.push(nt); nt.members.push(m); fill(nt); }
     else waitlist.push(m);
+  };
+  const late = [];
+  for (const m of byTs(members)) { if (readyMs && (m.ts || 0) >= readyMs) late.push(m); else place(m); }
+  // ── 打手重新分配（團數 ≥ 2）──
+  if (teams.length >= 2) {
+    const pool = [];
+    for (const t of teams) {
+      const mv = t.members.filter(m => isDps(m) && (t.slot[keyOf(m)] === "打手" || t.slot[keyOf(m)] === "其他"));
+      pool.push(...mv);
+      t.members = t.members.filter(m => !mv.includes(m));
+      fill(t);
+      t.got = [];                                                                  // 本輪分配到的打手
+      t.cap = ODIN_NEED_DPS + (ODIN_OTHER_MAX - t.used.other);                     // 還能收的打手數（打手 2 ＋ 剩餘其他名額）
+    }
+    pool.sort((a, b) => dpsPower(b) - dpsPower(a) || (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+    const powerOf = t => t.power + t.got.reduce((p, m) => p + dpsPower(m), 0);
+    const give = (t, m) => { t.got.push(m); t.cap--; };
+    // (a) 依戰力高→低、第 1 團→第 2 團… 先補滿每團 2 名打手（原則上以第 1 團能成團為主；之後 (c) 的交換會再拉平戰力）
+    for (const t of teams) { while (t.got.length < ODIN_NEED_DPS && pool.length && t.cap > 0) give(t, pool.shift()); }
+    // (b) 其餘依戰力高→低發給總戰力最低、還有名額的團（同戰力 → 名額多者 → 序號大者，避免固定偏向第 1 團）
+    for (const m of pool) {
+      const cand = teams.filter(t => t.cap > 0).sort((x, y) => powerOf(x) - powerOf(y) || y.cap - x.cap || y.index - x.index);
+      if (cand.length) give(cand[0], m); else waitlist.push(m);
+    }
+    // (c) 兩兩交換直到各團戰力離平均的平方和不再下降
+    const score = () => { const ps = teams.map(powerOf), avg = ps.reduce((a, b) => a + b, 0) / ps.length; return ps.reduce((s, p) => s + (p - avg) * (p - avg), 0); };
+    let improved = true, guard = 0;
+    while (improved && guard++ < 200) {
+      improved = false;
+      for (let i = 0; i < teams.length && !improved; i++) for (let j = i + 1; j < teams.length && !improved; j++) {
+        const A = teams[i].got, B = teams[j].got;
+        for (let x = 0; x < A.length && !improved; x++) for (let y = 0; y < B.length && !improved; y++) {
+          if (dpsPower(A[x]) === dpsPower(B[y])) continue;
+          const before = score(); [A[x], B[y]] = [B[y], A[x]];
+          if (score() < before - 1e-9) improved = true; else [A[x], B[y]] = [B[y], A[x]];
+        }
+      }
+    }
+    teams.forEach(t => { t.members.push(...t.got); delete t.got; delete t.cap; fill(t); });
   }
-  const out = teams.map(t => {
-    const missing = ODIN_SLOTS.filter(s => s.key !== "other" && t.used[s.key] < s.n).map(s => s.label + (s.n - t.used[s.key] > 1 ? "×" + (s.n - t.used[s.key]) : ""));
-    return { members: t.members, slot: t.slot, complete: missing.length === 0, missing };
-  });
-  return { teams: out, waitlist };
+  late.forEach(place);
+  teams.forEach(t => { t.members = byTs(t.members); fill(t); });
+  return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
 // 成團條件：奧丁→第 1 團必要名額全滿；每日團、59~90 級副本→滿 3 人
 const canForm = (act, ms) => {
@@ -131,8 +187,10 @@ function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   if (isOdin(act)) {
-    const { teams, waitlist } = odinTeams(members);
-    return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot })), waitlist };
+    // 「請準備」時刻之後登記的人不參與戰力平均分配（與已發出的通知一致）
+    const whole = scheduleOf(act, members, is, ie, dateStr);
+    const { teams, waitlist } = odinTeams(members, whole ? taipeiMs(dateStr, whole.readyMin) : undefined);
+    return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot, power: t.power })), waitlist };
   }
   if (isDungeon(act)) {
     return { squads: [{ index: 1, members: byTs(members), leader: leaderOf(members), complete: members.length >= MIN_PARTY, missing: [], slot: {} }], waitlist: [] };
@@ -206,7 +264,7 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
   const sch = scheduleOf(act, members, is, ie, dateStr);
   const { squads, waitlist } = buildSquads(act, members, is, ie, dateStr);
   return {
-    id, activity: act, room, priv: !!room, members: sorted, time: is, timeEnd: ie,
+    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: is, timeEnd: ie,
     ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
     squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),

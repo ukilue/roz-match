@@ -142,6 +142,14 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .card.priv .pnum{color:var(--red);text-shadow:1px 1px 0 #ffffffcc}
 .lock-ic{font-size:15px;vertical-align:-1px;margin-right:2px;filter:drop-shadow(0 1px 0 #0003)}
 .lock-tag{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:900;color:#fff;background:var(--red);border-radius:3px;padding:1px 7px;letter-spacing:1px;vertical-align:middle}
+.card.open-room{border-color:var(--green-dark)}
+.open-tag{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:900;color:#fff;background:var(--green-dark);border-radius:3px;padding:1px 7px;letter-spacing:0;white-space:nowrap;vertical-align:middle}
+.lock-tag{white-space:nowrap}
+.host-box{margin-top:12px;border:1.5px dashed var(--wood);border-radius:6px;background:#FFFDF6;padding:10px 12px;font-size:13.5px}
+.host-box .host-title{font-weight:900;letter-spacing:1px;margin-bottom:4px}
+.host-box .host-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-top:8px}
+.host-box .host-row input{width:130px;text-align:center;font-size:18px;letter-spacing:8px;font-weight:900}
+.host-box .host-row button{width:auto}
 .lock-box{margin-top:14px;border:2px solid var(--red);border-radius:6px;background:#C0452F0f;padding:16px 14px;text-align:center}
 .lock-box .lock-big{font-size:36px;line-height:1}
 .lock-box h4{margin:8px 0 4px;color:var(--red);letter-spacing:2px;font-size:16px}
@@ -261,7 +269,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title">冒險者登記卡 <small id="mode-tag" class="mode-tag"></small></div>
       <div class="panel-body">
         <div id="id-cards" class="id-cards" style="display:none">
-          <div class="id-cards-title">🪪 載入身份卡 <small>近 1 週報名過的角色，點一下自動帶入</small></div>
+          <div class="id-cards-title">🪪 載入身份卡 <small>近 1 週報名過的角色，點一下自動帶入 ID、等級、職業、要做的事情與職能</small></div>
           <div id="id-cards-list" class="id-cards-list"></div>
         </div>
         <div class="form-grid">
@@ -307,7 +315,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
           <li>同一 Discord 帳號可登記多個角色 ID，同一角色也可同時登記多個時段或目標</li>
           <li>要退出揪團，請點開明細，按最上方「退出揪團」列中自己角色的按鈕</li>
-          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同時段、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）</li>
+          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同時段、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）。<b>設立密碼的人為房主</b>：房主可在明細的「房主控制」把房間<b>開放</b>（變成任何人不需密碼即可加入的公開狀態，列表改顯示 🔓）或再<b>鎖上</b>，兩者都需再輸入一次房間密碼確認</li>
           <li>勾選「預先報名明日的團」可登記明天任一時段（00:00～23:59）；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
           <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、ID 與上次時段</li>
           <li>玩家登記每日可以遊玩的時間及目標，系統會自動安排組隊並以 DC 機器人通知</li>
@@ -316,13 +324,13 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <li>開團成功規則
             <ul>
               <li>每日團、副本團：59~90級 → 3 人以上成團（不分團、不限制職能）</li>
-              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>至少 2 名打手</b>（阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲之一）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；第 2 團必要職能沒湊齊就不出發，機器人只通知已成團的團</li>
+              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團</li>
             </ul>
           </li>
           <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
           <li>同時段同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整；「即將出發」提醒發出後加入的人直接補進人數較少的團，不再變動既有分團。105 級奧丁則依職能名額分團</li>
           <li>提醒時機器人依預期分團各開一間語音頻道（揪團-編號-目標-1、-2…），私訊只給你所屬那一團的名單與語音連結；全體團員都能進入任何一間，也有「移動成員」權限，可把待在公開語音大廳的人直接拉進本團語音</li>
-          <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息（私人房間不公告，只私訊成員）</li>
+          <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息（鎖上的私人房間不公告，只私訊成員；房主開放後視同公開）</li>
           <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
           <li>語音群全伺服器都看得到、但只有本揪團的團員能進入；出發 3 小時後自動消失</li>
                   </ul>
@@ -399,42 +407,98 @@ const SKILLS = {
   "獵人": ["銳利射擊", "鳥獵普攻"], "詩人": ["奧義箭亂舞", "不萊奇"], "舞孃": ["奧義箭亂舞", "女神之吻", "為你服務"], "忍者": ["法忍", "投擲風魔飛鏢"]
 };
 const skillsOf = m => Array.isArray(m.skills) ? m.skills : String(m.skills || "").split(",").filter(Boolean);
-// 105 級奧丁每團名額：犧牲坦 1、地領 1、護貝 1、祭司（任一職能）1、打手 2（下列職能任一）＝必要名額；其他成員最多 6 → 一團 12 人
+// 105 級奧丁名額（每團相同，一團 12 人＝必要名額 6 ＋ 其他最多 6）：
+//   犧牲坦 1、地領 1、護貝 1、祭司（任一職能）1、打手 2（下列打手職能任一，不限阿修羅）
+//   打手戰力：阿修羅霸皇拳 3 ＞ 心靈震波 2 ＞ 其餘打手職能 1；團數 ≥ 2 時把所有團的打手（含報了打手職能、佔「其他」名額的人）
+//   重新分配，先讓每團湊滿 2 名打手（第 1 團優先），再讓各團總戰力平均（不偏袒第 1 團）
 const ODIN_DPS = ["阿修羅霸皇拳", "銳利射擊", "奧義箭亂舞", "投擲風魔飛鏢", "心靈震波", "強酸火煙瓶投擲"];
+const ODIN_POWER = { "阿修羅霸皇拳": 3, "心靈震波": 2 };
+const dpsPower = m => skillsOf(m).reduce((p, s) => Math.max(p, ODIN_DPS.includes(s) ? (ODIN_POWER[s] || 1) : 0), 0);
+const isDps = m => dpsPower(m) > 0;
 const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最後「其他」
   { key: "tank",   label: "犧牲坦", n: 1, fits: m => m.job === "十字軍" && skillsOf(m).includes("犧牲坦") },
   { key: "land",   label: "地領",   n: 1, fits: m => m.job === "賢者" && skillsOf(m).includes("地領") },
   { key: "coat",   label: "護貝",   n: 1, fits: m => m.job === "鍊金" && skillsOf(m).includes("護貝") },
   { key: "priest", label: "祭司",   n: 1, fits: m => m.job === "祭司" },
-  { key: "dps",    label: "打手",   n: 2, fits: m => skillsOf(m).some(s => ODIN_DPS.includes(s)) },
+  { key: "dps",    label: "打手",   n: 2, fits: isDps },
   { key: "other",  label: "其他",   n: 6, fits: () => true }
 ];
-const isOdinEssential = m => ODIN_SLOTS.some(s => s.key !== "other" && s.fits(m));
-// 奧丁分團：依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填必要名額的人另開新團、其他人進候補）。
-// 只往後加、不重排，所以各端結果一致、也不會與已發出的通知不符。一個團「成團」＝必要名額全滿；未成團的團不會收到機器人通知。
-// 第一位登記者不論職能一律開出第 1 團（否則整個揪團不存在）。
-function odinTeams(members) {
+const ODIN_NEED_DPS = 2, ODIN_OTHER_MAX = 6;
+// 奧丁分團 odinTeams(members, readyMs)：
+//   1. 依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
+//   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額、且在「請準備」前登記（ts < readyMs）的打手全部集中，
+//      (a) 依第 1 團→第 2 團… 的順序先補滿每團 2 名打手（原則上以第 1 團能成團為主），
+//      (b) 剩下的依戰力高→低發給目前總戰力最低的團（受每團 12 人／其他 ≤ 6 名額限制），
+//      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團。readyMs 未給時全員可移動
+//   3. 「請準備」後才登記的人（ts ≥ readyMs）在分配之後才填入，不會動到已通知的名單
+//   結果只跟登記資料有關，各端一致。每團：members / slot（uid → 名額標籤）/ complete / missing / power
+function odinTeams(members, readyMs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+  const keyOf = m => m.uid || m.charId;
   const teams = [], waitlist = [];
-  const newTeam = () => { const t = { members: [], slot: {}, used: {} }; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; }); teams.push(t); return t; };
-  const tryPlace = (t, m, essentialOnly) => {
-    for (const s of ODIN_SLOTS) {
-      if (essentialOnly && s.key === "other") break;
-      if (t.used[s.key] < s.n && s.fits(m)) { t.used[s.key]++; t.members.push(m); t.slot[m.uid || m.charId] = s.label; return true; }
+  // 依名額順序為一團的成員貼標籤，並更新 used / missing / complete / power
+  const fill = t => {
+    t.used = {}; t.slot = {}; ODIN_SLOTS.forEach(s => { t.used[s.key] = 0; });
+    for (const m of byTs(t.members)) {
+      const s = ODIN_SLOTS.find(x => t.used[x.key] < x.n && x.fits(m));
+      if (s) { t.used[s.key]++; t.slot[keyOf(m)] = s.label; } else { t.used.other++; t.slot[keyOf(m)] = "其他"; }
     }
-    return false;
+    t.missing = ODIN_SLOTS.filter(s => s.key !== "other" && t.used[s.key] < s.n).map(s => s.label + (s.n - t.used[s.key] > 1 ? "×" + (s.n - t.used[s.key]) : ""));
+    t.complete = t.missing.length === 0;
+    t.power = t.members.reduce((p, m) => p + dpsPower(m), 0);
+    return t;
   };
-  for (const m of byTs(members)) {
-    if (teams.some(t => tryPlace(t, m, false))) continue;
-    const first = !teams.length;
-    if (first || isOdinEssential(m)) tryPlace(newTeam(), m, !first);
+  const canTake = (t, m, essentialOnly) => ODIN_SLOTS.some(s => (!essentialOnly || s.key !== "other") && t.used[s.key] < s.n && s.fits(m));
+  const place = m => {
+    const t = teams.find(x => canTake(x, m, false));
+    if (t) { t.members.push(m); fill(t); return; }
+    const first = !teams.length, nt = { index: teams.length + 1, members: [] };
+    fill(nt);
+    if (first || canTake(nt, m, true)) { teams.push(nt); nt.members.push(m); fill(nt); }
     else waitlist.push(m);
+  };
+  const late = [];
+  for (const m of byTs(members)) { if (readyMs && (m.ts || 0) >= readyMs) late.push(m); else place(m); }
+  // ── 打手重新分配（團數 ≥ 2）──
+  if (teams.length >= 2) {
+    const pool = [];
+    for (const t of teams) {
+      const mv = t.members.filter(m => isDps(m) && (t.slot[keyOf(m)] === "打手" || t.slot[keyOf(m)] === "其他"));
+      pool.push(...mv);
+      t.members = t.members.filter(m => !mv.includes(m));
+      fill(t);
+      t.got = [];                                                                  // 本輪分配到的打手
+      t.cap = ODIN_NEED_DPS + (ODIN_OTHER_MAX - t.used.other);                     // 還能收的打手數（打手 2 ＋ 剩餘其他名額）
+    }
+    pool.sort((a, b) => dpsPower(b) - dpsPower(a) || (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+    const powerOf = t => t.power + t.got.reduce((p, m) => p + dpsPower(m), 0);
+    const give = (t, m) => { t.got.push(m); t.cap--; };
+    // (a) 依戰力高→低、第 1 團→第 2 團… 先補滿每團 2 名打手（原則上以第 1 團能成團為主；之後 (c) 的交換會再拉平戰力）
+    for (const t of teams) { while (t.got.length < ODIN_NEED_DPS && pool.length && t.cap > 0) give(t, pool.shift()); }
+    // (b) 其餘依戰力高→低發給總戰力最低、還有名額的團（同戰力 → 名額多者 → 序號大者，避免固定偏向第 1 團）
+    for (const m of pool) {
+      const cand = teams.filter(t => t.cap > 0).sort((x, y) => powerOf(x) - powerOf(y) || y.cap - x.cap || y.index - x.index);
+      if (cand.length) give(cand[0], m); else waitlist.push(m);
+    }
+    // (c) 兩兩交換直到各團戰力離平均的平方和不再下降
+    const score = () => { const ps = teams.map(powerOf), avg = ps.reduce((a, b) => a + b, 0) / ps.length; return ps.reduce((s, p) => s + (p - avg) * (p - avg), 0); };
+    let improved = true, guard = 0;
+    while (improved && guard++ < 200) {
+      improved = false;
+      for (let i = 0; i < teams.length && !improved; i++) for (let j = i + 1; j < teams.length && !improved; j++) {
+        const A = teams[i].got, B = teams[j].got;
+        for (let x = 0; x < A.length && !improved; x++) for (let y = 0; y < B.length && !improved; y++) {
+          if (dpsPower(A[x]) === dpsPower(B[y])) continue;
+          const before = score(); [A[x], B[y]] = [B[y], A[x]];
+          if (score() < before - 1e-9) improved = true; else [A[x], B[y]] = [B[y], A[x]];
+        }
+      }
+    }
+    teams.forEach(t => { t.members.push(...t.got); delete t.got; delete t.cap; fill(t); });
   }
-  const out = teams.map(t => {
-    const missing = ODIN_SLOTS.filter(s => s.key !== "other" && t.used[s.key] < s.n).map(s => s.label + (s.n - t.used[s.key] > 1 ? "×" + (s.n - t.used[s.key]) : ""));
-    return { members: t.members, slot: t.slot, complete: missing.length === 0, missing };
-  });
-  return { teams: out, waitlist };
+  late.forEach(place);
+  teams.forEach(t => { t.members = byTs(t.members); fill(t); });
+  return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
 // 成團條件：奧丁→第 1 團必要名額全滿；每日團、59~90 級副本→滿 3 人
 const canForm = (act, ms) => {
@@ -603,11 +667,27 @@ const store = {
     else if(room){
       const host = list.find(r=>r.room===room && r._pw);
       const already = list.some(r=>r.room===room && r.mine && !r.removed);
-      if(host && !already && host._pw !== pw){ toast("房間密碼錯誤"); return false; }
+      if(host && !already && !host.roomOpen && host._pw !== pw){ toast("房間密碼錯誤"); return false; }
       _pw = host ? host._pw : undefined;
     }
-    list.push({...rest, room, _pw, mine:true});
+    list.push({...rest, room, _pw, roomOpen: !!(list.find(r=>r.room===room && r.roomOpen)), mine:true});
     this.localSave(list);
+    return true;
+  },
+  // 房主開放／鎖上房間（伺服器驗證房主＋密碼；成功回 true）
+  async roomAction(room, pw, action){
+    if(this.online){
+      try{
+        const r = await fetch(API+"/rooms/"+encodeURIComponent(room), {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pw, action})});
+        const d = await r.json().catch(()=>({}));
+        if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
+        if(!r.ok){ toast(d.error||"操作失敗"); return false; }
+        return true;
+      }catch(e){ toast("連線失敗，請稍後再試"); return false; }
+    }
+    const all = this.localAll(); const host = all.find(r=>r.room===room && r._pw);
+    if(!host || host._pw !== pw){ toast("房間密碼錯誤"); return false; }
+    this.localSave(all.map(r=>r.room===room?{...r, roomOpen: action==="open"}:r));
     return true;
   },
   // 私人房間密碼驗證（伺服器端比對雜湊；成功回 true）
@@ -748,8 +828,10 @@ function buildSquads(act, members, is, ie, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   if (isOdin(act)) {
-    const { teams, waitlist } = odinTeams(members);
-    return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot })), waitlist };
+    // 「請準備」時刻之後登記的人不參與戰力平均分配（與已發出的通知一致）
+    const whole = scheduleOf(act, members, is, ie, dateStr);
+    const { teams, waitlist } = odinTeams(members, whole ? taipeiMs(dateStr, whole.readyMin) : undefined);
+    return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot, power: t.power })), waitlist };
   }
   if (isDungeon(act)) {
     return { squads: [{ index: 1, members: byTs(members), leader: leaderOf(members), complete: members.length >= MIN_PARTY, missing: [], slot: {} }], waitlist: [] };
@@ -823,7 +905,7 @@ function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
   const sch = scheduleOf(act, members, is, ie, dateStr);
   const { squads, waitlist } = buildSquads(act, members, is, ie, dateStr);
   return {
-    id, activity: act, room, priv: !!room, members: sorted, time: is, timeEnd: ie,
+    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: is, timeEnd: ie,
     ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
     squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
@@ -867,11 +949,12 @@ function cardHTML(p, source){
   const countText = odin
     ? `${n} 人${p.ok ? squadText + (incomplete ? `（第 ${p.squads.filter(s=>!s.complete).map(s=>s.index).join("、")} 團缺 ${p.squads.filter(s=>!s.complete).map(s=>s.missing.join("、")).join("；")}）` : "") : "（缺：" + ((p.squads[0]||{missing:[]}).missing.join("、") || "必要職能") + "）"}`
     : `${n} 人${p.ok?squadText:"（再 "+Math.max(0, MIN_PARTY - n)+" 人成團）"}`;
-  return `<div class="card ${st.frame}${p.priv?" priv":""}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
+  const locked = p.priv && !p.open;
+  return `<div class="card ${st.frame}${locked?" priv":(p.priv?" open-room":"")}" onclick="openDetail('${esc(p.id).replace(/'/g,"\\'")}','${source}')">
     <span class="pnum">#${p.num}</span>
     <span class="stamp ${st.cls}">${st.label}</span>
-    <div class="act">${p.priv?'<span class="lock-ic" title="私人房間">🔒</span>':""}${esc(p.activity)}</div>
-    ${p.priv?`<div class="row"><b>房間</b><span class="lock-tag">🔒 私人房間</span><span style="font-size:12.5px;color:#7d2416">需密碼加入</span></div>`:""}
+    <div class="act">${locked?'<span class="lock-ic" title="私人房間">🔒</span>':(p.priv?'<span class="lock-ic" title="房間開放中">🔓</span>':"")}${esc(p.activity)}</div>
+    ${locked?`<div class="row"><b>房間</b><span class="lock-tag">🔒 私人房間</span><span style="font-size:12.5px;color:#7d2416">需密碼加入</span></div>`:(p.priv?`<div class="row"><b>房間</b><span class="open-tag">🔓 開放中</span><span style="font-size:12.5px;color:var(--green-dark)">免密碼加入</span></div>`:"")}
     <div class="row"><b>時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     ${p.ok ? `<div class="row"><b>出發時間</b>${toHM(p.departMin)}${viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒）":""}</div>` : `<div class="row"><b>出發時間</b>成團後緩衝 10 分</div>`}
     <div class="row"><b>目前人數</b>${countText}</div>
@@ -883,7 +966,7 @@ function renderAll(){
   const q = ($("search-q") ? $("search-q").value : "").trim().toLowerCase().replace(/^#/,"");
   // 今日所有揪團都顯示：已出發或時段已結束的掛「關閉揪團」紅章、排在最後面
   let upcoming = PARTIES.slice();
-  if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q) || (p.priv && "私人房間".includes(q)));
+  if(q) upcoming = upcoming.filter(p=> p.num.includes(q) || p.activity.toLowerCase().includes(q) || (p.priv && (p.open ? "私人房間開放中" : "私人房間").includes(q)));
   // 收人中的在前（時間近→遠、同時間人多優先）；已關閉的一律排最後（依時段起點）
   upcoming = upcoming.sort((a,b)=>{
     const as = isClosed(a) ? 1 : 0, bs = isClosed(b) ? 1 : 0;
@@ -920,10 +1003,12 @@ function detailMainHTML(p){
   const multi = p.squads.length > 1;
   const myChars = p.members.filter(m=>m.mine);
   // 私人房間：本團成員、或本次已輸入正確密碼者才能看名單與加入；其他人只看到基本資訊＋密碼輸入
-  const unlocked = !p.priv || !!viewerMember || ROOM_PW.has(p.room);
+  const locked = p.priv && !p.open;      // 房主開放後（p.open）視同公開，不需密碼
+  const isHost = p.priv && !!(p.host && p.host.mine);   // 房主＝建立房間的人（該房間最早登記者）
+  const unlocked = !locked || !!viewerMember || ROOM_PW.has(p.room);
 
   let main = `
-    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${p.priv?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':""}</div>
+    <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${locked?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':(p.priv?' <span class="open-tag" style="margin-left:8px">🔓 私人房間・開放中</span>':"")}</div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b>${p.ok?toHM(p.departMin)+(viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒準備）":""):"成團後緩衝 10 分鐘出發"}</div>
@@ -954,13 +1039,27 @@ function detailMainHTML(p){
     return main;
   }
   if(p.priv){
-    main += `<div class="hint" style="margin-top:6px">🔒 私人房間：只有輸入房間密碼的人能加入，同時段、同目標的一般登記不會被併進來。${viewerMember?"請把密碼私下告知想邀請的隊友。":""}</div>`;
+    main += locked
+      ? `<div class="hint" style="margin-top:6px">🔒 私人房間：只有輸入房間密碼的人能加入，同時段、同目標的一般登記不會被併進來。${viewerMember?"請把密碼私下告知想邀請的隊友。":""}</div>`
+      : `<div class="hint" style="margin-top:6px">🔓 房主已開放此房間：任何人不需密碼即可查看名單並加入（同時段的一般登記仍不會自動併進來）。房主可隨時再鎖上。</div>`;
+    // 房主控制：開放／鎖上都要再輸入一次房間密碼
+    if(isHost && !closed){
+      main += `
+      <div class="host-box" id="host-box">
+        <div class="host-title">👑 房主控制 <small style="font-weight:400;color:#7A6845">目前狀態：${locked ? "🔒 鎖上（需密碼加入）" : "🔓 開放（任何人可加入）"}</small></div>
+        <div>${locked ? "開放房間後任何人都能直接加入，之後可再鎖上。" : "鎖上後需要房間密碼才能查看名單與加入。"}變更需再次輸入房間密碼確認。</div>
+        <div class="host-row">
+          <input id="host-pw" type="password" inputmode="numeric" maxlength="4" pattern="\\d{4}" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')toggleRoom()">
+          <button class="btn ${locked ? "blue" : "red"} small" id="host-btn" onclick="toggleRoom()">${locked ? "🔓 開放房間" : "🔒 鎖上房間"}</button>
+        </div>
+      </div>`;
+    }
   }
   // 成員名單：副本團列出職能；奧丁另標所佔名額（必要名額綠色）、每團標示成團／未成團與缺少的名額
   const skillTags = m => dg ? skillsOf(m).map(k=>`<span class="skill-tag">${esc(k)}</span>`).join("") : "";
   const slotTag = (s, m) => odin ? `<span class="slot-tag${(s.slot||{})[m.uid]&&(s.slot||{})[m.uid]!=="其他"?" need":""}">${esc((s.slot||{})[m.uid]||"其他")}</span>` : "";
   main += p.squads.map(s=>`
-    ${(multi || odin) ? `<div class="squad-head${odin && !s.complete ? " bad" : ""}">第 ${s.index} 團 ${odin ? (s.complete ? '<span class="ok-tag">✓ 成團</span>' : `<span class="bad-tag">未成團｜缺 ${esc(s.missing.join("、"))}</span>`) : ""}<small>${s.members.length} 人${p.ok && s.complete?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
+    ${(multi || odin) ? `<div class="squad-head${odin && !s.complete ? " bad" : ""}">第 ${s.index} 團 ${odin ? (s.complete ? '<span class="ok-tag">✓ 成團</span>' : `<span class="bad-tag">未成團｜缺 ${esc(s.missing.join("、"))}</span>`) : ""}<small>${s.members.length} 人${odin?"｜打手戰力 "+(s.power||0):""}${p.ok && s.complete?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
       s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${slotTag(s,m)}${skillTags(m)}</span><span style="display:flex;gap:6px;align-items:center">${ready && s.complete && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</span></li>`).join("") +
     `</ul>`).join("");
@@ -969,7 +1068,7 @@ function detailMainHTML(p){
       p.waitlist.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${skillTags(m)}</span></li>`).join("") + `</ul>`;
   }
   if(odin){
-    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>至少 2 名打手</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。全體共用同一個留言板。</div>`;
+    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>打手 2 名</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。有 2 團以上時，系統會把所有團的打手（含報了打手職能、佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團戰力平均，不偏袒第 1 團（「請準備」後加入者不再重排）。全體共用同一個留言板。</div>`;
   }else if(multi && !closed){
     main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>${ready?"":"，有人加入時會動態調整；提醒發出後即固定"}。全體共用同一個留言板。</div>`;
   }
@@ -1010,16 +1109,33 @@ function detailMainHTML(p){
   return main;
 }
 function captureJoinDraft(){
-  const pw = $("pw-in") ? $("pw-in").value : "";
+  const pw = $("pw-in") ? $("pw-in").value : ($("host-pw") ? $("host-pw").value : "");
   return $("j-id") ? { id:$("j-id").value, lv:$("j-lv").value, job:$("j-job").value,
     skills: pickedSkills("j-skill"), pw } : (pw ? { pw } : null);
 }
 function restoreJoinDraft(d){
   if(!d) return;
   if($("pw-in") && d.pw) $("pw-in").value = d.pw;
+  if($("host-pw") && d.pw) $("host-pw").value = d.pw;
   if(!$("j-id") || d.id === undefined) return;
   $("j-id").value=d.id; $("j-lv").value=d.lv; $("j-job").value=d.job;
   if($("j-skills")){ renderSkillBoxes("j"); (d.skills||[]).forEach(k=>{ const el = document.querySelector('input[name="j-skill"][value="'+k+'"]'); if(el) el.checked = true; }); }
+}
+// 房主開放／鎖上房間：伺服器驗證房主身分＋密碼後更新 roomOpen
+async function toggleRoom(){
+  if(!requireLogin()) return;
+  const p = PARTIES.find(x=>x.id===openPartyId); if(!p || !p.priv) return;
+  const pw = ($("host-pw") ? $("host-pw").value : "").trim();
+  if(!/^\d{4}$/.test(pw)) return toast("請輸入 4 位數房間密碼確認");
+  const action = p.open ? "close" : "open";
+  const btn = $("host-btn"); if(btn) btn.disabled = true;
+  const ok = await store.roomAction(p.room, pw, action);
+  if(btn) btn.disabled = false;
+  if(!ok){ if($("host-pw")){ $("host-pw").value=""; $("host-pw").focus(); } return; }
+  ROOM_PW.set(p.room, pw);
+  toast(action === "open" ? "房間已開放，任何人都可以直接加入" : "房間已鎖上，需要密碼才能加入");
+  await refresh();
+  const still = PARTIES.find(x=>x.id===openPartyId); if(still) updateDetail(still);
 }
 // 私人房間解鎖：把密碼送到伺服器比對雜湊；通過後只在記憶體記住，供加入時附上讓伺服器再驗一次
 async function unlockRoom(){
@@ -1249,12 +1365,12 @@ async function joinParty(){
   if(isDungeon(p.activity) && !skills.length) return toast("副本團需至少勾選一項職能");
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
     skills,
-    room: p.room || "", pw: p.priv ? (ROOM_PW.get(p.room) || "") : "",   // 私人房間：附上已驗證的密碼，伺服器再驗一次
+    room: p.room || "", pw: (p.priv && !p.open) ? (ROOM_PW.get(p.room) || "") : "",   // 鎖上的私人房間：附上已驗證的密碼，伺服器再驗一次；開放中不需密碼
     date:viewDate(), ts:Date.now(), uid:newUid()});
   if(!added) return;
   await refresh(); loadIdCards();
   closeModal();
-  toast(p.priv ? "已加入這個私人房間！" : "已為你登記加入這個揪團！");
+  toast(p.priv ? (p.open ? "已加入這個開放中的房間！" : "已加入這個私人房間！") : "已為你登記加入這個揪團！");
 }
 
 /* ─── 初始化與輪詢 ─── */
@@ -1303,13 +1419,16 @@ async function loadIdCards(){
     ID_CARDS = r.ok ? await r.json() : [];
   }catch(e){ ID_CARDS = []; }
   if(!ID_CARDS.length){ box.style.display="none"; return; }
-  $("id-cards-list").innerHTML = ID_CARDS.map((c,i)=>`<button class="id-card" onclick="applyIdCard(${i})" title="${esc(c.job)}｜上次 ${esc(c.start)}～${esc(c.end)}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("");
+  $("id-cards-list").innerHTML = ID_CARDS.map((c,i)=>`<button class="id-card" onclick="applyIdCard(${i})" title="${esc(c.job)}｜${esc(c.activity||"")}${(c.skills&&c.skills.length)?"｜"+esc(c.skills.join("、")):""}｜上次 ${esc(c.start)}～${esc(c.end)}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("");
   box.style.display = "";
 }
 function applyIdCard(i){
   const c = ID_CARDS[i]; if(!c) return;
   $("f-id").value = c.charId; $("f-lv").value = c.level;
   if(JOBS.includes(c.job)) $("f-job").value = c.job;
+  // 帶入上次的「要做的事情」（仍在選單內才帶）與職能
+  const actEl = $("f-act");
+  if(c.activity && [...actEl.options].some(o=>o.value===c.activity)) actEl.value = c.activity;
   renderSkillBoxes("f");
   (c.skills||[]).forEach(k=>{ const el = document.querySelector('input[name="f-skill"][value="'+k+'"]'); if(el) el.checked = true; });
   // 帶入上次的時段：若開始時間已過（今日檢視）就選最早可選的，並提示

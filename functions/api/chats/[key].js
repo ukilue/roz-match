@@ -16,10 +16,10 @@ async function authorize(env, request, key) {
   if (!user.member) return { err: needMember() };
   const tw = taipeiNow();
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, ts
               FROM regs WHERE date IN (?, ?)`)
     .bind(tw.date, addDays(tw.date, 1)).all();
-  const rows = results.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "" }));
+  const rows = results.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen }));
   const parties = [...buildParties(rows, tw.date), ...buildParties(rows, addDays(tw.date, 1))];   // 今日＋明日（預先報名）的揪團都能用留言板
   const party = parties.find(p => p.chatKey === key);
   if (!party) return { err: json({ error: "找不到這個揪團的留言板" }, 404) };

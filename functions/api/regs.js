@@ -37,7 +37,7 @@ export async function onRequestGet({ request, env }) {
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, pwHash, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, pwHash, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   // acct：同一 Discord 帳號在同一天會拿到相同的匿名鍵（雜湊，每日不同、無法反推 discordId），
@@ -46,7 +46,7 @@ export async function onRequestGet({ request, env }) {
   const acctOf = id => "a" + hashStr(id + "|" + date + "|acct").toString(36) + hashStr(date + "|" + id).toString(36);
   // pwHash（私人房間密碼雜湊）與 discordId 一樣絕不回傳；room 只是不透明的房間 ID，前端用它分堆與呼叫驗證 API
   return json(results.map(({ discordId, pwHash, ...r }) =>
-    ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
+    ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
@@ -95,23 +95,25 @@ export async function onRequestPost({ request, env }) {
 
   // 以當日全部登記重算分團（下方「私人房間」「加入進行中的團」「重複登記」檢查共用）
   const { results: all } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
-  const rows = all.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "" }));
+  const rows = all.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen }));
   const parties = buildParties(rows, date);
 
   // ── 私人房間 ──
   //   加入既有房間：房間必須存在且與這筆登記同一天；本帳號若已是房內成員（用其他角色再加入）免密碼，否則必須通過密碼驗證
   //   建立新房間：產生房間 ID，密碼只以 SHA-256(房間ID:密碼) 雜湊保存
-  let room = "", pwHash = "";
+  let room = "", pwHash = "", roomOpen = 0;
   if (joinRoom) {
     const roomRow = await findRoom(env, joinRoom);
     if (!roomRow || roomRow.date !== date) return bad("找不到這個私人房間", 404);
     if (roomRow.activity !== activity) return bad("目標與私人房間不符");
     const already = all.some(r => r.room === joinRoom && !r.removed && r.discordId === user.id);
-    if (!already) { const err = await checkRoomPw(env, user.id, joinRoom, roomRow.pwHash, pw); if (err) return err; }
-    room = joinRoom; pwHash = roomRow.pwHash;
+    // 房主已「開放」的房間不需密碼（roomOpen 房間內每筆登記同步更新）
+    const isOpen = !!roomRow.roomOpen;
+    if (!already && !isOpen) { const err = await checkRoomPw(env, user.id, joinRoom, roomRow.pwHash, pw); if (err) return err; }
+    room = joinRoom; pwHash = roomRow.pwHash; roomOpen = isOpen ? 1 : 0;
   } else if (priv) {
     room = crypto.randomUUID();
     pwHash = await roomPwHash(room, pw);
@@ -136,7 +138,7 @@ export async function onRequestPost({ request, env }) {
   if (dup) return bad(`角色「${charId}」已在同時段的「${activity}」揪團 #${dup.num} 內，不需重複登記`);
 
   const uid = crypto.randomUUID();
-  const newReg = { uid, discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room, ts: Date.now() };
+  const newReg = { uid, discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room, roomOpen: !!roomOpen, ts: Date.now() };
 
   // 105 級奧丁：名額檢查——把這筆登記放進會併入的揪團重算分團，若落到候補（各團「其他」名額已滿、且本身不是必要職能）就擋下
   if (isOdin(activity)) {
@@ -147,9 +149,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   await env.DB
-    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, skills, room, pwHash, ts)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(uid, user.id, charId, level, job, activity, start, end, date, skills.join(","), room, pwHash, newReg.ts)
+    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, skills, room, pwHash, roomOpen, ts)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(uid, user.id, charId, level, job, activity, start, end, date, skills.join(","), room, pwHash, roomOpen, newReg.ts)
     .run();
   return json({ uid, room });
 }
