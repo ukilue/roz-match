@@ -281,6 +281,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             <select id="f-act" onchange="renderSkillBoxes('f')">
               <option value="每日團：90級">每日團：90級</option>
               <option value="每日團：100~110">每日團：100~110</option>
+              <option value="每日團：礦山3樓">每日團：礦山3樓</option>
               <option value="副本團：59~90級">副本團：59~90級</option>
               <option value="副本團：105級奧丁">副本團：105級奧丁</option>
             </select>
@@ -358,7 +359,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title"><span><span class="day-word">今日</span>揪團</span> <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="day-tabs"><button class="day-tab" data-day="0" onclick="setViewDay(0)">今日</button><button class="day-tab" data-day="1" onclick="setViewDay(1)">明日</button></div>
-        <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、每日、奧丁" oninput="renderAll()">
+        <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、每日、礦山、奧丁" oninput="renderAll()">
         <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
       </div>
     </div>
@@ -1295,7 +1296,7 @@ async function processChatQueue(){   // 依序送出，狂按也不會漏或亂�
 }
 
 /* ─── 登記 / 加入 ─── */
-const LEVEL_REQ = {"每日團：90級":90,"每日團：100~110":100,"副本團：59~90級":59,"副本團：105級奧丁":105};
+const LEVEL_REQ = {"每日團：90級":90,"每日團：100~110":100,"每日團：礦山3樓":100,"副本團：59~90級":59,"副本團：105級奧丁":105};
 function levelCheck(activity, level){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
