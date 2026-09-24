@@ -303,7 +303,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
               <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
               <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
             </div>
-            <p class="hint">選同一個出發時間、做同一件事的冒險者就是同一個揪團：每日團與 59~90 級副本滿 3 人即成團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。到了出發時間揪團就關閉，請準時上線。</p>
+            <p class="hint">選同一個出發時間、做同一件事的冒險者就是同一個揪團：每日團與 59~90 級副本滿 3 人即成團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -326,12 +326,13 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <li>開團成功規則
             <ul>
               <li>每日團、副本團：59~90級 → 3 人以上成團（不分團、不限制職能）</li>
-              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團（出發前有人加入時會重新計算）</li>
+              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團（「請準備」私訊發出後加入的人直接補進名額，不再重排）</li>
             </ul>
           </li>
-          <li>成團後不再另行通知；請所有團員<b>在出發時間準時上線</b>，由隊長（該團最早登記者，名單中標 ★）在遊戲中 <code>/organize</code> 建隊邀請。到了出發時間揪團即關閉、不再收人</li>
-          <li>同出發時間、同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整。105 級奧丁則依職能名額分團</li>
-          <li>有新的揪團出現時，機器人會在 DC 群公告頻道 tag 登記身份組發布「新揪團 #編號「目標」 出發時間：21:00」（鎖上的私人房間不公告；房主開放後視同公開）。出發時間到了不再另外通知</li>
+          <li>成團後，機器人於<b>出發前 10 分鐘</b>依預期分團各建立一間語音頻道，並<b>私訊</b>每位團員：自己那一團的完整名單、隊長與語音連結（網頁顯示「即將出發」，此時仍可加入補人）；<b>出發時刻再私訊一次</b>提醒出發。這兩則只私訊、不在群組頻道公告</li>
+          <li>隊長（該團最早登記者，名單中標 ★）的私訊會附上依名單產出的 <code>/invite 角色ID</code> 指令，出發時 <code>/organize</code> 建隊後逐行複製即可邀請。到了出發時間揪團即關閉、不再收人；語音頻道於出發 3 小時後自動消失</li>
+          <li>同出發時間、同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整；「請準備」私訊（出發前 10 分鐘）發出後加入的人直接補進人數較少的團，不再變動既有分團。105 級奧丁則依職能名額分團</li>
+          <li>有新的揪團出現時，機器人會在 DC 群公告頻道 tag 登記身份組發布「新揪團 #編號「目標」 出發時間：21:00」（鎖上的私人房間不公告；房主開放後視同公開）；請準備與出發提醒只走私訊</li>
                   </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
       </div>
@@ -423,14 +424,16 @@ const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最
   { key: "other",  label: "其他",   n: 6, fits: () => true }
 ];
 const ODIN_NEED_DPS = 2, ODIN_OTHER_MAX = 6;
-// 奧丁分團 odinTeams(members)：
-//   1. 依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
+// 奧丁分團 odinTeams(members, readyMs)：
+//   1. 依登記順序把「請準備」前登記（ts < readyMs；readyMs 未給則全部）的成員填入各團名額
+//      （先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
 //   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額的打手全部集中，
 //      (a) 依第 1 團→第 2 團… 的順序先補滿每團 2 名打手（原則上以第 1 團能成團為主），
 //      (b) 剩下的依戰力高→低發給目前總戰力最低的團（受每團 12 人／其他 ≤ 6 名額限制），
 //      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團
-//   結果只跟登記資料有關，各端一致（出發前隨時可能因新成員加入而變動）。每團：members / slot（uid → 名額標籤）/ complete / missing / power
-function odinTeams(members) {
+//   3. 「請準備」後才登記的人（ts ≥ readyMs）在分配之後才填入，不會動到已通知的名單
+//   結果只跟登記資料有關，各端一致。每團：members / slot（uid → 名額標籤）/ complete / missing / power
+function odinTeams(members, readyMs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const keyOf = m => m.uid || m.charId;
   const teams = [], waitlist = [];
@@ -455,7 +458,8 @@ function odinTeams(members) {
     if (first || canTake(nt, m, true)) { teams.push(nt); nt.members.push(m); fill(nt); }
     else waitlist.push(m);
   };
-  byTs(members).forEach(place);
+  const late = [];
+  for (const m of byTs(members)) { if (readyMs && (m.ts || 0) >= readyMs) late.push(m); else place(m); }
   // ── 打手重新分配（團數 ≥ 2）──
   if (teams.length >= 2) {
     const pool = [];
@@ -493,6 +497,7 @@ function odinTeams(members) {
     }
     teams.forEach(t => { t.members.push(...t.got); delete t.got; delete t.cap; fill(t); });
   }
+  late.forEach(place);   // 「請準備」後才登記的人：不參與重新分配，直接填入還有名額的團
   teams.forEach(t => { t.members = byTs(t.members); fill(t); });
   return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
@@ -503,6 +508,13 @@ const canForm = (act, ms) => {
 };
 /* ─── 小工具（日期時間一律以台北時區計算，與伺服器一致，避免裝置時區不同造成查不到資料） ─── */
 const $ = id => document.getElementById(id);
+// 「請準備」提醒＝出發前 10 分鐘：機器人私訊成員並開語音房；之後才加入的人不再重排既有分團（直接補進），與已發出的通知一致
+const READY_BEFORE_MIN = 10;
+// 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
+function taipeiMs(dateStr, min) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return Date.UTC(y, mo - 1, d, 0, 0) + min * 60000 - 8 * 3600000;
+}
 // 字串比較一律用 UTF-16 code unit 順序（cmpStr），不用 localeCompare：
 // localeCompare 依執行環境的預設語系排序（玩家瀏覽器 zh-TW、Cloudflare Worker en-US、伺服器可能不同），
 // 中文職業名／角色 ID 的排序結果會不一樣，導致網頁與機器人算出不同的分團。
@@ -769,11 +781,12 @@ function buildParties(regs, dateStr){
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
-function buildSquads(act, members) {
+function buildSquads(act, members, t, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
-  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者
+  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  const readyMs = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));   // 「請準備」提醒時刻（出發前 10 分）
   if (isOdin(act)) {
-    const { teams, waitlist } = odinTeams(members);
+    const { teams, waitlist } = odinTeams(members, readyMs);
     return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot, power: t.power })), waitlist };
   }
   if (isDungeon(act)) {
@@ -781,6 +794,11 @@ function buildSquads(act, members) {
   }
   // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
   const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
+  // 「請準備」提醒之後才加入的人＝補人：不重新分團、不重新平均職業，
+  // 直接補進「已有同帳號成員的團」，否則補進人數最少的團，讓已通知的分團名單不再變動
+  let core = members, late = [];
+  const c = members.filter(m => (m.ts || 0) < readyMs);
+  if (c.length && c.length < members.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
   const groups = [];
   const jobCount = (g, j) => g.filter(x => x.job === j).length;
   const hasMate = (g, unit) => g.some(x => unit.some(y => acctOf(x) === acctOf(y)));
@@ -797,12 +815,12 @@ function buildSquads(act, members) {
     if (best < 0) { groups.push([]); best = groups.length - 1; }
     groups[best].push(...unit);
   };
-  if (canForm(act, members)) {
+  if (canForm(act, core)) {
     const max = maxOf(act);
     // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
-    members.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const units = unitsOf(members).sort((a, b) =>
+    core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
+    const units = unitsOf(core).sort((a, b) =>
       b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || cmpStr(a[0].job, b[0].job) ||
       (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId));
@@ -811,10 +829,16 @@ function buildSquads(act, members) {
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
       g.length * 10 + i;
-    const count = Math.ceil(members.length / max);
+    const count = Math.ceil(core.length / max);
     for (let i = 0; i < count; i++) groups.push([]);
     units.forEach(u => place(u, max, score));
-  } else groups.push(byTs(members));
+  } else groups.push(byTs(core));
+  late.forEach(m => {
+    let bi = -1;
+    groups.forEach((g, i) => { if (bi < 0 && hasMate(g, [m])) bi = i; });
+    if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
+    groups[bi].push(m);
+  });
   return { squads: groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
 }
 
@@ -831,10 +855,11 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
-  const { squads, waitlist } = buildSquads(act, members);
+  const { squads, waitlist } = buildSquads(act, members, t, dateStr);
   return {
     id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t,
     ok: canForm(act, members),
+    readyMin: Math.max(0, t - READY_BEFORE_MIN), departMin: t,   // 出發前 10 分「請準備」提醒／出發時刻
     squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
     chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
@@ -854,11 +879,13 @@ function showView(v){
 }
 
 function statusOf(p){
-  // 揪團中(藍,收人) → 已成團(綠,仍可加入) → 已出發／已結束(紅,關團)
+  // 揪團中(藍,收人) → 已成團(綠,仍可加入) → 即將出發(紅章,出發前 10 分鐘已私訊、開語音房，仍可加入) → 已出發／已結束(紅,關團)
   if(isClosed(p)) return {cls:"live", label:p.ok?"已出發":"已結束", frame:p.ok?"ok":""};
   if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
+  if(isReady(p)) return {cls:"live", label:"即將出發", frame:"ok"};
   return {cls:"ok", label:"已成團", frame:"ok"};
 }
+const isReady = p => p.ok && viewNow() >= p.readyMin;   // 出發前 10 分鐘（機器人已私訊提醒並開好語音房）
 // 出發時間一到（該分鐘過後）揪團就關閉：成團的＝已出發、未成團的＝已結束（明日檢視一律未關閉）
 const isDeparted = p => p.ok && viewNow() > p.time;
 const isClosed   = p => viewNow() > p.time;
@@ -989,19 +1016,21 @@ function detailMainHTML(p){
       p.waitlist.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${skillTags(m)}</span></li>`).join("") + `</ul>`;
   }
   if(odin){
-    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>打手 2 名</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。有 2 團以上時，系統會把所有團的打手（含報了打手職能、佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團戰力平均，不偏袒第 1 團。全體共用同一個留言板。</div>`;
+    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>打手 2 名</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。有 2 團以上時，系統會把所有團的打手（含報了打手職能、佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團戰力平均，不偏袒第 1 團（「請準備」私訊發出後加入者不再重排）。全體共用同一個留言板。</div>`;
   }else if(multi && !closed){
-    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>，出發前有人加入時會動態調整。全體共用同一個留言板。</div>`;
+    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>${isReady(p)?"（提醒已發出，新加入者直接補進人數較少的團）":"，有人加入時會動態調整；出發前 10 分鐘提醒發出後即固定"}。全體共用同一個留言板。</div>`;
   }
   if(p.ok && !closed){
-    main += `<div class="notice member">✅ <b>已成團</b>：請於 <b>${toHM(p.time)}</b> 準時上線，出發前仍可加入。系統不會再另外通知，集合細節請在留言板協調。</div>`;
+    main += isReady(p)
+      ? `<div class="notice member">🔔 <b>即將出發</b>：機器人已私訊全體團員（含名單與語音頻道連結），<b>${toHM(p.time)}</b> 出發，出發前仍可加入補人。${multi?"語音頻道依上方分團各開一間，全體團員皆可進入任一間。":""}</div>`
+      : `<div class="notice member">✅ <b>已成團</b>：出發前 10 分鐘（${toHM(p.readyMin)}）機器人會私訊全體團員名單與語音頻道，<b>${toHM(p.time)}</b> 出發時再私訊一次；隊長會收到可直接複製的 /invite 指令。出發前仍可加入，集合細節請在留言板協調。</div>`;
   }
   if(p.ok && mySquad && !mySquad.complete){
     main += `<div class="notice member">⚠ 你所在的第 ${mySquad.index} 團必要職能尚未湊齊（缺 ${esc(mySquad.missing.join("、"))}）；請等待必要職能成員加入，或到留言板協調。</div>`;
   }else if(p.ok && viewerMember){
     main += iAmLeader
-      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>出發時請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請${multi?"本團":"上列"}成員入隊。</div>`
-      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，隊員請於出發時自主聯繫隊長入隊。</div>`;
+      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>出發時請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，機器人私訊會附上依名單產出的 <code>/invite 角色ID</code> 指令供你直接複製。</div>`
+      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，出發時請等待隊長邀請入隊。</div>`;
   }
 
   // 退出：明細最上方的「退出揪團」列；留言板在右欄，由 openDetail 建立

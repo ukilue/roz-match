@@ -33,14 +33,16 @@ const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最
   { key: "other",  label: "其他",   n: 6, fits: () => true }
 ];
 const ODIN_NEED_DPS = 2, ODIN_OTHER_MAX = 6;
-// 奧丁分團 odinTeams(members)：
-//   1. 依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
+// 奧丁分團 odinTeams(members, readyMs)：
+//   1. 依登記順序把「請準備」前登記（ts < readyMs；readyMs 未給則全部）的成員填入各團名額
+//      （先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
 //   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額的打手全部集中，
 //      (a) 依第 1 團→第 2 團… 的順序先補滿每團 2 名打手（原則上以第 1 團能成團為主），
 //      (b) 剩下的依戰力高→低發給目前總戰力最低的團（受每團 12 人／其他 ≤ 6 名額限制），
 //      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團
-//   結果只跟登記資料有關，各端一致（出發前隨時可能因新成員加入而變動）。每團：members / slot（uid → 名額標籤）/ complete / missing / power
-export function odinTeams(members) {
+//   3. 「請準備」後才登記的人（ts ≥ readyMs）在分配之後才填入，不會動到已通知的名單
+//   結果只跟登記資料有關，各端一致。每團：members / slot（uid → 名額標籤）/ complete / missing / power
+export function odinTeams(members, readyMs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const keyOf = m => m.uid || m.charId;
   const teams = [], waitlist = [];
@@ -65,7 +67,8 @@ export function odinTeams(members) {
     if (first || canTake(nt, m, true)) { teams.push(nt); nt.members.push(m); fill(nt); }
     else waitlist.push(m);
   };
-  byTs(members).forEach(place);
+  const late = [];
+  for (const m of byTs(members)) { if (readyMs && (m.ts || 0) >= readyMs) late.push(m); else place(m); }
   // ── 打手重新分配（團數 ≥ 2）──
   if (teams.length >= 2) {
     const pool = [];
@@ -103,6 +106,7 @@ export function odinTeams(members) {
     }
     teams.forEach(t => { t.members.push(...t.got); delete t.got; delete t.cap; fill(t); });
   }
+  late.forEach(place);   // 「請準備」後才登記的人：不參與重新分配，直接填入還有名額的團
   teams.forEach(t => { t.members = byTs(t.members); fill(t); });
   return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
@@ -111,6 +115,13 @@ const canForm = (act, ms) => {
   if (isOdin(act)) { const t = odinTeams(ms).teams; return t.length > 0 && t[0].complete; }
   return ms.length >= MIN_PARTY;
 };
+// 「請準備」提醒＝出發前 10 分鐘：機器人私訊成員並開語音房；之後才加入的人不再重排既有分團（直接補進），與已發出的通知一致
+const READY_BEFORE_MIN = 10;
+// 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
+function taipeiMs(dateStr, min) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return Date.UTC(y, mo - 1, d, 0, 0) + min * 60000 - 8 * 3600000;
+}
 // 字串比較一律用 UTF-16 code unit 順序（cmpStr），不用 localeCompare：
 // localeCompare 依執行環境的預設語系排序（玩家瀏覽器 zh-TW、Cloudflare Worker en-US、伺服器可能不同），
 // 中文職業名／角色 ID 的排序結果會不一樣，導致網頁與機器人算出不同的分團。
@@ -140,11 +151,12 @@ export function taipeiNow() {
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
-function buildSquads(act, members) {
+function buildSquads(act, members, t, dateStr) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
-  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者
+  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  const readyMs = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));   // 「請準備」提醒時刻（出發前 10 分）
   if (isOdin(act)) {
-    const { teams, waitlist } = odinTeams(members);
+    const { teams, waitlist } = odinTeams(members, readyMs);
     return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot, power: t.power })), waitlist };
   }
   if (isDungeon(act)) {
@@ -152,6 +164,11 @@ function buildSquads(act, members) {
   }
   // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
   const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
+  // 「請準備」提醒之後才加入的人＝補人：不重新分團、不重新平均職業，
+  // 直接補進「已有同帳號成員的團」，否則補進人數最少的團，讓已通知的分團名單不再變動
+  let core = members, late = [];
+  const c = members.filter(m => (m.ts || 0) < readyMs);
+  if (c.length && c.length < members.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
   const groups = [];
   const jobCount = (g, j) => g.filter(x => x.job === j).length;
   const hasMate = (g, unit) => g.some(x => unit.some(y => acctOf(x) === acctOf(y)));
@@ -168,12 +185,12 @@ function buildSquads(act, members) {
     if (best < 0) { groups.push([]); best = groups.length - 1; }
     groups[best].push(...unit);
   };
-  if (canForm(act, members)) {
+  if (canForm(act, core)) {
     const max = maxOf(act);
     // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
-    members.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const units = unitsOf(members).sort((a, b) =>
+    core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
+    const units = unitsOf(core).sort((a, b) =>
       b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || cmpStr(a[0].job, b[0].job) ||
       (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId));
@@ -182,10 +199,16 @@ function buildSquads(act, members) {
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
       g.length * 10 + i;
-    const count = Math.ceil(members.length / max);
+    const count = Math.ceil(core.length / max);
     for (let i = 0; i < count; i++) groups.push([]);
     units.forEach(u => place(u, max, score));
-  } else groups.push(byTs(members));
+  } else groups.push(byTs(core));
+  late.forEach(m => {
+    let bi = -1;
+    groups.forEach((g, i) => { if (bi < 0 && hasMate(g, [m])) bi = i; });
+    if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
+    groups[bi].push(m);
+  });
   return { squads: groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
 }
 
@@ -202,10 +225,11 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
-  const { squads, waitlist } = buildSquads(act, members);
+  const { squads, waitlist } = buildSquads(act, members, t, dateStr);
   return {
     id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t,
     ok: canForm(act, members),
+    readyMin: Math.max(0, t - READY_BEFORE_MIN), departMin: t,   // 出發前 10 分「請準備」提醒／出發時刻
     squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
     chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
