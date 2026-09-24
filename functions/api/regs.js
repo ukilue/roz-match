@@ -5,9 +5,9 @@ import { getSession, needLogin, needMember } from "./_auth.js";
 import { buildParties, addDays, isOdin, odinTeams, SKILLS } from "./_party.js";
 import { findRoom, checkRoomPw, roomPwHash, ROOM_ID, PW } from "./_room.js";
 
-const ACTS = ["每日團：90級","每日團：100~110","每日團：礦山3樓","副本團：59~90級","副本團：105級奧丁"];
+const ACTS = ["每日團：90級","每日團：100~110","每日團：100級龍洞","每日團：礦山3樓","副本團：59~90級","副本團：105級奧丁"];
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
-const LEVEL_REQ = { "每日團：90級":90, "每日團：100~110":100, "每日團：礦山3樓":100, "副本團：59~90級":59, "副本團：105級奧丁":105 };
+const LEVEL_REQ = { "每日團：90級":90, "每日團：100~110":100, "每日團：100級龍洞":100, "每日團：礦山3樓":100, "副本團：59~90級":59, "副本團：105級奧丁":105 };
 const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
 const isDungeon = a => DUNGEONS.includes(a);
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
