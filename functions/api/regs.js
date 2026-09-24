@@ -61,8 +61,8 @@ export async function onRequestPost({ request, env }) {
   const level = Number(b.level);
   const job = String(b.job || "").trim().slice(0, 20);
   const activity = String(b.activity || "");
-  const start = String(b.start || "");
-  const end = String(b.end || "");
+  const start = String(b.start || "");   // 出發時間（HH:MM，30 分為單位）
+  const end = start;                      // 已改為單一出發時間；endHM 欄位保留、與 startHM 相同
   const date = String(b.date || "");
   const joinRoom = String(b.room || "");      // 加入既有私人房間：房間 ID（需附密碼 pw，除非本帳號已是房內成員）
   const priv = !!b.priv;                      // 建立新的私人房間（需附 4 位數密碼 pw）
@@ -83,17 +83,16 @@ export async function onRequestPost({ request, env }) {
   if (!Number.isInteger(level) || level < 1 || level > 110) return bad("角色等級須為 1～110");
   const needLv = LEVEL_REQ[activity];
   if (needLv && level < needLv) return bad(`此活動需 ${needLv} 級以上`);
-  if (!HM.test(start) || !HM.test(end)) return bad("時間格式錯誤");
+  if (!HM.test(start)) return bad("出發時間格式錯誤");
   if (!DATE.test(date)) return bad("日期格式錯誤");
-  if (toMin(end) <= toMin(start)) return bad("結束時間必須晚於開始時間");
 
   const tw = taipeiNow();
   const tomorrow = addDays(tw.date, 1);
   if (date !== tw.date && date !== tomorrow) return bad("只能登記今天或明天的揪團");
   const isToday = date === tw.date;
-  if (isToday && toMin(end) < tw.min - 5) return bad("這個時段已經過去了");
+  if (isToday && toMin(start) < tw.min) return bad("這個出發時間已經過了，請選擇之後的時間");
 
-  // 以當日全部登記重算分團（下方「私人房間」「加入進行中的團」「重複登記」檢查共用）
+  // 以當日全部登記重算分團（下方「私人房間」「重複登記」「奧丁名額」檢查共用）
   const { results: all } = await env.DB
     .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, ts
               FROM regs WHERE date = ?`)
@@ -119,23 +118,11 @@ export async function onRequestPost({ request, env }) {
     pwHash = await roomPwHash(room, pw);
   }
 
-  // 開始時間已過的登記＝「加入」已在進行時段的團：
-  // 只有「已成團且已開團」的團關閉收人；還在揪團中（未成團）的團持續收人（私人房間只找同房間的團）
-  if (isToday && toMin(start) < tw.min - 2) {
-    const target = parties.find(p => p.activity === activity && (p.room || "") === room && p.time === toMin(start) && p.timeEnd === toMin(end));
-    if (!target) return bad("此時段已開始，無法登記");
-    if (target.ok && target.departMin != null && tw.min >= target.departMin) return bad("此團已出發並關閉揪團，不再接受新成員加入");
-    // 揪團中或緩衝期（即將出發）→ 允許加入
-  }
-
-  // 同一個 Discord 帳號可以登記多個角色 ID；同一角色 ID 也可同時登記多個時段／目標（不再檢查時段重疊）。
-  // 僅擋「同一角色重複登記到同一個揪團」。
-  const ns = toMin(start), ne = toMin(end);
-  const dup = parties.find(p => p.activity === activity && (p.room || "") === room
-    && ns <= p.timeEnd && p.time <= ne                                          // 時段有交集 → 會被併入同一個揪團
-    && !(isToday && p.ok && p.departMin != null && tw.min >= p.departMin)      // 已出發的團不算（之後的登記會另起新團）
+  // 同一個 Discord 帳號可以登記多個角色 ID；同一角色 ID 也可登記多個出發時間／目標。
+  // 僅擋「同一角色重複登記到同一個揪團」（同目標、同房間、同出發時間）。
+  const dup = parties.find(p => p.activity === activity && (p.room || "") === room && p.time === toMin(start)
     && p.members.some(m => m.charId === charId && m.discordId === user.id));
-  if (dup) return bad(`角色「${charId}」已在同時段的「${activity}」揪團 #${dup.num} 內，不需重複登記`);
+  if (dup) return bad(`角色「${charId}」已在 ${start} 出發的「${activity}」揪團 #${dup.num} 內，不需重複登記`);
 
   const uid = crypto.randomUUID();
   const newReg = { uid, discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room, roomOpen: !!roomOpen, ts: Date.now() };

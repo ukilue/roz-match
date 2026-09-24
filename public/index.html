@@ -269,7 +269,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-title">冒險者登記卡 <small id="mode-tag" class="mode-tag"></small></div>
       <div class="panel-body">
         <div id="id-cards" class="id-cards" style="display:none">
-          <div class="id-cards-title">🪪 載入身份卡 <small>近 1 週報名過的角色，點一下自動帶入 ID、等級、職業、要做的事情與職能</small></div>
+          <div class="id-cards-title">🪪 載入身份卡 <small>近 1 週報名過的角色，點一下自動帶入 ID、等級、職業、要做的事情、職能與出發時間</small></div>
           <div id="id-cards-list" class="id-cards-list"></div>
         </div>
         <div class="form-grid">
@@ -292,18 +292,18 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
             </div>
           </div>
           <div class="full">
-            <label>可以開始的時間區間（24 小時制）</label>
+            <label>出發時間（24 小時制）</label>
             <div class="time-row">
-              <select id="f-start"></select><span>～</span><select id="f-end"></select>
+              <select id="f-start"></select>
             </div>
             <label class="chk-row"><input type="checkbox" id="f-tomorrow" onchange="fillTimeSelects()"> 預先報名明日的團 <small id="f-tomorrow-date"></small></label>
-            <label class="chk-row"><input type="checkbox" id="f-priv" onchange="togglePriv()"> 🔒 設為私人房間 <small>需輸入房間密碼才能加入；同時段的一般登記不會被併進來</small></label>
+            <label class="chk-row"><input type="checkbox" id="f-priv" onchange="togglePriv()"> 🔒 設為私人房間 <small>需輸入房間密碼才能加入；同出發時間的一般登記不會被併進來</small></label>
             <div id="f-pw-wrap" class="pw-wrap" style="display:none">
               <label>房間密碼（4 位數字）</label>
               <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
               <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
             </div>
-            <p class="hint">系統會把同時段、做同一件事的冒險者自動組在一起：每日團與 59~90 級副本滿 3 人即開團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。</p>
+            <p class="hint">選同一個出發時間、做同一件事的冒險者就是同一個揪團：每日團與 59~90 級副本滿 3 人即成團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。到了出發時間揪團就關閉，請準時上線。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -315,26 +315,23 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-body" style="font-size:14px;line-height:1.9">
         <ul class="rules">
           <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
-          <li>同一 Discord 帳號可登記多個角色 ID，同一角色也可同時登記多個時段或目標</li>
+          <li>同一 Discord 帳號可登記多個角色 ID，同一角色也可登記多個出發時間或目標；<b>同目標、同出發時間</b>的人就是同一個揪團</li>
           <li>要退出揪團，請點開明細，按最上方「退出揪團」列中自己角色的按鈕</li>
-          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同時段、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）。<b>設立密碼的人為房主</b>：房主可在明細的「房主控制」把房間<b>開放</b>（變成任何人不需密碼即可加入的公開狀態，列表改顯示 🔓）或再<b>鎖上</b>，兩者都需再輸入一次房間密碼確認</li>
-          <li>勾選「預先報名明日的團」可登記明天任一時段（00:00～23:59）；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
-          <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、ID 與上次時段</li>
-          <li>玩家登記每日可以遊玩的時間及目標，系統會自動安排組隊並以 DC 機器人通知</li>
+          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同出發時間、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）。<b>設立密碼的人為房主</b>：房主可在明細的「房主控制」把房間<b>開放</b>（變成任何人不需密碼即可加入的公開狀態，列表改顯示 🔓）或再<b>鎖上</b>，兩者都需再輸入一次房間密碼確認</li>
+          <li>勾選「預先報名明日的團」可登記明天任一出發時間；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
+          <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、目標、職能、ID 與上次的出發時間</li>
+          <li>玩家登記出發時間及目標，系統自動把同目標、同出發時間的人組成揪團；有新揪團出現時 DC 機器人會在公告頻道 tag 登記身份組通知</li>
           <li>點開自己的團可以先在留言版與團員協調相關內容</li>
           <li>登記<b>副本團</b>時需依職業勾選<b>職能</b>（可多選、至少一項，未勾選不予登記），職能會顯示在明細供團員查看</li>
           <li>開團成功規則
             <ul>
               <li>每日團、副本團：59~90級 → 3 人以上成團（不分團、不限制職能）</li>
-              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團</li>
+              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團（出發前有人加入時會重新計算）</li>
             </ul>
           </li>
-          <li>開團成功後，系統於<b>出發前 10 分鐘</b>（例如 10:00 出團 → 09:50）指派隊長、建立語音群並通知團員準備，顯示「即將出發」；若成團時已不足 10 分鐘則以成團當下起算。緩衝期間其他玩家仍可加入</li>
-          <li>同時段同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整；「即將出發」提醒發出後加入的人直接補進人數較少的團，不再變動既有分團。105 級奧丁則依職能名額分團</li>
-          <li>提醒時機器人依預期分團各開一間語音頻道（揪團-編號-目標-1、-2…），私訊只給你所屬那一團的名單與語音連結；全體團員都能進入任何一間，也有「移動成員」權限，可把待在公開語音大廳的人直接拉進本團語音</li>
-          <li>有新的揪團出現、以及揪團即將出發時，機器人都會在 DC 群公告頻道發布訊息（鎖上的私人房間不公告，只私訊成員；房主開放後視同公開）</li>
-          <li>緩衝期一開始機器人就會建立專屬 DC 語音群，團員可先進去準備；緩衝結束時再次通知所有團員一起出發完成目標</li>
-          <li>語音群全伺服器都看得到、但只有本揪團的團員能進入；出發 3 小時後自動消失</li>
+          <li>成團後不再另行通知；請所有團員<b>在出發時間準時上線</b>，由隊長（該團最早登記者，名單中標 ★）在遊戲中 <code>/organize</code> 建隊邀請。到了出發時間揪團即關閉、不再收人</li>
+          <li>同出發時間、同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整。105 級奧丁則依職能名額分團</li>
+          <li>有新的揪團出現時，機器人會在 DC 群公告頻道 tag 登記身份組發布「新揪團 #編號「目標」 出發時間：21:00」（鎖上的私人房間不公告；房主開放後視同公開）。出發時間到了不再另外通知</li>
                   </ul>
         <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
       </div>
@@ -361,7 +358,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       <div class="panel-body" style="padding:14px 18px">
         <div class="day-tabs"><button class="day-tab" data-day="0" onclick="setViewDay(0)">今日</button><button class="day-tab" data-day="1" onclick="setViewDay(1)">明日</button></div>
         <input id="search-q" placeholder="🔍 輸入揪團編號或目標搜尋，例：0421、副本、每日、龍洞、礦山、奧丁" oninput="renderAll()">
-        <p class="hint">同時間、同目標的揪團，快滿人的會排在前面。</p>
+        <p class="hint">依出發時間由近到遠排列，同時間人多的排前面。</p>
       </div>
     </div>
     <div id="all-cards" class="cards"></div>
@@ -426,15 +423,14 @@ const ODIN_SLOTS = [   // 依序嘗試填入：先必要職能、再打手、最
   { key: "other",  label: "其他",   n: 6, fits: () => true }
 ];
 const ODIN_NEED_DPS = 2, ODIN_OTHER_MAX = 6;
-// 奧丁分團 odinTeams(members, readyMs)：
+// 奧丁分團 odinTeams(members)：
 //   1. 依登記順序把成員填入各團名額（先找已有的團，都放不下時：能填新團必要名額的人另開新團、其他人進候補；第一位登記者一律開第 1 團）
-//   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額、且在「請準備」前登記（ts < readyMs）的打手全部集中，
+//   2. 團數 ≥ 2 時做「打手重新分配」：把各團佔打手／其他名額的打手全部集中，
 //      (a) 依第 1 團→第 2 團… 的順序先補滿每團 2 名打手（原則上以第 1 團能成團為主），
 //      (b) 剩下的依戰力高→低發給目前總戰力最低的團（受每團 12 人／其他 ≤ 6 名額限制），
-//      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團。readyMs 未給時全員可移動
-//   3. 「請準備」後才登記的人（ts ≥ readyMs）在分配之後才填入，不會動到已通知的名單
-//   結果只跟登記資料有關，各端一致。每團：members / slot（uid → 名額標籤）/ complete / missing / power
-function odinTeams(members, readyMs) {
+//      (c) 再做兩兩交換，只要能讓各團戰力更平均就換 → 各團戰力平均，不偏袒第 1 團
+//   結果只跟登記資料有關，各端一致（出發前隨時可能因新成員加入而變動）。每團：members / slot（uid → 名額標籤）/ complete / missing / power
+function odinTeams(members) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const keyOf = m => m.uid || m.charId;
   const teams = [], waitlist = [];
@@ -459,8 +455,7 @@ function odinTeams(members, readyMs) {
     if (first || canTake(nt, m, true)) { teams.push(nt); nt.members.push(m); fill(nt); }
     else waitlist.push(m);
   };
-  const late = [];
-  for (const m of byTs(members)) { if (readyMs && (m.ts || 0) >= readyMs) late.push(m); else place(m); }
+  byTs(members).forEach(place);
   // ── 打手重新分配（團數 ≥ 2）──
   if (teams.length >= 2) {
     const pool = [];
@@ -498,7 +493,6 @@ function odinTeams(members, readyMs) {
     }
     teams.forEach(t => { t.members.push(...t.got); delete t.got; delete t.cap; fill(t); });
   }
-  late.forEach(place);
   teams.forEach(t => { t.members = byTs(t.members); fill(t); });
   return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
@@ -507,19 +501,6 @@ const canForm = (act, ms) => {
   if (isOdin(act)) { const t = odinTeams(ms).teams; return t.length > 0 && t[0].complete; }
   return ms.length >= MIN_PARTY;
 };
-// 緩衝分鐘數：一律 10 分鐘（成團「請準備」通知後 10 分鐘出發）
-const BUFFER_MIN = 10;
-const bufferOf = () => BUFFER_MIN;
-// 台北時區某日某分鐘 → 絕對時間戳(ms)（台北固定 UTC+8）
-function taipeiMs(dateStr, min){
-  const [y,mo,d] = dateStr.split("-").map(Number);
-  return Date.UTC(y, mo-1, d, 0, 0) + min*60000 - 8*3600000;
-}
-// 將絕對時間戳(ms)換算為「dateStr 這一天」的台北分鐘數；落在前一天 → 0、落在隔天 → 1439（不會跨日誤判）
-function taipeiMinOfTs(ts, dateStr){
-  return Math.max(0, Math.min(1439, Math.floor((ts - taipeiMs(dateStr, 0)) / 60000)));
-}
-
 /* ─── 小工具（日期時間一律以台北時區計算，與伺服器一致，避免裝置時區不同造成查不到資料） ─── */
 const $ = id => document.getElementById(id);
 // 字串比較一律用 UTF-16 code unit 順序（cmpStr），不用 localeCompare：
@@ -586,7 +567,7 @@ function updateRegForm(){
     else if(!USER.member) mode = "join";
   }
   const disabled = mode !== "ok";
-  ["f-id","f-lv","f-job","f-act","f-start","f-end","f-tomorrow","f-priv","f-pw"].forEach(id=>{
+  ["f-id","f-lv","f-job","f-act","f-start","f-tomorrow","f-priv","f-pw"].forEach(id=>{
     const el = $(id); if(el) el.disabled = disabled;
   });
   document.querySelectorAll('input[name="f-skill"]').forEach(el=>{ el.disabled = disabled; });
@@ -760,79 +741,39 @@ let openPartyId = null;
 const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.charId));
 
 /* ─── 組團演算法（各端結果一致） ───
-   1. 只看今天的登記，依「要做的事情」分堆
-   2. 依開始時間排序，貪婪找出「時間區間有交集」的一群人
-   3. 交集起點 = 開團時間；整群人就是一個揪團（同編號、同留言板），滿 3 人（副本：有核心）開團成功
-   4. 群內另算「預期分團」（一律 12 人一團，職業平均），供明細顯示與開語音房；
+   1. 只看該日的登記，依「要做的事情＋房間＋出發時間」分堆：同目標、同出發時間的人就是一個揪團（同編號、同留言板）
+   2. 每日團滿 3 人、59~90 級副本滿 3 人、105 級奧丁依職能名額 → 成團
+   3. 群內另算「預期分團」（每日團 12 人一團、職業平均；奧丁依名額與戰力平均），供明細顯示；
       各預期分團的隊長＝該團最早登記者 → 每個玩家看到的結果相同 */
 function buildParties(regs, dateStr){
   const t = dateStr || todayKey();
   const todays = regs.filter(r=>r.date===t);
-  // 分堆鍵＝目標＋房間：私人房間（room 非空）自成一堆，同時段的公開登記絕不會被併入私人房間（只能從所有揪團輸入密碼加入）
-  const keyOf = r => r.activity + "\u0001" + (r.room || "");
+  // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start;
   const byKey = {};
   todays.filter(r=>!r.removed).forEach(r=>{ (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};
   todays.filter(r=>r.removed).forEach(r=>{ (removedByKey[keyOf(r)] ||= []).push(r); });
   const parties = [];
   for(const key in byKey){
-    const act = byKey[key][0].activity, room = byKey[key][0].room || "";
-    const list = byKey[key].slice().sort((a,b)=> toMin(a.start)-toMin(b.start) || cmpStr(a.charId, b.charId));
-    let cluster=[], is=0, ie=0;
-    const flush = ()=>{ if(cluster.length) parties.push(splitCluster(act,cluster,is,ie,t,removedByKey[key]||[],room)); };
-    for(const r of list){
-      const s=toMin(r.start), e=toMin(r.end);
-      if(!cluster.length){ cluster=[r]; is=s; ie=e; continue; }
-      if(s <= ie && canJoinCluster(act, cluster, is, ie, t, r)){ cluster.push(r); is=Math.max(is,s); ie=Math.min(ie,e); }
-      else { flush(); cluster=[r]; is=s; ie=e; }
-    }
-    flush();
+    const first = byKey[key][0];
+    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), t, removedByKey[key]||[], first.room || ""));
   }
   // 時間近→遠；同時間快滿人的排前面
   parties.sort((a,b)=> a.time-b.time || b.members.length-a.members.length || cmpStr(a.num, b.num));
   return parties;
 }
-// 成團後的兩階段時程（成團的團才有；未成團回傳 null）：
-//   readyMin  = max(時段起點 − 10 分, 成團時刻)＝發「請準備」通知、開語音房的時刻（10:00 出團 → 09:50 提醒）
-//               成團時刻由成員登記時間戳依序推算；成團太晚（不足 10 分）則以成團當下為 ready
-//   departMin = readyMin + 10 分鐘緩衝（壓縮不超過時段終點）＝關團、發「出發」通知
-function scheduleOf(act, g, is, ie, dateStr){
-  if(!canForm(act, g)) return null;
-  const sorted = g.slice().sort((a,b)=>(a.ts||0)-(b.ts||0) || cmpStr(a.charId, b.charId));
-  let formedTs = sorted[sorted.length-1].ts || 0;
-  for(let i=0;i<sorted.length;i++){
-    if(canForm(act, sorted.slice(0, i+1))){ formedTs = sorted[i].ts || 0; break; }
-  }
-  const readyMin = Math.max(is - BUFFER_MIN, taipeiMinOfTs(formedTs, dateStr || todayKey()));
-  const buffer = bufferOf(sorted.length);
-  const departMin = Math.min(readyMin + buffer, Math.max(ie, readyMin), 1439);
-  return { readyMin, departMin, buffer };
-}
-// 一筆登記能否併入目前這群人（以登記時間戳判斷，結果與「現在幾點」無關 → 各端一致）：
-//   1. 這群人已出發（登記時間 ≥ 出發時刻）→ 不收人，另起新團（避免已出發的團被後來的登記「復活」）
-//   2. 「請準備」已發出（登記時間 ≥ ready）→ 只接受同時段加入，不接受會把出發時間往後推的登記
-function canJoinCluster(act, members, is, ie, dateStr, r){
-  const sch = scheduleOf(act, members, is, ie, dateStr);
-  if(!sch) return true;
-  const ts = r.ts || 0;
-  if(ts >= taipeiMs(dateStr, sch.departMin)) return false;
-  if(ts >= taipeiMs(dateStr, sch.readyMin) && toMin(r.start) > is) return false;
-  return true;
-}
-
-// ── 一個「揪團」＝同目標、同房間、時段有交集的整群人：共用一個編號、一個留言板、一份出發時程 ──
-// 群內另外算出「預期分團」squads，只用於明細顯示、機器人私訊與開語音房，加人時可動態變動，不影響揪團本身：
+// ── 一個「揪團」＝同目標、同房間、同出發時間的整群人：共用一個編號、一個留言板 ──
+// 群內另外算出「預期分團」squads，只用於明細顯示，加人時可動態變動，不影響揪團本身：
 //   每日團 → 12 人一團，同一 Discord 帳號的角色優先同團，再依職業平均
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
-//   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團（必要名額未滿）不會收到通知
+//   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
-function buildSquads(act, members, is, ie, dateStr) {
+function buildSquads(act, members) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
-  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
+  const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者
   if (isOdin(act)) {
-    // 「請準備」時刻之後登記的人不參與戰力平均分配（與已發出的通知一致）
-    const whole = scheduleOf(act, members, is, ie, dateStr);
-    const { teams, waitlist } = odinTeams(members, whole ? taipeiMs(dateStr, whole.readyMin) : undefined);
+    const { teams, waitlist } = odinTeams(members);
     return { squads: teams.map((t, i) => ({ index: i + 1, members: t.members, leader: leaderOf(t.members), complete: t.complete, missing: t.missing, slot: t.slot, power: t.power })), waitlist };
   }
   if (isDungeon(act)) {
@@ -840,15 +781,6 @@ function buildSquads(act, members, is, ie, dateStr) {
   }
   // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
   const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
-  // 「請準備」通知（ready 時刻）之後才加入的人＝緩衝期補人：不重新分團、不重新平均職業，
-  // 直接補進「已有同帳號成員的團」，否則補進人數最少的團，讓已通知的分團名單不再變動
-  let core = members, late = [];
-  const whole = scheduleOf(act, members, is, ie, dateStr);
-  if (whole) {
-    const readyMs = taipeiMs(dateStr, whole.readyMin);
-    const c = members.filter(m => (m.ts || 0) < readyMs);
-    if (c.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
-  }
   const groups = [];
   const jobCount = (g, j) => g.filter(x => x.job === j).length;
   const hasMate = (g, unit) => g.some(x => unit.some(y => acctOf(x) === acctOf(y)));
@@ -865,12 +797,12 @@ function buildSquads(act, members, is, ie, dateStr) {
     if (best < 0) { groups.push([]); best = groups.length - 1; }
     groups[best].push(...unit);
   };
-  if (canForm(act, core)) {
+  if (canForm(act, members)) {
     const max = maxOf(act);
     // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
-    core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const units = unitsOf(core).sort((a, b) =>
+    members.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
+    const units = unitsOf(members).sort((a, b) =>
       b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || cmpStr(a[0].job, b[0].job) ||
       (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId));
@@ -879,36 +811,30 @@ function buildSquads(act, members, is, ie, dateStr) {
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
       g.length * 10 + i;
-    const count = Math.ceil(core.length / max);
+    const count = Math.ceil(members.length / max);
     for (let i = 0; i < count; i++) groups.push([]);
     units.forEach(u => place(u, max, score));
-  } else groups.push(byTs(core));
-  late.forEach(m => {
-    let bi = -1;
-    groups.forEach((g, i) => { if (bi < 0 && hasMate(g, [m])) bi = i; });
-    if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
-    groups[bi].push(m);
-  });
+  } else groups.push(byTs(members));
   return { squads: groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
 }
 
-function splitCluster(act, members, is, ie, dateStr, removedRegs, room) {
+// 出發時間 t（分鐘）的一群人 → 揪團物件
+function splitCluster(act, members, t, dateStr, removedRegs, room) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const sorted = byTs(members);
   room = room || "";
-  const rk = room ? "|room:" + room : "";   // 私人房間鍵（公開登記為空字串 → 既有公開揪團的 id／編號完全不受影響）
-  const id = act + rk + "|" + toHM(is) + "|" + sorted.map(m => m.charId).sort().join(",");
+  const rk = room ? "|room:" + room : "";   // 私人房間鍵（公開登記為空字串）
+  const id = act + rk + "|" + toHM(t) + "|" + sorted.map(m => m.charId).sort().join(",");
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
-  for (const c of (removedRegs || []).filter(r => toMin(r.start) <= ie && is <= toMin(r.end))) {
+  for (const c of (removedRegs || [])) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
-  const sch = scheduleOf(act, members, is, ie, dateStr);
-  const { squads, waitlist } = buildSquads(act, members, is, ie, dateStr);
+  const { squads, waitlist } = buildSquads(act, members);
   return {
-    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: is, timeEnd: ie,
-    ok: !!sch, readyMin: sch ? sch.readyMin : null, departMin: sch ? sch.departMin : null, buffer: sch ? sch.buffer : null,
+    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t,
+    ok: canForm(act, members),
     squads, waitlist, leader: squads[0].leader,
     num: String(hashStr(stable + "|" + dateStr + "|num") % 10000).padStart(4, "0"),
     chatKey: "c" + hashStr(stable + "|" + dateStr).toString(36) + hashStr(stable + "|chat").toString(36)
@@ -928,18 +854,14 @@ function showView(v){
 }
 
 function statusOf(p){
-  // 揪團中(藍,收人) → 尚有位置(綠,收人) → 即將出發(紅章,緩衝期仍收人) → 關閉揪團(紅,關團)
-  // 已出發、或時段已結束（未成團也算）都是「關閉揪團」
-  const now = viewNow();
-  if(isClosed(p)) return {cls:"live", label:"關閉揪團", frame:p.ok?"ok":""};
-  if(p.ok && p.readyMin != null && now >= p.readyMin) return {cls:"live", label:"即將出發", frame:"ok"};
+  // 揪團中(藍,收人) → 已成團(綠,仍可加入) → 已出發／已結束(紅,關團)
+  if(isClosed(p)) return {cls:"live", label:p.ok?"已出發":"已結束", frame:p.ok?"ok":""};
   if(!p.ok) return {cls:"blue", label:"揪團中", frame:""};
-  return {cls:"ok", label:"尚有位置", frame:"ok"};
+  return {cls:"ok", label:"已成團", frame:"ok"};
 }
-const isDeparted = p => p.ok && p.departMin != null && viewNow() >= p.departMin;   // 已出發
-const isExpired  = p => p.timeEnd < viewNow();                                     // 時段已結束（明日檢視一律未結束）
-const isClosed   = p => isDeparted(p) || isExpired(p);                            // 關閉揪團（不再收人）
-const isReady  = p => p.ok && p.readyMin  != null && viewNow() >= p.readyMin;
+// 出發時間一到（該分鐘過後）揪團就關閉：成團的＝已出發、未成團的＝已結束（明日檢視一律未關閉）
+const isDeparted = p => p.ok && viewNow() > p.time;
+const isClosed   = p => viewNow() > p.time;
 function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
@@ -957,8 +879,7 @@ function cardHTML(p, source){
     <span class="stamp ${st.cls}">${st.label}</span>
     <div class="act">${locked?'<span class="lock-ic" title="私人房間">🔒</span>':(p.priv?'<span class="lock-ic" title="房間開放中">🔓</span>':"")}${esc(p.activity)}</div>
     ${locked?`<div class="row"><b>房間</b><span class="lock-tag">🔒 私人房間</span><span style="font-size:12.5px;color:#7d2416">需密碼加入</span></div>`:(p.priv?`<div class="row"><b>房間</b><span class="open-tag">🔓 開放中</span><span style="font-size:12.5px;color:var(--green-dark)">免密碼加入</span></div>`:"")}
-    <div class="row"><b>時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
-    ${p.ok ? `<div class="row"><b>出發時間</b>${toHM(p.departMin)}${viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒）":""}</div>` : `<div class="row"><b>出發時間</b>成團後緩衝 10 分</div>`}
+    <div class="row"><b>出發時間</b><span style="font-weight:900;font-size:15px">${toHM(p.time)}</span></div>
     <div class="row"><b>目前人數</b>${countText}</div>
     <div class="count-bar"><i style="width:${pct}%"></i></div>
   </div>`;
@@ -995,12 +916,11 @@ let openSource = "all";
 // 產生明細左欄（資訊＋成員名單＋動作區）的 HTML；供開啟與背景局部更新共用
 function detailMainHTML(p){
   const st = statusOf(p);
-  const ready = isReady(p);      // 即將出發（緩衝期，仍收人）
-  const closed = isClosed(p);    // 已出發關團
+  const closed = isClosed(p);    // 出發時間已過 → 關團
   const viewerMember = p.members.find(m=>m.mine) || null;
   // 只有系統指派的隊長（各預期分團最早登記者）恰好是「我的登記」，才顯示您是隊長
   const mySquad = p.squads.find(s=>s.members.some(m=>m.mine)) || null;
-  const iAmLeader = ready && !!mySquad && mySquad.complete && !!mySquad.leader.mine;
+  const iAmLeader = p.ok && !!mySquad && mySquad.complete && !!mySquad.leader.mine;
   const dg = isDungeon(p.activity), odin = isOdin(p.activity);
   const multi = p.squads.length > 1;
   const myChars = p.members.filter(m=>m.mine);
@@ -1012,8 +932,7 @@ function detailMainHTML(p){
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${locked?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':(p.priv?' <span class="open-tag" style="margin-left:8px">🔓 私人房間・開放中</span>':"")}</div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">時段</b>${toHM(p.time)}～${toHM(p.timeEnd)}</div>
-    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b>${p.ok?toHM(p.departMin)+(viewNow()<p.departMin?"（"+toHM(p.readyMin)+" 提醒準備）":""):"成團後緩衝 10 分鐘出發"}</div>
+    <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b><span style="font-weight:900;font-size:16px">${toHM(p.time)}</span>${closed?"（已過）":""}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${multi?"，預計分 "+p.squads.length+" 團":""}${odin && !p.ok ? "，缺："+(((p.squads[0]||{missing:[]}).missing.join("、"))||"必要職能") : ""}）</div>`;
   // 退出揪團：放在明細最前面，列出本帳號在此團的每個角色各一個按鈕
   if(myChars.length && !closed){
@@ -1021,7 +940,7 @@ function detailMainHTML(p){
   }
   if(!unlocked){
     if(closed){
-      main += `<div class="notice member" style="margin-top:14px">此私人房間${isDeparted(p) ? "已出發並關閉揪團" : "時段已結束，已關閉揪團"}，不再接受新成員加入。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">此私人房間${isDeparted(p) ? "已出發" : "出發時間已過、未成團"}，已關閉揪團，不再接受新成員加入。</div>`;
     }else if(store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。想加入請先點右上角以 <b>Discord 登入</b>，再輸入房間密碼。</div>`;
     }else if(store.online && !USER.member){
@@ -1063,26 +982,26 @@ function detailMainHTML(p){
   main += p.squads.map(s=>`
     ${(multi || odin) ? `<div class="squad-head${odin && !s.complete ? " bad" : ""}">第 ${s.index} 團 ${odin ? (s.complete ? '<span class="ok-tag">✓ 成團</span>' : `<span class="bad-tag">未成團｜缺 ${esc(s.missing.join("、"))}</span>`) : ""}<small>${s.members.length} 人${odin?"｜打手戰力 "+(s.power||0):""}${p.ok && s.complete?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
     <ul class="member-list">` +
-      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${slotTag(s,m)}${skillTags(m)}</span><span style="display:flex;gap:6px;align-items:center">${ready && s.complete && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</span></li>`).join("") +
+      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${slotTag(s,m)}${skillTags(m)}</span><span style="display:flex;gap:6px;align-items:center">${p.ok && s.complete && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</span></li>`).join("") +
     `</ul>`).join("");
   if(p.waitlist && p.waitlist.length){
     main += `<div class="squad-head bad">候補 <small>${p.waitlist.length} 人（非必要職能名額已滿）</small></div><ul class="member-list">` +
       p.waitlist.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${skillTags(m)}</span></li>`).join("") + `</ul>`;
   }
   if(odin){
-    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>打手 2 名</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。有 2 團以上時，系統會把所有團的打手（含報了打手職能、佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團戰力平均，不偏袒第 1 團（「請準備」後加入者不再重排）。全體共用同一個留言板。</div>`;
+    main += `<div class="hint" style="margin-top:6px">奧丁每團需<b>犧牲坦、地領、護貝、祭司</b>各 1 與<b>打手 2 名</b>才成團，其他職能每團最多 6 名；名額滿後需有必要職能的成員加入才會開出下一團，未成團的團不會收到出發通知。有 2 團以上時，系統會把所有團的打手（含報了打手職能、佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團戰力平均，不偏袒第 1 團。全體共用同一個留言板。</div>`;
   }else if(multi && !closed){
-    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>${ready?"":"，有人加入時會動態調整；提醒發出後即固定"}。全體共用同一個留言板。</div>`;
+    main += `<div class="hint" style="margin-top:6px">以上為系統依職業平均的<b>預期分團</b>，出發前有人加入時會動態調整。全體共用同一個留言板。</div>`;
   }
-  if(ready && !closed){
-    main += `<div class="notice member">🔔 <b>即將出發</b>：人數已足夠，請先準備，<b>${toHM(p.departMin)}</b> 出發（緩衝期間仍可加入）。${multi?"語音頻道依上方分團各開一間（-1、-2…），全體團員皆可進入任一間，可自行協調換團。":""}</div>`;
+  if(p.ok && !closed){
+    main += `<div class="notice member">✅ <b>已成團</b>：請於 <b>${toHM(p.time)}</b> 準時上線，出發前仍可加入。系統不會再另外通知，集合細節請在留言板協調。</div>`;
   }
-  if(ready && mySquad && !mySquad.complete){
-    main += `<div class="notice member">⚠ 你所在的第 ${mySquad.index} 團必要職能尚未湊齊（缺 ${esc(mySquad.missing.join("、"))}），本次不會收到出發通知；請等待必要職能成員加入，或到留言板協調。</div>`;
-  }else if(ready){
+  if(p.ok && mySquad && !mySquad.complete){
+    main += `<div class="notice member">⚠ 你所在的第 ${mySquad.index} 團必要職能尚未湊齊（缺 ${esc(mySquad.missing.join("、"))}）；請等待必要職能成員加入，或到留言板協調。</div>`;
+  }else if(p.ok && viewerMember){
     main += iAmLeader
-      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請${multi?"本團":"上列"}成員入隊。</div>`
-      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，隊員請自主聯繫隊長入隊，集合細節請於留言板協調。</div>`;
+      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>出發時請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，並邀請${multi?"本團":"上列"}成員入隊。</div>`
+      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，隊員請於出發時自主聯繫隊長入隊。</div>`;
   }
 
   // 退出：明細最上方的「退出揪團」列；留言板在右欄，由 openDetail 建立
@@ -1093,7 +1012,7 @@ function detailMainHTML(p){
     }else if(!closed && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(closed){
-      main += `<div class="notice member" style="margin-top:14px">${isDeparted(p) ? "此團已出發並關閉揪團" : "此揪團時段已結束，已關閉揪團"}，不再接受新成員加入。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">${isDeparted(p) ? "此團已出發" : "出發時間已過、未成團"}，已關閉揪團，不再接受新成員加入。</div>`;
     }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
@@ -1330,13 +1249,12 @@ const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slic
 async function submitReg(){
   if(!requireLogin()) return;
   const charId=$("f-id").value.trim(), level=$("f-lv").value.trim(), job=$("f-job").value.trim();
-  const s=$("f-start").value, e=$("f-end").value;
+  const s=$("f-start").value, e=s;
   if(!charId||!level||!job) return toast("請完整填寫角色 ID、等級與職業");
   const lvErr = levelCheck($("f-act").value, level);
   if(lvErr) return toast(lvErr);
   const forTomorrow = $("f-tomorrow").checked;
-  if(!forTomorrow && toMin(s) < nowMin()) { fillTimeSelects(); return toast("開始時間不能早於現在，已為你更新時段"); }
-  if(toMin(e)<=toMin(s)) return toast("結束時間必須晚於開始時間");
+  if(!forTomorrow && toMin(s) < nowMin()) { fillTimeSelects(); return toast("出發時間不能早於現在，已為你更新可選時間"); }
   const skills = isDungeon($("f-act").value) ? pickedSkills("f-skill") : [];
   if(isDungeon($("f-act").value) && !skills.length) return toast("副本團需至少勾選一項職能");
   const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
@@ -1362,10 +1280,10 @@ async function joinParty(){
   const lvErr = levelCheck(p.activity, level);
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
-  if(isClosed(p)) return toast(isDeparted(p) ? "此團已出發並關閉揪團" : "此揪團時段已結束，已關閉");
+  if(isClosed(p)) return toast(isDeparted(p) ? "此團已出發，已關閉揪團" : "出發時間已過，已關閉揪團");
   const skills = isDungeon(p.activity) ? pickedSkills("j-skill") : [];
   if(isDungeon(p.activity) && !skills.length) return toast("副本團需至少勾選一項職能");
-  const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.timeEnd),
+  const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.time),
     skills,
     room: p.room || "", pw: (p.priv && !p.open) ? (ROOM_PW.get(p.room) || "") : "",   // 鎖上的私人房間：附上已驗證的密碼，伺服器再驗一次；開放中不需密碼
     date:viewDate(), ts:Date.now(), uid:newUid()});
@@ -1377,7 +1295,7 @@ async function joinParty(){
 
 /* ─── 初始化與輪詢 ─── */
 function fillTimeSelects(){
-  // 開始時間：今日只列出「現在（向上取到 30 分）」之後的時段；勾「預先報名明日」則開放 00:00～23:59
+  // 出發時間：30 分為單位。今日只列出「現在（向上取到 30 分）」之後的時間；勾「預先報名明日」則開放 00:00～23:30
   const tomorrow = $("f-tomorrow") && $("f-tomorrow").checked;
   if($("f-tomorrow-date")) $("f-tomorrow-date").textContent = tomorrow ? "（"+addDays(todayKey(),1)+"）" : "";
   const cur = nowMin();
@@ -1387,18 +1305,6 @@ function fillTimeSelects(){
   for(let m=first;m<24*60;m+=30) opts+=`<option value="${toHM(m)}">${toHM(m)}</option>`;
   $("f-start").innerHTML = opts;
   if(prevStart && toMin(prevStart)>=first) $("f-start").value = prevStart;
-  fillEndSelect();
-}
-function fillEndSelect(){
-  // 結束時間：只留下比開始時間更晚的選項
-  const s = toMin($("f-start").value);
-  const prevEnd = $("f-end").value;
-  let opts="";
-  for(let m=s+30;m<24*60;m+=30) opts+=`<option value="${toHM(m)}">${toHM(m)}</option>`;
-  opts+=`<option value="23:59">23:59</option>`;
-  $("f-end").innerHTML = opts;
-  if(prevEnd && toMin(prevEnd)>s) $("f-end").value = prevEnd;
-  else $("f-end").value = toHM(Math.min(23*60+59, s+90));
 }
 /* ─── 今日／明日切換 ─── */
 function syncDayTabs(){
@@ -1421,7 +1327,7 @@ async function loadIdCards(){
     ID_CARDS = r.ok ? await r.json() : [];
   }catch(e){ ID_CARDS = []; }
   if(!ID_CARDS.length){ box.style.display="none"; return; }
-  $("id-cards-list").innerHTML = ID_CARDS.map((c,i)=>`<button class="id-card" onclick="applyIdCard(${i})" title="${esc(c.job)}｜${esc(c.activity||"")}${(c.skills&&c.skills.length)?"｜"+esc(c.skills.join("、")):""}｜上次 ${esc(c.start)}～${esc(c.end)}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("");
+  $("id-cards-list").innerHTML = ID_CARDS.map((c,i)=>`<button class="id-card" onclick="applyIdCard(${i})" title="${esc(c.job)}｜${esc(c.activity||"")}${(c.skills&&c.skills.length)?"｜"+esc(c.skills.join("、")):""}｜上次出發 ${esc(c.start)}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("");
   box.style.display = "";
 }
 function applyIdCard(i){
@@ -1433,10 +1339,10 @@ function applyIdCard(i){
   if(c.activity && [...actEl.options].some(o=>o.value===c.activity)) actEl.value = c.activity;
   renderSkillBoxes("f");
   (c.skills||[]).forEach(k=>{ const el = document.querySelector('input[name="f-skill"][value="'+k+'"]'); if(el) el.checked = true; });
-  // 帶入上次的時段：若開始時間已過（今日檢視）就選最早可選的，並提示
+  // 帶入上次的出發時間：若已過（今日）就維持最早可選的，並提示
   const startEl = $("f-start"), has = [...startEl.options].some(o=>o.value===c.start);
-  if(has){ startEl.value = c.start; fillEndSelect(); const endEl = $("f-end"); if([...endEl.options].some(o=>o.value===c.end)) endEl.value = c.end; }
-  else { fillEndSelect(); toast("上次的開始時間 "+c.start+" 已過，已改為最早可選時段"); }
+  if(has) startEl.value = c.start;
+  else toast("上次的出發時間 "+c.start+" 已過，已改為最早可選時間");
   toast("已載入「"+c.charId+"」的身份卡");
 }
 
@@ -1454,8 +1360,7 @@ async function refresh(){
   $("f-job").innerHTML = JOBS.map(j=>`<option value="${j}">${j}</option>`).join("");
   renderSkillBoxes("f");
   fillTimeSelects();
-  $("f-start").addEventListener("change", fillEndSelect);
-  setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的時段
+  setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的出發時間
   showView("home");
   // OAuth 回跳結果提示
   const auth = new URLSearchParams(location.search).get("auth");
