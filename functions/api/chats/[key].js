@@ -16,7 +16,7 @@ async function authorize(env, request, key) {
   if (!user.member) return { err: needMember() };
   const tw = taipeiNow();
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, ts
               FROM regs WHERE date IN (?, ?)`)
     .bind(tw.date, addDays(tw.date, 1)).all();
   const rows = results.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen }));

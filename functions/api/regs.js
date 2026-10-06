@@ -37,7 +37,7 @@ export async function onRequestGet({ request, env }) {
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, pwHash, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, pwHash, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   // acct：同一 Discord 帳號在同一天會拿到相同的匿名鍵（雜湊，每日不同、無法反推 discordId），
@@ -94,7 +94,7 @@ export async function onRequestPost({ request, env }) {
 
   // 以當日全部登記重算分團（下方「私人房間」「重複登記」「奧丁名額」檢查共用）
   const { results: all } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, room, roomOpen, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
   const rows = all.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen }));

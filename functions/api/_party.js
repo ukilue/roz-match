@@ -151,7 +151,7 @@ export function taipeiNow() {
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
-function buildSquads(act, members, t, dateStr) {
+function buildSquads(act, members, t, dateStr, removedRegs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   const readyMs = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));   // 「請準備」提醒時刻（出發前 10 分）
@@ -164,12 +164,16 @@ function buildSquads(act, members, t, dateStr) {
   }
   // 帳號鍵：前端拿到的是伺服器給的匿名 acct、後端／Worker 是 discordId；只要「同帳號 → 同鍵」分團結果就一致
   const acctOf = m => m.acct || m.discordId || m.uid || m.charId;
-  // 「請準備」提醒之後才加入的人＝補人：不重新分團、不重新平均職業，
-  // 直接補進「已有同帳號成員的團」，否則補進人數最少的團，讓已通知的分團名單不再變動
+  // 「請準備」提醒（readyMs）之後名單就凍結：
+  //   ・之後才加入的人＝補人：不重新分團、不重新平均職業，直接補進「已有同帳號成員的團」，否則補進人數最少的團（滿 12 就另開一團）
+  //   ・之後才退出的人＝幽靈：仍以原本的位置參與分團計算、算完再拿掉，其他人不會因為有人退出而被重新洗牌
+  //   → 分團結果只由「提醒時刻的名單」決定，與機器人已私訊的名單一致；提醒前則隨時依全員重新平均
+  const ghosts = (removedRegs || []).filter(r => (r.ts || 0) < readyMs && (r.removedTs || 0) >= readyMs);
+  const early = members.filter(m => (m.ts || 0) < readyMs);
+  const lateAll = byTs(members.filter(m => (m.ts || 0) >= readyMs));
   let core = members, late = [];
-  const c = members.filter(m => (m.ts || 0) < readyMs);
-  if (c.length && c.length < members.length && canForm(act, c)) { core = c; late = byTs(members.filter(m => (m.ts || 0) >= readyMs)); }
-  const groups = [];
+  if ((lateAll.length || ghosts.length) && canForm(act, early.concat(ghosts))) { core = early.concat(ghosts); late = lateAll; }
+  let groups = [];
   const jobCount = (g, j) => g.filter(x => x.job === j).length;
   const hasMate = (g, unit) => g.some(x => unit.some(y => acctOf(x) === acctOf(y)));
   // 同一 Discord 帳號登記的多個角色綁成一個「單位」，一起放進同一團
@@ -203,13 +207,16 @@ function buildSquads(act, members, t, dateStr) {
     for (let i = 0; i < count; i++) groups.push([]);
     units.forEach(u => place(u, max, score));
   } else groups.push(byTs(core));
+  groups = groups.map(g => g.filter(m => !m.removed));   // 拿掉幽靈（提醒後退出的人），團序不變
+  const maxLate = maxOf(act);
   late.forEach(m => {
-    let bi = -1;
-    groups.forEach((g, i) => { if (bi < 0 && hasMate(g, [m])) bi = i; });
-    if (bi < 0) { bi = 0; groups.forEach((g, i) => { if (g.length < groups[bi].length) bi = i; }); }
+    const cand = groups.map((g, i) => i).filter(i => groups[i].length < maxLate);   // 還有空位的團
+    let bi = cand.find(i => hasMate(groups[i], [m]));
+    if (bi === undefined) bi = cand.reduce((b, i) => (b < 0 || groups[i].length < groups[b].length ? i : b), -1);
+    if (bi < 0) { groups.push([]); bi = groups.length - 1; }
     groups[bi].push(m);
   });
-  return { squads: groups.filter(g => g.length).map((g, i) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
+  return { squads: groups.map((g, i) => [g, i]).filter(([g]) => g.length).map(([g, i]) => ({ index: i + 1, members: g, leader: leaderOf(g), complete: true, missing: [], slot: {} })), waitlist: [] };
 }
 
 // 出發時間 t（分鐘）的一群人 → 揪團物件
@@ -225,7 +232,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
-  const { squads, waitlist } = buildSquads(act, members, t, dateStr);
+  const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs);
   return {
     id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t,
     ok: canForm(act, members),

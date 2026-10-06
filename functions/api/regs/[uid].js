@@ -16,6 +16,6 @@ export async function onRequestDelete({ request, env, params }) {
   if (!row) return json({ error: "找不到這筆登記" }, 404);
   if (row.discordId !== user.id) return json({ error: "只能退出自己 Discord 帳號登記的揪團" }, 403);
 
-  await env.DB.prepare("UPDATE regs SET removed = 1 WHERE uid = ?").bind(uid).run();
+  await env.DB.prepare("UPDATE regs SET removed = 1, removedTs = ? WHERE uid = ?").bind(Date.now(), uid).run();
   return json({ deleted: true });
 }
