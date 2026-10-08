@@ -16,10 +16,8 @@ export const DAILY_TAGS = {
   "每日團：105級": ["毀葛", "企都野外", "研1", "研2", "研3"]
 };
 export const dailyTagsOf = act => DAILY_TAGS[act] || null;
-// 揪團的細項鍵：每日團取登記勾選的細項（限清單內）排序後以逗號相接；副本團為空字串（職能不參與分堆）
-// → 同目標、同房間、同出發時間但細項組合不同的人，是不同的揪團（各自一張卡片）；加入既有揪團時沿用該團細項
-export const tagKeyOf = r => { const list = dailyTagsOf(r.activity); return list ? skillsOf(r).filter(t => list.includes(t)).sort(cmpStr).join(",") : ""; };
-export const tagsOfKey = (act, tk) => tk ? (dailyTagsOf(act) || []).filter(t => tk.split(",").includes(t)) : [];   // 依清單順序還原成陣列
+// 揪團的細項總覽：每日團所有成員勾選細項的聯集（依清單順序）；副本團為空陣列。顯示在卡片、明細與機器人訊息，不影響分堆
+export const tagsOfParty = (act, members) => { const list = dailyTagsOf(act); return list ? list.filter(t => members.some(m => skillsOf(m).includes(t))) : []; };
 export const SKILLS = {
   "騎士": ["物理近傷"], "十字軍": ["犧牲坦", "加農砲", "聖十字審判"], "巫師": ["暴風雪", "怒雷強擊", "隕石術"],
   "賢者": ["地領", "魔力拳"], "鐵匠": ["物理近傷"], "鍊金": ["護貝", "強酸火煙瓶投擲"], "刺客": ["音速投擲", "心靈震波"],
@@ -242,8 +240,8 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
   for (const c of (removedRegs || [])) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
-  const tk = tagKeyOf(sorted[0]), tags = tagsOfKey(act, tk);   // 本團細項（同一堆的人細項鍵相同）
-  const stable = act + rk + (tk ? "|tags:" + tk : "") + "|" + anchor.charId + "|" + (anchor.ts || 0);
+  const tags = tagsOfParty(act, members);   // 本團所有成員想打的細項（聯集）
+  const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs);
   return {
     id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags,
@@ -257,7 +255,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
 export function buildParties(regs, dateStr) {
   const todays = regs.filter(r => r.date === dateStr);
   // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
-  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + tagKeyOf(r);   // 目標＋房間＋出發時間＋細項組合
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start;
   const byKey = {};
   todays.filter(r => !r.removed).forEach(r => { (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};

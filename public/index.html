@@ -307,7 +307,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
               <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
               <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
             </div>
-            <p class="hint">選同一個出發時間、做同一件事的冒險者就是同一個揪團（每日團可再勾選想打的細項：細項相同才是同一團，加入既有揪團的人會跟著該團的細項）：每日團與 59~90 級副本滿 3 人即成團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
+            <p class="hint">選同一個出發時間、做同一件事的冒險者就是同一個揪團（每日團另勾選想打的細項、至少一項，卡片會顯示全團細項總覽）：每日團與 59~90 級副本滿 3 人即成團；105 級奧丁依職能名額成團。每日團人多時會在明細顯示依職業平均的預期分團（12 人一團）。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -326,7 +326,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
           <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、目標、職能、ID 與上次的出發時間</li>
           <li>玩家登記出發時間及目標，系統自動把同目標、同出發時間的人組成揪團；有新揪團出現時 DC 機器人會在公告頻道 tag 登記身份組通知</li>
           <li>點開自己的團可以先在留言版與團員協調相關內容</li>
-          <li>登記<b>每日團</b>時可勾選<b>想打的細項</b>（可多選、可不選）：90級 → 崑崙、天津、洛陽、泰國、龜島；100級 → 朱諾、龍洞、鋼都、礦山3樓；105級 → 毀葛、企都野外、研1、研2、研3。細項屬於<b>整個揪團</b>：揪團卡片與明細顯示本團細項，從明細加入的人不必再選、直接跟著本團打；同出發時間、同目標但細項組合不同的登記會是<b>另一個揪團（另一張卡片）</b></li>
+          <li>登記<b>每日團</b>時需勾選<b>想打的細項</b>（可多選、至少一項）：90級 → 崑崙、天津、洛陽、泰國、龜島；100級 → 朱諾、龍洞、鋼都、礦山3樓；105級 → 毀葛、企都野外、研1、研2、研3。揪團卡片與明細顯示<b>全團想打的細項總覽</b>（所有成員勾選的聯集，例如有人想打朱諾、有人想打朱諾和鋼都 → 顯示「朱諾、鋼都」），名單中列出每人勾的細項；從明細加入時預設勾選本團目前的全部細項，可自行增減。細項只是標註，同目標、同出發時間仍是同一個揪團</li>
           <li>登記<b>副本團</b>時需依職業勾選<b>職能</b>（可多選、至少一項，未勾選不予登記），職能會顯示在明細供團員查看</li>
           <li>開團成功規則
             <ul>
@@ -412,10 +412,8 @@ const DAILY_TAGS = {
   "每日團：105級": ["毀葛", "企都野外", "研1", "研2", "研3"]
 };
 const dailyTagsOf = act => DAILY_TAGS[act] || null;
-// 揪團的細項鍵：每日團取登記勾選的細項（限清單內）排序後以逗號相接；副本團為空字串（職能不參與分堆）
-// → 同目標、同房間、同出發時間但細項組合不同的人，是不同的揪團（各自一張卡片）；加入既有揪團時沿用該團細項
-const tagKeyOf = r => { const list = dailyTagsOf(r.activity); return list ? skillsOf(r).filter(t => list.includes(t)).sort(cmpStr).join(",") : ""; };
-const tagsOfKey = (act, tk) => tk ? (dailyTagsOf(act) || []).filter(t => tk.split(",").includes(t)) : [];   // 依清單順序還原成陣列
+// 揪團的細項總覽：每日團所有成員勾選細項的聯集（依清單順序）；副本團為空陣列。顯示在卡片、明細與機器人訊息，不影響分堆
+const tagsOfParty = (act, members) => { const list = dailyTagsOf(act); return list ? list.filter(t => members.some(m => skillsOf(m).includes(t))) : []; };
 const SKILLS = {
   "騎士": ["物理近傷"], "十字軍": ["犧牲坦", "加農砲", "聖十字審判"], "巫師": ["暴風雪", "怒雷強擊", "隕石術"],
   "賢者": ["地領", "魔力拳"], "鐵匠": ["物理近傷"], "鍊金": ["護貝", "強酸火煙瓶投擲"], "刺客": ["音速投擲", "心靈震波"],
@@ -777,7 +775,7 @@ function buildParties(regs, dateStr){
   const t = dateStr || todayKey();
   const todays = regs.filter(r=>r.date===t);
   // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
-  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + tagKeyOf(r);   // 目標＋房間＋出發時間＋細項組合
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start;
   const byKey = {};
   todays.filter(r=>!r.removed).forEach(r=>{ (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};
@@ -877,8 +875,8 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
   for (const c of (removedRegs || [])) {
     if ((c.ts || 0) < (anchor.ts || 0) || ((c.ts || 0) === (anchor.ts || 0) && cmpStr(c.charId, anchor.charId) < 0)) anchor = c;
   }
-  const tk = tagKeyOf(sorted[0]), tags = tagsOfKey(act, tk);   // 本團細項（同一堆的人細項鍵相同）
-  const stable = act + rk + (tk ? "|tags:" + tk : "") + "|" + anchor.charId + "|" + (anchor.ts || 0);
+  const tags = tagsOfParty(act, members);   // 本團所有成員想打的細項（聯集）
+  const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs);
   return {
     id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags,
@@ -984,7 +982,7 @@ function detailMainHTML(p){
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${locked?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':(p.priv?' <span class="open-tag" style="margin-left:8px">🔓 私人房間・開放中</span>':"")}</div>
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
-    ${(p.tags||[]).length?`<div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">想打的細項</b><span class="tags-row" style="margin:0;display:inline-flex;vertical-align:middle">${tagChips(p)}</span></div>`:(dailyTagsOf(p.activity)?`<div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">想打的細項</b><span style="color:#7A6845">未指定</span></div>`:"")}
+    ${(p.tags||[]).length?`<div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">想打的細項</b><span class="tags-row" style="margin:0;display:inline-flex;vertical-align:middle">${tagChips(p)}</span></div>`:""}
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b><span style="font-weight:900;font-size:16px">${toHM(p.time)}</span>${closed?"（已過）":""}</div>
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">狀態</b>${st.label}（${p.members.length} 人${multi?"，預計分 "+p.squads.length+" 團":""}${odin && !p.ok ? "，缺："+(((p.squads[0]||{missing:[]}).missing.join("、"))||"必要職能") : ""}）</div>`;
   // 退出揪團：放在明細最前面，列出本帳號在此團的每個角色各一個按鈕
@@ -1030,7 +1028,8 @@ function detailMainHTML(p){
     }
   }
   // 成員名單：副本團列出職能；奧丁另標所佔名額（必要名額綠色）、每團標示成團／未成團與缺少的名額
-  const skillTags = m => dg ? skillsOf(m).map(k=>`<span class="skill-tag">${esc(k)}</span>`).join("") : "";   // 每日團的細項屬於整團，不逐人列
+  const skillTags = m => dg ? skillsOf(m).map(k=>`<span class="skill-tag">${esc(k)}</span>`).join("")
+                         : skillsOf(m).map(k=>`<span class="day-tag">${esc(k)}</span>`).join("");   // 每日團：每人想打的細項
   const slotTag = (s, m) => odin ? `<span class="slot-tag${(s.slot||{})[m.uid]&&(s.slot||{})[m.uid]!=="其他"?" need":""}">${esc((s.slot||{})[m.uid]||"其他")}</span>` : "";
   // 「請準備」提醒（出發前 10 分）之後才登記的人＝準備期間新增成員，標 🆕（與機器人私訊、分團凍結用同一個時間點）
   const readyMs = taipeiMs(viewDate(), p.readyMin);
@@ -1080,8 +1079,7 @@ function detailMainHTML(p){
           <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
           <div><select id="j-job" onchange="renderSkillBoxes('j')">${JOBS.map(j=>`<option value="${j}">${j}</option>`).join("")}</select></div>
           <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入揪團</button></div>
-          ${dg?`<div class="full" style="grid-column:1/-1"><div class="skills-wrap" id="j-skills-wrap"><div class="skills-title" id="j-skills-title">副本職能 <small>可多選，至少勾一項</small></div><div class="skills-list" id="j-skills">${skillBoxesHTML("j", JOBS[0], [], p.activity)}</div></div></div>`:""}
-          ${(p.tags||[]).length?`<div class="full" style="grid-column:1/-1"><div class="hint">加入後與本團一起打：${tagChips(p)}（細項由開團者決定，想打別的細項請從登記卡另開一團）</div></div>`:""}
+          ${(dg || dailyTagsOf(p.activity))?`<div class="full" style="grid-column:1/-1"><div class="skills-wrap" id="j-skills-wrap"><div class="skills-title" id="j-skills-title">${dailyTagsOf(p.activity) ? '想打的細項 <small>至少勾一項；預設為本團目前的全部細項，可自行增減</small>' : '副本職能 <small>可多選，至少勾一項</small>'}</div><div class="skills-list" id="j-skills">${skillBoxesHTML("j", JOBS[0], dailyTagsOf(p.activity) ? (p.tags||[]) : [], p.activity)}</div></div></div>`:""}
         </div>
       </div>`;
     }
@@ -1291,19 +1289,20 @@ function skillBoxesHTML(prefix, job, checked, act){
   return opts.map(k=>`<label><input type="checkbox" name="${prefix}-skill" value="${esc(k)}" ${checked.includes(k)?"checked":""}>${esc(k)}</label>`).join("");
 }
 const SKILLS_TITLE_DG = '副本職能 <small>依職業列出，可多選，至少勾一項；會顯示在明細供團員查看</small>';
-const SKILLS_TITLE_DAILY = '想打的細項 <small>可多選、可不選；屬於整個揪團，加入的人會跟著打，細項不同就是另一團</small>';
+const SKILLS_TITLE_DAILY = '想打的細項 <small>可多選，至少勾一項；卡片會顯示全團想打的細項總覽</small>';
 function renderSkillBoxes(prefix){
   const jobEl = $(prefix+"-job"), list = $(prefix+"-skills"), wrap = $(prefix+"-skills-wrap"), title = $(prefix+"-skills-title");
   if(!jobEl || !list) return;
   const act = prefix === "f" ? $("f-act").value : (PARTIES.find(x=>x.id===openPartyId)||{}).activity;
-  const show = isDungeon(act) || (prefix === "f" && !!dailyTagsOf(act));   // 細項只在登記卡（開團）選；明細加入表單沿用該團細項
+  const show = isDungeon(act) || !!dailyTagsOf(act);
   if(wrap) wrap.style.display = show ? "block" : "none";
   if(title) title.innerHTML = dailyTagsOf(act) ? SKILLS_TITLE_DAILY : SKILLS_TITLE_DG;
-  const keep = pickedSkills(prefix+"-skill");   // 換職業時保留同名職能（如奧義箭亂舞）
+  let keep = pickedSkills(prefix+"-skill");   // 換職業時保留同名職能（如奧義箭亂舞）／已勾的細項
+  if(prefix === "j" && dailyTagsOf(act) && !keep.length) keep = ((PARTIES.find(x=>x.id===openPartyId)||{}).tags)||[];   // 加入表單預設勾本團全部細項
   list.innerHTML = skillBoxesHTML(prefix, jobEl.value, keep, act);
   if(prefix === "f") updateRegForm();
 }
-// 揪團的細項（屬於整個揪團：開團者勾選，加入者沿用；細項不同就是另一個揪團）
+// 揪團卡片／明細的細項總覽＝全團成員想打的細項聯集（p.tags，依清單順序）
 const tagChips = p => (p.tags||[]).map(t=>`<span class="day-tag">${esc(t)}</span>`).join("");
 function togglePriv(){
   const on = $("f-priv").checked;
@@ -1323,6 +1322,7 @@ async function submitReg(){
   if(!forTomorrow && toMin(s) < nowMin()) { fillTimeSelects(); return toast("出發時間不能早於現在，已為你更新可選時間"); }
   const skills = (isDungeon($("f-act").value) || dailyTagsOf($("f-act").value)) ? pickedSkills("f-skill") : [];
   if(isDungeon($("f-act").value) && !skills.length) return toast("副本團需至少勾選一項職能");
+  if(dailyTagsOf($("f-act").value) && !skills.length) return toast("每日團請至少勾選一項想打的細項");
   const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
   if(priv && !/^\d{4}$/.test(pw)) return toast("私人房間密碼須為 4 位數字");
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
@@ -1347,9 +1347,9 @@ async function joinParty(){
   if(lvErr) return toast(lvErr);
   if(p.members.some(m=>m.charId===charId)) return toast("這個角色已在團內");
   if(isClosed(p)) return toast(isDeparted(p) ? "此團已出發，已關閉揪團" : "出發時間已過，已關閉揪團");
-  // 副本團：自己勾職能；每日團：沿用本團的細項（細項屬於揪團）
-  const skills = isDungeon(p.activity) ? pickedSkills("j-skill") : (p.tags || []).slice();
+  const skills = (isDungeon(p.activity) || dailyTagsOf(p.activity)) ? pickedSkills("j-skill") : [];
   if(isDungeon(p.activity) && !skills.length) return toast("副本團需至少勾選一項職能");
+  if(dailyTagsOf(p.activity) && !skills.length) return toast("請至少勾選一項想打的細項");
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.time),
     skills,
     room: p.room || "", pw: (p.priv && !p.open) ? (ROOM_PW.get(p.room) || "") : "",   // 鎖上的私人房間：附上已驗證的密碼，伺服器再驗一次；開放中不需密碼
