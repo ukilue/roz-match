@@ -72,7 +72,8 @@ export async function onRequestPost({ request, env }) {
   if (!charId || !job) return bad("資料不完整");
   if (!ACTS.includes(activity)) return bad("目標不存在");
   if (!JOBS.includes(job)) return bad("職業選項錯誤");
-  // 副本團：依職業從固定清單多選職能，至少一項；每日團：從該目標的細項清單多選（可不選）；兩者都存在 skills 欄位
+  // 副本團：依職業從固定清單多選職能，至少一項；每日團：揪團的「想打的細項」（可多選、可不選，加入既有揪團時前端帶入該團細項；
+  // 同目標、同出發時間但細項不同＝不同揪團）；兩者都存在 skills 欄位
   let skills = [];
   if (isDungeon(activity)) {
     const allowed = SKILLS[job] || [];
@@ -116,6 +117,8 @@ export async function onRequestPost({ request, env }) {
     const isOpen = !!roomRow.roomOpen;
     if (!already && !isOpen) { const err = await checkRoomPw(env, user.id, joinRoom, roomRow.pwHash, pw); if (err) return err; }
     room = joinRoom; pwHash = roomRow.pwHash; roomOpen = isOpen ? 1 : 0;
+    // 私人房間是同一個揪團：加入者沿用房間既有的每日細項（細項屬於揪團，不是個人）
+    if (DAILY_TAGS[activity]) { const ex = rows.find(r => r.room === joinRoom && !r.removed); if (ex) skills = ex.skills.filter(t => DAILY_TAGS[activity].includes(t)); }
   } else if (priv) {
     room = crypto.randomUUID();
     pwHash = await roomPwHash(room, pw);
