@@ -2,12 +2,12 @@
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。同一角色可登記多個時段／目標（不檢查時段重疊）。
 import { getSession, needLogin, needMember } from "./_auth.js";
-import { buildParties, addDays, isOdin, odinTeams, SKILLS } from "./_party.js";
+import { buildParties, addDays, isOdin, odinTeams, SKILLS, DAILY_TAGS } from "./_party.js";
 import { findRoom, checkRoomPw, roomPwHash, ROOM_ID, PW } from "./_room.js";
 
-const ACTS = ["每日團：90級","每日團：100~110","每日團：100級龍洞","每日團：礦山3樓","副本團：59~90級","副本團：105級奧丁"];
+const ACTS = ["每日團：90級","每日團：100級","每日團：105級","副本團：59~90級","副本團：105級奧丁"];
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
-const LEVEL_REQ = { "每日團：90級":90, "每日團：100~110":100, "每日團：100級龍洞":100, "每日團：礦山3樓":100, "副本團：59~90級":59, "副本團：105級奧丁":105 };
+const LEVEL_REQ = { "每日團：90級":90, "每日團：100級":100, "每日團：105級":105, "副本團：59~90級":59, "副本團：105級奧丁":105 };
 const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
 const isDungeon = a => DUNGEONS.includes(a);
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -72,13 +72,16 @@ export async function onRequestPost({ request, env }) {
   if (!charId || !job) return bad("資料不完整");
   if (!ACTS.includes(activity)) return bad("目標不存在");
   if (!JOBS.includes(job)) return bad("職業選項錯誤");
-  // 副本團：依職業從固定清單多選職能，至少一項；每日團不填
+  // 副本團：依職業從固定清單多選職能，至少一項；每日團：從該目標的細項清單多選（可不選）；兩者都存在 skills 欄位
   let skills = [];
   if (isDungeon(activity)) {
     const allowed = SKILLS[job] || [];
     skills = [...new Set((Array.isArray(b.skills) ? b.skills : []).map(String))];
     if (!skills.length) return bad("副本團需至少勾選一項職能");
     if (skills.some(s => !allowed.includes(s))) return bad("職能選項與職業不符");
+  } else if (DAILY_TAGS[activity]) {
+    skills = [...new Set((Array.isArray(b.skills) ? b.skills : []).map(String))];
+    if (skills.some(s => !DAILY_TAGS[activity].includes(s))) return bad("細項選項不正確");
   }
   if (!Number.isInteger(level) || level < 1 || level > 110) return bad("角色等級須為 1～110");
   const needLv = LEVEL_REQ[activity];
