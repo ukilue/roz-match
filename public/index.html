@@ -107,6 +107,33 @@ main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
 .bc-more-wrap{text-align:center;margin-top:18px}
 .bc-more-wrap .btn.small{min-width:200px}
 .bc-loading{text-align:center;color:var(--parchment-dim);padding:20px;font-size:14px;letter-spacing:2px}
+/* ── MVP 資訊 ── */
+.mvp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.mvp-card{
+  position:relative;background:var(--parchment);border:2px solid #2B2B2B;border-left:6px solid var(--c,var(--wood));border-radius:6px;
+  padding:12px 14px 12px 16px;box-shadow:0 4px 12px #00000055;display:flex;flex-direction:column;gap:6px;
+}
+.mvp-card.alive{border-color:var(--green-dark);border-left-color:var(--green);background:#F2F7E6}
+.mvp-card.soon{border-color:var(--gold)}
+.mvp-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mvp-name{font-weight:900;font-size:17px;letter-spacing:1px;flex:1 1 auto;word-break:break-all}
+.mvp-hab{display:inline-block;font-size:11.5px;font-weight:900;color:#fff;background:var(--c,#999);border-radius:3px;padding:1px 8px;letter-spacing:1px;white-space:nowrap}
+.mvp-state{display:inline-block;font-size:12px;font-weight:900;border-radius:3px;padding:2px 8px;letter-spacing:1px;white-space:nowrap;border:2px solid}
+.mvp-state.alive{color:var(--green-dark);border-color:var(--green-dark);background:#2F9E4F1a;animation:pulse 1.6s ease-in-out infinite}
+.mvp-state.soon{color:#8a5a10;border-color:var(--gold);background:#D9A44126}
+.mvp-state.dead{color:#555;border-color:#777;background:#00000008}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #2F9E4F55}50%{box-shadow:0 0 0 5px #2F9E4F00}}
+.mvp-rows{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:14px;align-items:baseline}
+.mvp-rows b{color:#6b5a3a;font-size:12.5px;letter-spacing:1px;white-space:nowrap}
+.mvp-rows .v{font-weight:700;font-variant-numeric:tabular-nums}
+.mvp-rows .v.big{font-size:16px;font-weight:900}
+.mvp-rows .v.alive{color:var(--green-dark)}
+.mvp-rows .cd{color:#7A6845;font-weight:400;font-size:13px;margin-left:6px}
+.mvp-bar{height:6px;background:#00000015;border-radius:99px;overflow:hidden;margin-top:2px}
+.mvp-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:99px}
+.mvp-card.alive .mvp-bar i{background:var(--green)}
+.mvp-group{grid-column:1/-1;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold);letter-spacing:1px;margin:6px 0 -4px;padding-left:4px;text-shadow:1px 1px 0 #00000088}
+.mvp-group small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;margin-left:8px;letter-spacing:0}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ── RO 風格視窗面板 ───────────────── */
@@ -301,6 +328,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .logo .px{font-size:15px}
   .logo .zh{font-size:17px;letter-spacing:1px}
   nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  nav.has-mvp{grid-template-columns:1fr 1fr 1fr}
+  nav.has-mvp .nav-btn{padding:10px 4px;font-size:13px}
   .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center}
   .nav-btn.auth{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   main{padding:16px 12px 70px}
@@ -336,6 +365,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .bc-item{padding:9px 10px 9px 12px}
   .bc-msg{font-size:14.5px}
   .bc-more-wrap .btn.small{width:100%}
+  .mvp-list{grid-template-columns:1fr;gap:12px}
+  .mvp-name{font-size:16px}
   .toast{left:12px;right:12px;transform:none;text-align:center;bottom:16px;max-width:none}
   .toast.show{transform:none}
   .empty{padding:34px 10px;font-size:14px}
@@ -360,6 +391,7 @@ button{touch-action:manipulation}
   <nav>
     <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
     <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
+    <button class="nav-btn" id="nav-mvp" onclick="showView('mvp')" style="display:none">👑 MVP 資訊</button>
     <button class="nav-btn auth" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </nav>
 </header>
@@ -470,6 +502,26 @@ button{touch-action:manipulation}
     <div id="bc-list" class="bc-list"></div>
     <div id="bc-empty" class="empty" style="display:none">最近 7 天沒有廣播訊息。</div>
     <div class="bc-more-wrap"><button class="btn blue small" id="bc-more" onclick="bcLoad(false)" style="display:none">載入更早的訊息</button></div>
+  </section>
+
+  <!-- ═══ MVP 資訊（需登入且帳號在 mvp_viewers 表內） ═══ -->
+  <section class="view" id="view-mvp">
+    <div class="panel">
+      <div class="panel-title"><span>👑 MVP 資訊</span> <small>依騎士團偵查隊報告整理；PK 棲息地 2 小時重生、一般棲息地 3 小時重生</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <div class="bc-cats" id="mvp-filters">
+          <button class="bc-cat all active" data-h="" onclick="mvpSetFilter('')">全部</button>
+          <button class="bc-cat" data-h="PK" style="--c:#C0452F" onclick="mvpSetFilter('PK')"><span class="dot"></span>PK 棲息地</button>
+          <button class="bc-cat" data-h="一般" style="--c:#2F9E4F" onclick="mvpSetFilter('一般')"><span class="dot"></span>一般棲息地</button>
+        </div>
+        <div class="bc-search">
+          <input id="mvp-q" placeholder="🔍 搜尋 MVP 名稱" oninput="mvpRender()" autocomplete="off">
+        </div>
+        <p class="hint" id="mvp-hint">存活中的排最上面，其餘依預計重生時間由近到遠；每分鐘自動更新。</p>
+      </div>
+    </div>
+    <div id="mvp-list" class="mvp-list"></div>
+    <div id="mvp-empty" class="empty" style="display:none">目前沒有 MVP 討伐紀錄。</div>
   </section>
 
 </main>
@@ -657,7 +709,9 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 
 /* ─── Discord 登入狀態 ─── */
-let USER = null;   // {id, name} 或 null
+let USER = null;   // {id, name, member, mvp} 或 null
+const canMvp = () => !!(USER && USER.mvp);
+let PENDING_VIEW = null;   // 網址 #mvp 進站時登入狀態尚未載入，先記住、載入後再切過去
 async function loadUser(){
   try{
     const r = await fetch(API+"/auth/me");
@@ -682,6 +736,12 @@ function updateNavMine(){
   const visible = (USER && USER.member) || !store.online;
   $("nav-mine").style.display = visible ? "" : "none";
   if(!visible && currentView==="mine") showView("home");
+  // 「MVP 資訊」只給 mvp_viewers 表內的帳號看（伺服器 /api/auth/me 回 mvp 旗標）
+  const mvpOk = canMvp();
+  $("nav-mvp").style.display = mvpOk ? "" : "none";
+  document.querySelector("header nav").classList.toggle("has-mvp", mvpOk);
+  if(!mvpOk && currentView==="mvp") showView("home");
+  else if(mvpOk && PENDING_VIEW==="mvp"){ PENDING_VIEW = null; showView("mvp"); }
   // 組隊揪團頁最上方的登入提示列（未登入／未加入伺服器時顯示）
   const bar = $("login-bar");
   if(bar){
@@ -1004,13 +1064,16 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
 // 頁面結構：頂層「組隊揪團」（含登記／我的／所有三個分頁，需登入 Discord）與「廣播訊息」（不需登入）
 const PARTY_VIEWS = ["home","mine","all"];
 function showView(v){
-  if(!PARTY_VIEWS.includes(v) && v!=="bc") v = "home";
+  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp") v = "home";
+  if(v==="mvp" && !canMvp()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
   $("view-party").classList.toggle("show", inParty);
   $("view-bc").classList.toggle("show", v==="bc");
+  $("view-mvp").classList.toggle("show", v==="mvp");
   $("nav-party").classList.toggle("active", inParty);
   $("nav-bc").classList.toggle("active", v==="bc");
+  $("nav-mvp").classList.toggle("active", v==="mvp");
   PARTY_VIEWS.forEach(x=>{
     $("view-"+x).classList.toggle("show", x===v);
     $("nav-"+x).classList.toggle("active", x===v);
@@ -1018,6 +1081,7 @@ function showView(v){
   if(v==="all") renderAll();
   if(v==="mine") renderMine();
   if(v==="bc") bcEnter(); else bcLeave();
+  if(v==="mvp") mvpEnter(); else mvpLeave();
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
   const hash = "#"+v;
   if(location.hash !== hash) history.replaceState(null, "", hash);
@@ -1598,6 +1662,85 @@ function bcRender(){
   $("bc-more").style.display = BC.hasMore ? "" : "none";
 }
 
+/* ─── MVP 資訊（需登入且帳號在 mvp_viewers 表內；資料由 /api/mvp 整理：每隻 MVP 最後死亡時間＋預計重生） ─── */
+const MVP = { items:[], now:0, fetchedAt:0, filter:"", timer:null, tick:null, loaded:false };
+const MVP_COLORS = { PK:"#C0452F", "一般":"#2F9E4F" };
+const MVP_SOON_SEC = 15*60;    // 15 分鐘內重生＝「即將重生」
+async function mvpLoad(){
+  if(!canMvp()) return;
+  try{
+    const r = await fetch(API+"/mvp");
+    if(r.status===401){ USER=null; loadUser(); return; }
+    if(r.status===403){ toast("沒有查看 MVP 資訊的權限"); USER.mvp=false; updateNavMine(); return; }
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    MVP.items = d.items||[]; MVP.now = d.now||Math.floor(Date.now()/1000); MVP.fetchedAt = Date.now(); MVP.loaded = true;
+    mvpRender();
+  }catch(e){
+    if(!MVP.loaded){ $("mvp-list").innerHTML=""; $("mvp-empty").style.display=""; $("mvp-empty").textContent="無法連線伺服器，暫時讀不到 MVP 資訊。"; }
+  }
+}
+function mvpEnter(){
+  if(!MVP.loaded){ $("mvp-list").innerHTML = '<div class="bc-loading">載入中…</div>'; }
+  mvpLoad();
+  clearInterval(MVP.timer); MVP.timer = setInterval(mvpLoad, 60000);     // 每分鐘重新抓資料
+  clearInterval(MVP.tick);  MVP.tick  = setInterval(mvpRender, 15000);   // 倒數每 15 秒重畫
+}
+function mvpLeave(){ clearInterval(MVP.timer); clearInterval(MVP.tick); MVP.timer = MVP.tick = null; }
+function mvpSetFilter(h){
+  MVP.filter = h;
+  document.querySelectorAll("#mvp-filters .bc-cat").forEach(b=> b.classList.toggle("active", b.dataset.h===h));
+  mvpRender();
+}
+// 以伺服器時間為準推算「現在」，避免玩家裝置時鐘不準
+const mvpNowSec = () => MVP.now + Math.round((Date.now() - MVP.fetchedAt)/1000);
+const mvpFmt = ts => {
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts*1000));
+  const g = t => p.find(x=>x.type===t).value;
+  return g("month")+"/"+g("day")+" "+g("hour")+":"+g("minute");
+};
+function mvpDur(sec){
+  sec = Math.max(0, Math.round(sec));
+  const d = Math.floor(sec/86400), h = Math.floor(sec%86400/3600), m = Math.floor(sec%3600/60);
+  if(d>0) return `${d} 天 ${h} 小時`;
+  if(h>0) return `${h} 小時 ${m} 分`;
+  return `${m} 分`;
+}
+function mvpRender(){
+  if(currentView!=="mvp" || !MVP.loaded) return;
+  const now = mvpNowSec();
+  const q = ($("mvp-q").value||"").trim().toLowerCase();
+  let list = MVP.items.map(m=>({...m, alive: now >= m.respawnAt}));
+  if(MVP.filter) list = list.filter(m=>m.habitat===MVP.filter);
+  if(q) list = list.filter(m=>m.name.toLowerCase().includes(q));
+  list.sort((a,b)=> (a.alive!==b.alive) ? (a.alive?-1:1) : (a.respawnAt-b.respawnAt) || cmpStr(a.name,b.name));
+  const box = $("mvp-list"), empty = $("mvp-empty");
+  if(!list.length){ box.innerHTML=""; empty.style.display=""; empty.textContent = q ? `找不到名稱含「${q}」的 MVP` : "目前沒有 MVP 討伐紀錄。"; return; }
+  empty.style.display = "none";
+  const alive = list.filter(m=>m.alive), dead = list.filter(m=>!m.alive);
+  const card = m => {
+    const total = m.respawnAt - m.killedAt, left = m.respawnAt - now;
+    const soon = !m.alive && left <= MVP_SOON_SEC;
+    const pct = m.alive ? 100 : Math.max(0, Math.min(100, Math.round((total-left)/total*100)));
+    const state = m.alive ? '<span class="mvp-state alive">● 存活中</span>' : soon ? '<span class="mvp-state soon">⏳ 即將重生</span>' : '<span class="mvp-state dead">💀 已討伐</span>';
+    const respawn = m.alive
+      ? `<span class="v big alive">存活中<span class="cd">已重生 ${mvpDur(now - m.respawnAt)}</span></span>`
+      : `<span class="v big">${mvpFmt(m.respawnAt)}<span class="cd">還有 ${mvpDur(left)}</span></span>`;
+    return `<div class="mvp-card${m.alive?" alive":(soon?" soon":"")}" style="--c:${MVP_COLORS[m.habitat]||"#999"}">
+      <div class="mvp-head"><span class="mvp-name">${esc(m.name)}</span><span class="mvp-hab">${esc(m.habitat)} 棲息地</span>${state}</div>
+      <div class="mvp-rows">
+        <b>上次死亡</b><span class="v">${mvpFmt(m.killedAt)}<span class="cd">${mvpDur(now - m.killedAt)}前</span></span>
+        <b>預計重生</b>${respawn}
+      </div>
+      <div class="mvp-bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  };
+  let html = "";
+  if(alive.length){ html += `<div class="mvp-group">存活中<small>${alive.length} 隻，重生後尚未被討伐</small></div>` + alive.map(card).join(""); }
+  if(dead.length){ html += `<div class="mvp-group">等待重生<small>${dead.length} 隻，依重生時間近→遠</small></div>` + dead.map(card).join(""); }
+  box.innerHTML = html;
+}
+
 /* ─── 初始化與輪詢 ─── */
 function fillTimeSelects(){
   // 出發時間：30 分為單位。今日只列出「現在（向上取到 30 分）」之後的時間；勾「預先報名明日」則開放 00:00～23:30
@@ -1666,7 +1809,9 @@ async function refresh(){
   renderSkillBoxes("f");
   fillTimeSelects();
   setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的出發時間
-  showView(location.hash.replace(/^#\/?/, "") || "home");
+  const firstView = location.hash.replace(/^#\/?/, "") || "home";
+  if(firstView==="mvp") PENDING_VIEW = "mvp";
+  showView(firstView);
   // OAuth 回跳結果提示
   const auth = new URLSearchParams(location.search).get("auth");
   if(auth){
