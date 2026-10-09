@@ -26,12 +26,7 @@
 html,body{height:100%}
 body{
   font-family:'Noto Sans TC',sans-serif;color:var(--ink);
-  background:
-    radial-gradient(1200px 600px at 70% -10%, #2A3A5C 0%, transparent 60%),
-    radial-gradient(2px 2px at 20% 30%, #6C7FA6 50%, transparent 51%),
-    radial-gradient(2px 2px at 80% 60%, #56688F 50%, transparent 51%),
-    radial-gradient(2px 2px at 40% 80%, #56688F 50%, transparent 51%),
-    var(--night);
+  background:var(--night);   /* 純深藍底（廣播訊息頁很長，不用漸層以免看起來不均勻） */
   min-height:100vh;min-height:100dvh;
   -webkit-text-size-adjust:100%;
 }
@@ -393,7 +388,7 @@ button{touch-action:manipulation}
         </div>
         <div class="form-grid">
           <div><label>角色 ID</label><input id="f-id" maxlength="24" placeholder="例：波利獵人小明"></div>
-          <div><label>角色等級</label><input id="f-lv" type="number" min="1" max="110" placeholder="1～110"></div>
+          <div><label>角色等級</label><input id="f-lv" type="number" min="1" max="120" placeholder="1～120"></div>
           <div><label>角色職業</label><select id="f-job" onchange="renderSkillBoxes('f')"></select></div>
           <div>
             <label>要做的事情</label>
@@ -1206,7 +1201,7 @@ function detailMainHTML(p){
         <label style="margin-bottom:8px">${viewerMember ? "用其他角色再加入這個揪團" : "加入這個揪團"}</label>
         <div class="form-grid">
           <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
-          <div><input id="j-lv" type="number" min="1" max="110" placeholder="角色等級"></div>
+          <div><input id="j-lv" type="number" min="1" max="120" placeholder="角色等級"></div>
           <div><select id="j-job" onchange="renderSkillBoxes('j')">${JOBS.map(j=>`<option value="${j}">${j}</option>`).join("")}</select></div>
           <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入揪團</button></div>
           ${(dg || dailyTagsOf(p.activity))?`<div class="full" style="grid-column:1/-1"><div class="skills-wrap" id="j-skills-wrap"><div class="skills-title" id="j-skills-title">${dailyTagsOf(p.activity) ? '想打的細項 <small>至少勾一項；預設為本團目前的全部細項，可自行增減</small>' : '副本職能 <small>可多選，至少勾一項</small>'}</div><div class="skills-list" id="j-skills">${skillBoxesHTML("j", JOBS[0], dailyTagsOf(p.activity) ? (p.tags||[]) : [], p.activity)}</div></div></div>`:""}
@@ -1407,7 +1402,7 @@ const LEVEL_REQ = {"每日團：90級":90,"每日團：100級":100,"每日團：
 function levelCheck(activity, level){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
-  if(lv > 110) return "角色等級不能超過 110";
+  if(lv > 120) return "角色等級不能超過 120";
   const need = LEVEL_REQ[activity];
   if(need && lv < need) return "此活動需 "+need+" 級以上才能登記";
   return "";

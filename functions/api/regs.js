@@ -84,7 +84,7 @@ export async function onRequestPost({ request, env }) {
     if (!skills.length) return bad("每日團需至少勾選一項想打的細項");
     if (skills.some(s => !DAILY_TAGS[activity].includes(s))) return bad("細項選項不正確");
   }
-  if (!Number.isInteger(level) || level < 1 || level > 110) return bad("角色等級須為 1～110");
+  if (!Number.isInteger(level) || level < 1 || level > 120) return bad("角色等級須為 1～120");
   const needLv = LEVEL_REQ[activity];
   if (needLv && level < needLv) return bad(`此活動需 ${needLv} 級以上`);
   if (!HM.test(start)) return bad("出發時間格式錯誤");
