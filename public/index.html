@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO 揪團佈告欄</title>
+<title>RO 樂園佈告欄</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -32,7 +32,8 @@ body{
     radial-gradient(2px 2px at 80% 60%, #56688F 50%, transparent 51%),
     radial-gradient(2px 2px at 40% 80%, #56688F 50%, transparent 51%),
     var(--night);
-  min-height:100vh;
+  min-height:100vh;min-height:100dvh;
+  -webkit-text-size-adjust:100%;
 }
 /* ── 頁首 ─────────────────────────── */
 header{
@@ -52,10 +53,65 @@ nav{display:flex;gap:8px}
   padding:8px 14px;cursor:pointer;transition:background .15s;
 }
 .nav-btn:hover{background:#ffffff38}
+.nav-btn{min-height:40px}
 .nav-btn.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
 main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
 .view{display:none}
 .view.show{display:block;animation:fade .25s ease}
+.subview{display:none}
+.subview.show{display:block;animation:fade .25s ease}
+/* 組隊揪團頁內的分頁（登記／我的／所有） */
+.sub-tabs{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.sub-tabs::-webkit-scrollbar{display:none}
+.sub-tab{
+  flex:1 0 auto;font-family:inherit;font-weight:900;font-size:15px;letter-spacing:1px;cursor:pointer;white-space:nowrap;
+  color:var(--parchment);background:#ffffff14;border:2px solid #ffffff3a;border-radius:8px;padding:11px 16px;min-height:44px;
+  transition:background .15s, color .15s;
+}
+.sub-tab:hover{background:#ffffff26}
+.sub-tab.active{background:var(--parchment);color:var(--wood-dark);border-color:var(--gold);box-shadow:0 3px 0 var(--wood-dark)}
+.login-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin-bottom:18px;padding:12px 14px;border-radius:8px;font-size:14px;line-height:1.6;font-weight:700;
+  background:#F6EDD6;border:2px dashed var(--wood);color:var(--ink);
+}
+.login-bar .btn.small{background:linear-gradient(180deg,#5865F2,#3C48C8);border-color:#2A339E;box-shadow:0 3px 0 #2A339E;letter-spacing:1px}
+/* ── 廣播訊息 ── */
+.bc-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.bc-cat{
+  font-family:inherit;font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer;white-space:nowrap;
+  color:var(--wood-dark);background:#FFFDF6;border:1.5px solid var(--wood);border-radius:999px;padding:7px 15px;min-height:38px;
+}
+.bc-cat.active{background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));color:#fff;border-color:#22375B}
+.bc-cat .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--c,#999)}
+.bc-search{position:relative}
+.bc-search input{padding-right:40px}
+.bc-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:50%;background:#00000012;color:#6b5a3a;font-size:14px;cursor:pointer}
+.bc-list{display:flex;flex-direction:column;gap:10px}
+.bc-day{
+  font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold);letter-spacing:1px;
+  margin:10px 0 2px;padding-left:4px;text-shadow:1px 1px 0 #00000088;
+}
+.bc-day small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;margin-left:8px;letter-spacing:0}
+.bc-item{
+  position:relative;background:var(--parchment);border:2px solid #2B2B2B;border-left:6px solid var(--c,var(--wood));border-radius:6px;
+  padding:10px 12px 10px 14px;box-shadow:0 4px 12px #00000055;
+}
+.bc-item.new{animation:bcIn .5s ease}
+@keyframes bcIn{from{opacity:0;transform:translateY(-6px);background:#fff7d6}to{opacity:1;transform:none}}
+.bc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:12.5px;color:#6b5a3a;margin-bottom:5px}
+.bc-time{font-weight:900;font-variant-numeric:tabular-nums;color:var(--wood-dark)}
+.bc-type{display:inline-block;font-size:11.5px;font-weight:900;color:#fff;background:var(--wood);border-radius:3px;padding:1px 7px;letter-spacing:1px}
+.bc-type.color{background:linear-gradient(90deg,#D45A44,#D9A441,#2F9E4F,#4A6FA5)}
+.bc-type.horn{background:var(--ro-blue-dark)}
+.bc-cat-tag{display:inline-block;font-size:11.5px;font-weight:900;color:var(--c-text,#fff);background:var(--c,#999);border-radius:3px;padding:1px 7px;letter-spacing:1px}
+.bc-sender{font-weight:900;color:var(--ro-blue-dark)}
+.bc-sender::before{content:"🗣 "}
+.bc-msg{font-size:15px;line-height:1.65;word-break:break-word;white-space:pre-wrap}
+.bc-msg mark{background:#FFE58A;color:inherit;padding:0 2px;border-radius:2px}
+.bc-more-wrap{text-align:center;margin-top:18px}
+.bc-more-wrap .btn.small{min-width:200px}
+.bc-loading{text-align:center;color:var(--parchment-dim);padding:20px;font-size:14px;letter-spacing:2px}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ── RO 風格視窗面板 ───────────────── */
@@ -244,11 +300,59 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 }
 .toast.show{opacity:1;transform:translateX(-50%)}
 .mode-tag{font-size:11px;color:#ffffffaa;letter-spacing:1px}
-@media (max-width:560px){
-  .form-grid{grid-template-columns:1fr}
-  .logo .zh{font-size:16px}
-  nav{width:100%;justify-content:flex-end}
+/* ── 手機版（RWD）────────────────────── */
+@media (max-width:720px){
+  header{padding:10px 12px;gap:8px}
+  .logo .px{font-size:15px}
+  .logo .zh{font-size:17px;letter-spacing:1px}
+  nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center}
+  .nav-btn.auth{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  main{padding:16px 12px 70px}
+  .panel{margin-bottom:16px;border-radius:6px}
+  .panel-body{padding:14px 13px 16px}
+  .panel-title{font-size:14px;letter-spacing:1px;flex-wrap:wrap;gap:4px}
+  .panel-title small{font-size:12px;flex-basis:100%}
+  .sub-tabs{gap:6px;margin-bottom:14px}
+  .sub-tab{font-size:14px;padding:10px 12px}
+  .form-grid{grid-template-columns:1fr;gap:12px}
+  input,select{font-size:16px;padding:11px 10px}   /* 16px 以上 iOS 不會自動放大 */
+  .btn{font-size:16px;padding:13px 14px}
+  .cards{grid-template-columns:1fr;gap:14px}
+  .card:hover{transform:none}
+  .overlay{padding:8px}
+  .modal{margin:2vh auto}
+  .detail-main{min-width:0}
+  .chat-box{min-width:0;max-height:360px;min-height:240px}
+  .member-list li{font-size:14px;padding:7px 6px;flex-wrap:wrap}
+  .lock-row,.host-box .host-row{flex-wrap:wrap}
+  .lock-row input{width:140px}
+  .host-box .host-row input{width:120px}
+  .day-tab{flex:1;text-align:center;padding:8px 6px;min-height:40px}
+  .id-card{font-size:13px;padding:7px 10px}
+  .skills-list{gap:8px 12px}
+  .skills-list label{min-height:32px}
+  .chk-row{min-height:36px;flex-wrap:wrap;row-gap:2px}
+  .chk-row small{flex-basis:100%;padding-left:28px;line-height:1.5}
+  header{position:static}   /* 手機上不固定頁首，多留一點內容空間 */
+  .bc-cats{gap:6px}
+  .bc-cat{flex:1 1 calc(50% - 6px);text-align:center;font-size:13.5px;padding:8px 8px}
+  .bc-cat.all{flex-basis:100%}
+  .bc-item{padding:9px 10px 9px 12px}
+  .bc-msg{font-size:14.5px}
+  .bc-more-wrap .btn.small{width:100%}
+  .toast{left:12px;right:12px;transform:none;text-align:center;bottom:16px;max-width:none}
+  .toast.show{transform:none}
+  .empty{padding:34px 10px;font-size:14px}
+  .exit-bar{font-size:13.5px}
+  .notice{font-size:13.5px}
 }
+@media (max-width:380px){
+  .logo .zh{font-size:15px}
+  .sub-tab{font-size:13px;padding:9px 8px}
+}
+/* 可點擊元素的最小觸控面積 */
+button{touch-action:manipulation}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -256,20 +360,30 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 
 <header>
   <div class="logo" onclick="showView('home')">
-    <span class="px">RO</span><span class="zh">揪團佈告欄</span>
+    <span class="px">RO</span><span class="zh">樂園佈告欄</span>
   </div>
   <nav>
-    <button class="nav-btn" id="nav-home" onclick="showView('home')">登記揪團</button>
-    <button class="nav-btn" id="nav-mine" onclick="showView('mine')" style="display:none">我的揪團</button>
-    <button class="nav-btn" id="nav-all"  onclick="showView('all')">所有揪團</button>
-    <button class="nav-btn" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
+    <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
+    <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
+    <button class="nav-btn auth" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </nav>
 </header>
 
 <main>
 
+  <!-- ═══ 組隊揪團（需登入 Discord） ═══ -->
+  <section class="view" id="view-party">
+    <div class="sub-tabs" role="tablist">
+      <button class="sub-tab" id="nav-home" onclick="showView('home')">📝 登記揪團</button>
+      <button class="sub-tab" id="nav-mine" onclick="showView('mine')" style="display:none">🙋 我的揪團</button>
+      <button class="sub-tab" id="nav-all"  onclick="showView('all')">📋 所有揪團</button>
+    </div>
+    <div class="login-bar" id="login-bar" style="display:none">
+      <span>🔐 組隊揪團功能需先登入 Discord 並加入懿岐來揪團伺服器，才能登記、加入與留言。</span>
+      <button class="btn small" id="login-bar-btn" onclick="authAction()">Discord 登入</button>
+    </div>
   <!-- ═══ 登記 ═══ -->
-  <section class="view" id="view-home">
+  <div class="subview" id="view-home">
     <div class="panel">
       <div class="panel-title">冒險者登記卡 <small id="mode-tag" class="mode-tag"></small></div>
       <div class="panel-body">
@@ -314,38 +428,10 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-title">佈告欄規則</div>
-      <div class="panel-body" style="font-size:14px;line-height:1.9">
-        <ul class="rules">
-          <li>使用前需先登入 Discord 並授權加入懿岐玩遊戲的 DC 群</li>
-          <li>同一 Discord 帳號可登記多個角色 ID，同一角色也可登記多個出發時間或目標；<b>同目標、同出發時間</b>的人就是同一個揪團</li>
-          <li>要退出揪團，請點開明細，按最上方「退出揪團」列中自己角色的按鈕</li>
-          <li>登記時可勾選「<b>🔒 設為私人房間</b>」並設定 <b>4 位數密碼</b>：私人房間在列表以<b>紅色外框與鎖頭</b>標示，點開後需先輸入密碼才能看到名單並加入；同出發時間、同目標的一般登記<b>不會</b>被併入私人房間，只能從「所有揪團」輸入密碼加入。密碼只儲存加密雜湊，網頁上查不到，請房主私下告知隊友（連續輸錯 5 次會鎖 10 分鐘）。<b>設立密碼的人為房主</b>：房主可在明細的「房主控制」把房間<b>開放</b>（變成任何人不需密碼即可加入的公開狀態，列表改顯示 🔓）或再<b>鎖上</b>，兩者都需再輸入一次房間密碼確認</li>
-          <li>勾選「預先報名明日的團」可登記明天任一出發時間；「我的揪團」「所有揪團」上方可切換今日／明日檢視</li>
-          <li>登記卡上方的「身份卡」列出你近 1 週報名過的角色（同角色只顯示最高等級），點一下自動帶入等級、職業、目標、職能、ID 與上次的出發時間</li>
-          <li>玩家登記出發時間及目標，系統自動把同目標、同出發時間的人組成揪團；有新揪團出現時 DC 機器人會在公告頻道 tag 登記身份組通知</li>
-          <li>點開自己的團可以先在留言版與團員協調相關內容</li>
-          <li>登記<b>每日團</b>時需勾選<b>想打的細項</b>（可多選、至少一項）：90級 → 崑崙、天津、洛陽、泰國、龜島；100級 → 朱諾、龍洞、鋼都、礦山3樓；105級 → 毀葛、企都野外、研1、研2、研3。揪團卡片與明細顯示<b>全團想打的細項總覽</b>（所有成員勾選的聯集，例如有人想打朱諾、有人想打朱諾和鋼都 → 顯示「朱諾、鋼都」），名單中列出每人勾的細項；從明細加入時預設勾選本團目前的全部細項，可自行增減。細項只是標註，同目標、同出發時間仍是同一個揪團</li>
-          <li>登記<b>副本團</b>時需依職業勾選<b>職能</b>（可多選、至少一項，未勾選不予登記），職能會顯示在明細供團員查看</li>
-          <li>開團成功規則
-            <ul>
-              <li>每日團、副本團：59~90級 → 3 人以上成團（不分團、不限制職能）</li>
-              <li>副本團：105級奧丁 → 每團需<b>犧牲坦</b>（十字軍）、<b>地領</b>（賢者）、<b>護貝</b>（鍊金）、<b>祭司</b>（任一職能）各 1，以及<b>打手 2 名</b>（打手職能：阿修羅霸皇拳、銳利射擊、奧義箭亂舞、投擲風魔飛鏢、心靈震波、強酸火煙瓶投擲）；其他職能的成員每團<b>最多 6 名</b>（保留必要人員名額）。第 1 團名額滿後，要有必要職能的成員加入才會開出第 2 團；未成團的團不出發，機器人只通知已成團的團。有 2 團以上時，系統會把所有團的打手（含報了打手職能但佔其他名額的人）重新分配：先讓每團湊滿 2 名打手（第 1 團優先），再依打手戰力（阿修羅霸皇拳 ＞ 心靈震波 ＞ 其餘打手）讓各團總戰力平均，不偏袒第 1 團（「請準備」私訊發出後加入的人直接補進名額，不再重排）</li>
-            </ul>
-          </li>
-          <li>成團後，機器人於<b>出發前 10 分鐘</b>依預期分團各建立一間語音頻道，並<b>私訊</b>每位團員：自己那一團的完整名單、隊長與語音連結（網頁顯示「即將出發」，此時仍可加入補人）；<b>出發時刻再私訊一次</b>提醒出發，並明列<b>準備期間新增的成員</b>（名單中標 🆕），隊長另有只補邀新增成員的 /invite 指令；準備期間新加入的人也會被補進所有已開的語音房。這兩則只私訊、不在群組頻道公告</li>
-          <li>隊長（該團最早登記者，名單中標 ★）的私訊會附上依名單產出的 <code>/invite 角色ID</code> 指令，出發時 <code>/organize</code> 建隊後逐行複製即可邀請。到了出發時間揪團即關閉、不再收人；語音頻道於出發 3 小時後自動消失</li>
-          <li>同出發時間、同目標的所有人是同一個揪團（同編號、同留言板），報名不設上限。每日團人數超過 12 人時，明細會顯示系統算出的<b>預期分團</b>（12 人一團；同一 Discord 帳號的角色優先同團，再依職業平均），有人加入時動態調整；「請準備」私訊（出發前 10 分鐘）發出後<b>名單固定</b>：之後加入的人標 🆕、直接補進人數較少的團（滿 12 另開一團），之後退出的人也不會讓其他人重新洗牌。105 級奧丁則依職能名額分團</li>
-          <li>有新的揪團出現時，機器人會在 DC 群公告頻道 tag 登記身份組發布「新揪團 #編號「目標」 出發時間：21:00」（鎖上的私人房間不公告；房主開放後視同公開）；請準備與出發提醒只走私訊</li>
-                  </ul>
-        <p style="margin-top:10px">如網站有任何問題，隨時可到 DC 群的「BUG 與建議區」回報。</p>
-      </div>
-    </div>
-  </section>
+  </div>
 
   <!-- ═══ 我的揪團 ═══ -->
-  <section class="view" id="view-mine">
+  <div class="subview" id="view-mine">
     <div class="panel">
       <div class="panel-title">我的揪團</div>
       <div class="panel-body">
@@ -355,10 +441,10 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
     </div>
     <div id="mine-cards" class="cards"></div>
     <div id="mine-empty" class="empty" style="display:none">今天還沒有登記任何揪團。</div>
-  </section>
+  </div>
 
   <!-- ═══ 所有揪團 ═══ -->
-  <section class="view" id="view-all">
+  <div class="subview" id="view-all">
     <div class="panel">
       <div class="panel-title"><span><span class="day-word">今日</span>揪團</span> <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
@@ -369,6 +455,26 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
     </div>
     <div id="all-cards" class="cards"></div>
     <div id="all-empty" class="empty" style="display:none">目前佈告欄上沒有揪團，快去登記第一張吧！</div>
+  </div>
+
+  </section>
+
+  <!-- ═══ 廣播訊息（不需登入） ═══ -->
+  <section class="view" id="view-bc">
+    <div class="panel">
+      <div class="panel-title"><span>📢 廣播訊息</span> <small>遊戲內廣播，只顯示最近 7 天，由新到舊</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <div class="bc-cats" id="bc-cats"></div>
+        <div class="bc-search">
+          <input id="bc-q" placeholder="🔍 搜尋訊息內容或發話者，例：卡片、收購、奧丁" oninput="bcSearchInput()" autocomplete="off">
+          <button class="bc-clear" id="bc-clear" onclick="bcClearSearch()" title="清除" style="display:none">✕</button>
+        </div>
+        <p class="hint" id="bc-hint">每 30 秒自動更新。</p>
+      </div>
+    </div>
+    <div id="bc-list" class="bc-list"></div>
+    <div id="bc-empty" class="empty" style="display:none">最近 7 天沒有廣播訊息。</div>
+    <div class="bc-more-wrap"><button class="btn blue small" id="bc-more" onclick="bcLoad(false)" style="display:none">載入更早的訊息</button></div>
   </section>
 
 </main>
@@ -581,6 +687,17 @@ function updateNavMine(){
   const visible = (USER && USER.member) || !store.online;
   $("nav-mine").style.display = visible ? "" : "none";
   if(!visible && currentView==="mine") showView("home");
+  // 組隊揪團頁最上方的登入提示列（未登入／未加入伺服器時顯示）
+  const bar = $("login-bar");
+  if(bar){
+    const need = store.online && !(USER && USER.member);
+    bar.style.display = need ? "" : "none";
+    const b = $("login-bar-btn");
+    if(b){
+      if(USER && !USER.member){ b.textContent = "加入懿岐來揪團 DC"; b.onclick = ()=>{ window.open(DISCORD_INVITE_URL, "_blank"); toast("加入伺服器後，請點右上角重新登入驗證"); }; }
+      else { b.textContent = "Discord 登入"; b.onclick = ()=>{ location.href = API+"/auth/login"; }; }
+    }
+  }
   updateRegForm();
 }
 // 登記表單狀態：依登入與伺服器成員資格切換（欄位反灰＋按鈕變身）
@@ -889,16 +1006,29 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
 }
 
 /* ─── 畫面 ─── */
+// 頁面結構：頂層「組隊揪團」（含登記／我的／所有三個分頁，需登入 Discord）與「廣播訊息」（不需登入）
+const PARTY_VIEWS = ["home","mine","all"];
 function showView(v){
+  if(!PARTY_VIEWS.includes(v) && v!=="bc") v = "home";
   currentView = v;
-  ["home","mine","all"].forEach(x=>{
+  const inParty = PARTY_VIEWS.includes(v);
+  $("view-party").classList.toggle("show", inParty);
+  $("view-bc").classList.toggle("show", v==="bc");
+  $("nav-party").classList.toggle("active", inParty);
+  $("nav-bc").classList.toggle("active", v==="bc");
+  PARTY_VIEWS.forEach(x=>{
     $("view-"+x).classList.toggle("show", x===v);
     $("nav-"+x).classList.toggle("active", x===v);
   });
   if(v==="all") renderAll();
   if(v==="mine") renderMine();
+  if(v==="bc") bcEnter(); else bcLeave();
+  // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
+  const hash = "#"+v;
+  if(location.hash !== hash) history.replaceState(null, "", hash);
   window.scrollTo({top:0});
 }
+window.addEventListener("hashchange", ()=>{ const v = location.hash.replace(/^#\/?/, ""); if(v && v!==currentView) showView(v); });
 
 function statusOf(p){
   // 揪團中(藍,收人) → 已成團(綠,仍可加入) → 即將出發(紅章,出發前 10 分鐘已私訊、開語音房，仍可加入) → 已出發／已結束(紅,關團)
@@ -1360,6 +1490,119 @@ async function joinParty(){
   toast(p.priv ? (p.open ? "已加入這個開放中的房間！" : "已加入這個私人房間！") : "已為你登記加入這個揪團！");
 }
 
+/* ─── 廣播訊息（不需登入；資料由 /api/broadcasts 讀取，只顯示 7 天內、排除 MVP 資訊） ─── */
+const BC_CATS = ["交易買賣","組隊資訊","系統公告","其他閒聊"];
+const BC_COLORS = { "交易買賣":"#D9A441", "組隊資訊":"#2F9E4F", "系統公告":"#C0452F", "其他閒聊":"#4A6FA5" };
+const BC_POLL_MS = 30000, BC_PAGE = 50;
+const BC = { cat:"", q:"", items:[], hasMore:false, loading:false, timer:null, seen:new Set(), searchT:null, entered:false };
+function bcRenderCats(){
+  const all = [{v:"",label:"全部"}, ...BC_CATS.map(c=>({v:c,label:c}))];
+  $("bc-cats").innerHTML = all.map(c=>`<button class="bc-cat${c.v===BC.cat?" active":""}${c.v?"":" all"}" style="--c:${BC_COLORS[c.v]||"#aaa"}" onclick="bcSetCat('${c.v}')">${c.v?'<span class="dot"></span>':""}${c.label}</button>`).join("");
+}
+function bcSetCat(c){
+  if(BC.cat===c) return;
+  BC.cat = c; bcRenderCats(); bcLoad(true);
+}
+function bcSearchInput(){
+  const v = $("bc-q").value;
+  $("bc-clear").style.display = v ? "" : "none";
+  clearTimeout(BC.searchT);
+  BC.searchT = setTimeout(()=>{ const q = v.trim(); if(q!==BC.q){ BC.q = q; bcLoad(true); } }, 350);
+}
+function bcClearSearch(){ $("bc-q").value = ""; $("bc-clear").style.display="none"; if(BC.q){ BC.q=""; bcLoad(true); } $("bc-q").focus(); }
+async function bcFetch(params){
+  const u = new URLSearchParams({ limit: String(BC_PAGE) });
+  if(BC.cat) u.set("cat", BC.cat);
+  if(BC.q) u.set("q", BC.q);
+  if(params && params.before) u.set("before", String(params.before));
+  const r = await fetch(API+"/broadcasts?"+u.toString());
+  if(!r.ok) throw new Error("http "+r.status);
+  return await r.json();
+}
+// reset=true：重新載入第一頁；false：載入更早（before＝目前最舊的 ts）
+async function bcLoad(reset){
+  if(BC.loading) return;
+  BC.loading = true;
+  const more = $("bc-more"); more.disabled = true; more.textContent = "載入中…";
+  if(reset){ BC.items = []; BC.seen = new Set(); $("bc-list").innerHTML = '<div class="bc-loading">載入中…</div>'; $("bc-empty").style.display="none"; }
+  try{
+    const before = reset ? 0 : (BC.items.length ? BC.items[BC.items.length-1].ts : 0);
+    const d = await bcFetch({ before });
+    if(d.error) toast(d.error);
+    for(const it of d.items){ if(!BC.seen.has(it.id)){ BC.seen.add(it.id); BC.items.push(it); } }
+    BC.hasMore = !!d.hasMore;
+    bcRender();
+  }catch(e){
+    if(reset){ $("bc-list").innerHTML = ""; $("bc-empty").style.display=""; $("bc-empty").textContent = "無法連線伺服器，暫時讀不到廣播訊息。"; }
+    else toast("載入失敗，請稍後再試");
+  }
+  BC.loading = false;
+  more.disabled = false; more.textContent = "載入更早的訊息";
+  more.style.display = BC.hasMore ? "" : "none";
+}
+// 輪詢：只抓第一頁，把沒看過的新訊息插到最前面（保留已載入的較舊訊息）
+async function bcPoll(){
+  if(BC.loading || currentView!=="bc" || document.hidden) return;
+  try{
+    const d = await bcFetch({});
+    const fresh = d.items.filter(it=>!BC.seen.has(it.id));
+    if(!fresh.length) return;
+    fresh.forEach(it=>{ BC.seen.add(it.id); it._new = true; });
+    BC.items = fresh.concat(BC.items).sort((a,b)=> b.ts - a.ts);
+    bcRender();
+    toast("有 "+fresh.length+" 則新廣播");
+  }catch(e){}
+}
+function bcEnter(){
+  if(!BC.entered){ BC.entered = true; bcRenderCats(); bcLoad(true); }
+  clearInterval(BC.timer); BC.timer = setInterval(bcPoll, BC_POLL_MS);
+}
+function bcLeave(){ clearInterval(BC.timer); BC.timer = null; }
+const bcDayKey = ts => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ts*1000));
+const bcHM = ts => new Intl.DateTimeFormat("zh-TW",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(ts*1000));
+const bcWeek = key => "日一二三四五六"[new Date(key+"T00:00:00+08:00").getDay()];
+function bcDayLabel(key){
+  const today = todayKey();
+  const rel = key===today ? "今天" : key===addDays(today,-1) ? "昨天" : "";
+  return `${key.slice(5).replace("-","/")}（${bcWeek(key)}）${rel?`<small>${rel}</small>`:""}`;
+}
+// 搜尋關鍵字高亮（先跳脫 HTML，再以不分大小寫比對包 <mark>）
+function bcHighlight(text, q){
+  const e = esc(text);
+  if(!q) return e;
+  const eq = esc(q); const re = new RegExp(eq.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+  return e.replace(re, m=>`<mark>${m}</mark>`);
+}
+function bcRender(){
+  const list = $("bc-list");
+  if(!BC.items.length){
+    list.innerHTML = "";
+    $("bc-empty").style.display = "";
+    $("bc-empty").textContent = BC.q ? `找不到含「${BC.q}」的廣播訊息` : (BC.cat ? `最近 7 天沒有「${BC.cat}」的廣播訊息。` : "最近 7 天沒有廣播訊息。");
+    return;
+  }
+  $("bc-empty").style.display = "none";
+  let html = "", lastDay = "";
+  for(const it of BC.items){
+    const day = bcDayKey(it.ts);
+    if(day!==lastDay){ html += `<div class="bc-day">${bcDayLabel(day)}</div>`; lastDay = day; }
+    const color = BC_COLORS[it.category] || "#999";
+    const typeCls = it.type.includes("彩色") ? "color" : it.type.includes("喇叭") ? "horn" : "";
+    html += `<div class="bc-item${it._new?" new":""}" style="--c:${color}">
+      <div class="bc-meta">
+        <span class="bc-time">${bcHM(it.ts)}</span>
+        <span class="bc-type ${typeCls}">${esc(it.type||"廣播")}</span>
+        <span class="bc-cat-tag" style="--c:${color}">${esc(it.category)}</span>
+        ${it.sender?`<span class="bc-sender">${bcHighlight(it.sender, BC.q)}</span>`:""}
+      </div>
+      <div class="bc-msg">${bcHighlight(it.message, BC.q)}</div>
+    </div>`;
+    it._new = false;
+  }
+  list.innerHTML = html;
+  $("bc-more").style.display = BC.hasMore ? "" : "none";
+}
+
 /* ─── 初始化與輪詢 ─── */
 function fillTimeSelects(){
   // 出發時間：30 分為單位。今日只列出「現在（向上取到 30 分）」之後的時間；勾「預先報名明日」則開放 00:00～23:30
@@ -1428,7 +1671,7 @@ async function refresh(){
   renderSkillBoxes("f");
   fillTimeSelects();
   setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的出發時間
-  showView("home");
+  showView(location.hash.replace(/^#\/?/, "") || "home");
   // OAuth 回跳結果提示
   const auth = new URLSearchParams(location.search).get("auth");
   if(auth){
