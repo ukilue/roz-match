@@ -1059,13 +1059,12 @@ function buildSquads(act, members, t, dateStr, removedRegs) {
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
       g.length * 10 + i;
-    // 每日團：團數＝⌈人數／12⌉、各團人數平均（相差最多 1 人），在此前提下盡量讓同一團的人「想打的細項」一致：
+    // 每日團：團數＝⌈人數／12⌉、各團人數平均（相差最多 1 人），每一種「想打的細項組合」都平均分散到所有團：
     //   1. 同帳號單位的組合＝旗下角色細項的聯集（依 DAILY_TAGS 順序；無細項＝空字串）
-    //   2. 組合依人數多→少排序，依序把人「倒」進各團的配額：第 1 團填滿後才輪到第 2 團……
-    //      → 人數最多的組合占據前面幾團，少數組合集中在最後一團；只有「卡在交界」的那一團會混到兩種目標
-    //   3. 同一組合在它跨到的幾團之間依職業平均（同帳號仍綁在一起）
-    //   例：24 人打 A+B+C、5 人只打 C → 3 團 10／10／9：前兩團全是 A+B+C，第 3 團＝4 位 A+B+C＋5 位 C
-    //       20 人＋4 人 → 2 團 12／12：第 1 團全 A+B+C，第 2 團 8 位 A+B+C＋4 位 C
+    //   2. 組合依人數多→少處理；每個組合內的人依「同帳號 → 職業平均 → 人數少的團優先」平均放到各團
+    //      → 多數目標的人先平均鋪滿各團，少數目標的人也平均分到各團（不會集中在某一團造成戰力不足）
+    //   例：24 人打 A+B+C、5 人只打 C → 3 團 10／10／9：每團 8 位 A+B+C，5 位 C 分成 2／2／1
+    //       20 人＋4 人 → 2 團 12／12：每團 10 位 A+B+C＋2 位 C
     const tagList = dailyTagsOf(act) || [];
     const comboOf = unit => tagList.filter(tg => unit.some(m => skillsOf(m).includes(tg))).join(",");
     const combos = {};
@@ -1075,18 +1074,14 @@ function buildSquads(act, members, t, dateStr, removedRegs) {
     const count = Math.ceil(core.length / max);
     const base = Math.floor(core.length / count), extra = core.length % count;
     const sizes = []; for (let i = 0; i < count; i++) { sizes.push(base + (i < extra ? 1 : 0)); groups.push([]); }
-    // 在指定上限 caps 內放單位；放不下就退回「人數上限 sizes」、再放不下就放人數最少的團（多角色帳號無法剛好塞滿時）
-    const placeCapped = (unit, caps) => {
-      const fit = capsArr => { let best = -1, bs = null; for (let i = 0; i < groups.length; i++) { if (groups[i].length + unit.length > capsArr[i]) continue; const sc = score(groups[i], unit, i); if (best < 0 || sc < bs) { best = i; bs = sc; } } return best; };
-      let bi = fit(caps); if (bi < 0) bi = fit(sizes);
-      if (bi < 0) bi = groups.reduce((b, g, i) => (b < 0 || g.length < groups[b].length ? i : b), -1);
-      groups[bi].push(...unit);
+    // 在人數上限 sizes 內挑分數最低的團；都放不下（多角色帳號塞不進剩餘空位）就放人數最少的團
+    const placeBalanced = unit => {
+      let best = -1, bs = null;
+      for (let i = 0; i < groups.length; i++) { if (groups[i].length + unit.length > sizes[i]) continue; const sc = score(groups[i], unit, i); if (best < 0 || sc < bs) { best = i; bs = sc; } }
+      if (best < 0) best = groups.reduce((b, g, i) => (b < 0 || g.length < groups[b].length ? i : b), -1);
+      groups[best].push(...unit);
     };
-    order.forEach(c => {
-      // 本組合的配額：從第一個還有空位的團開始，依序填滿
-      let left = c.n; const caps = groups.map((g, i) => { const room = Math.max(0, sizes[i] - g.length); const q = Math.min(room, left); left -= q; return g.length + q; });
-      c.units.sort(unitSort).forEach(u => placeCapped(u, caps));
-    });
+    order.forEach(c => c.units.sort(unitSort).forEach(placeBalanced));
   } else groups.push(byTs(core));
   groups = groups.map(g => g.filter(m => !m.removed));   // 拿掉幽靈（提醒後退出的人），團序不變
   const maxLate = maxOf(act);
