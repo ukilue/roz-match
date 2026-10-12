@@ -311,6 +311,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .skills-wrap .skills-title{font-weight:700;font-size:13.5px;letter-spacing:1px;margin-bottom:6px}
 .skills-wrap .skills-title small{font-weight:400;color:#7A6845;letter-spacing:0;margin-left:6px}
 .skills-wrap.warn{border:2px solid var(--red);background:#C0452F14;animation:warnShake .4s ease}
+.skills-list label.hard .hard-mark{font-size:12px;color:#B9601A;margin-left:2px}
+.skills-list label.hard-on{background:#F2A33A33;border:1.5px solid #E08A1E;border-radius:5px;padding:2px 8px;margin:-3.5px -9.5px;color:#8a4a08}
+.hard-hint{flex-basis:100%;margin-top:6px;padding:7px 10px;border-radius:5px;background:#F2A33A2b;border:1.5px dashed #E08A1E;color:#8a4a08;font-size:13.5px;font-weight:900;letter-spacing:1px}
 @keyframes warnShake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .skills-warn{display:none;font-size:13px;font-weight:900;color:#fff;background:var(--red);border-radius:3px;padding:2px 9px;margin-left:8px;letter-spacing:1px;vertical-align:middle;animation:warnPulse 1.2s ease-in-out infinite}
 @keyframes warnPulse{0%,100%{opacity:1}50%{opacity:.55}}
@@ -438,6 +441,7 @@ button{touch-action:manipulation}
               <option value="每日團：90級">每日團：90級</option>
               <option value="每日團：100級">每日團：100級</option>
               <option value="每日團：105級">每日團：105級</option>
+              <option value="每日團：110級">每日團：110級</option>
               <option value="副本團：59~90級">副本團：59~90級</option>
               <option value="副本團：105級奧丁">副本團：105級奧丁</option>
             </select>
@@ -487,7 +491,7 @@ button{touch-action:manipulation}
       <div class="panel-title"><span><span class="day-word">今日</span>揪團</span> <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="day-tabs"><button class="day-tab" data-day="0" onclick="setViewDay(0)">今日</button><button class="day-tab" data-day="1" onclick="setViewDay(1)">明日</button></div>
-        <input id="search-q" placeholder="🔍 輸入揪團編號、目標或細項搜尋，例：0421、副本、每日、崑崙、龍洞、研1、奧丁" oninput="renderAll()">
+        <input id="search-q" placeholder="🔍 輸入揪團編號、目標或細項搜尋，例：0421、副本、每日、崑崙、龍洞、研1、研3、奧丁" oninput="renderAll()">
         <p class="hint">依出發時間由近到遠排列，同時間人多的排前面。</p>
       </div>
     </div>
@@ -586,7 +590,8 @@ const isOdin = act => act === ODIN;
 const DAILY_TAGS = {
   "每日團：90級": ["崑崙", "天津", "洛陽", "泰國", "龜島"],
   "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦山3樓"],
-  "每日團：105級": ["毀葛", "企都野外", "研1", "研2", "研3"]
+  "每日團：105級": ["毀葛", "企都野外", "研1", "研2"],
+  "每日團：110級": ["研3"]
 };
 const dailyTagsOf = act => DAILY_TAGS[act] || null;
 // 揪團的細項總覽：每日團所有成員勾選細項的聯集（依清單順序）；副本團為空陣列。顯示在卡片、明細與機器人訊息，不影響分堆
@@ -1522,7 +1527,7 @@ async function processChatQueue(){   // 依序送出，狂按也不會漏或亂�
 }
 
 /* ─── 登記 / 加入 ─── */
-const LEVEL_REQ = {"每日團：90級":90,"每日團：100級":100,"每日團：105級":105,"副本團：59~90級":59,"副本團：105級奧丁":105};
+const LEVEL_REQ = {"每日團：90級":90,"每日團：100級":100,"每日團：105級":105,"每日團：110級":110,"副本團：59~90級":59,"副本團：105級奧丁":105};
 function levelCheck(activity, level){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
@@ -1532,10 +1537,21 @@ function levelCheck(activity, level){
   return "";
 }
 // 勾選框：副本團依職業列出 SKILLS[job]（至少一項）；每日團列出該目標的細項 DAILY_TAGS[act]（可不選）。預設全不勾。prefix "f"＝登記卡、"j"＝明細加入表單
+// 較困難的細項：勾選時該選項以橘色高亮，並在下方顯示「此目標較困難，建議需進 Discord 語音」提示
+const HARD_TAGS = { "每日團：105級": ["研1", "研2"] };
+const isHardTag = (act, k) => (HARD_TAGS[act] || []).includes(k);
 function skillBoxesHTML(prefix, job, checked, act){
   const tags = dailyTagsOf(act);
   const opts = tags ? tags : (isDungeon(act) ? (SKILLS[job]||[]) : []);
-  return opts.map(k=>`<label><input type="checkbox" name="${prefix}-skill" value="${esc(k)}" ${checked.includes(k)?"checked":""}>${esc(k)}</label>`).join("");
+  return opts.map(k=>`<label class="${isHardTag(act,k)?"hard":""}${checked.includes(k)&&isHardTag(act,k)?" hard-on":""}"><input type="checkbox" name="${prefix}-skill" value="${esc(k)}" data-hard="${isHardTag(act,k)?1:0}" ${checked.includes(k)?"checked":""}>${esc(k)}${isHardTag(act,k)?'<span class="hard-mark" title="較困難">⚠</span>':""}</label>`).join("")
+    + `<div class="hard-hint" id="${prefix}-skills-hard" style="${opts.some(k=>checked.includes(k)&&isHardTag(act,k))?"":"display:none"}">⚠ 此目標較困難，建議需進 Discord 語音</div>`;
+}
+// 依目前勾選狀態更新困難目標的高亮與提示
+function updateHardHint(prefix){
+  const boxes = [...document.querySelectorAll(`input[name="${prefix}-skill"]`)];
+  let any = false;
+  boxes.forEach(b=>{ const on = b.checked && b.dataset.hard==="1"; b.closest("label").classList.toggle("hard-on", on); if(on) any = true; });
+  const h = $(prefix+"-skills-hard"); if(h) h.style.display = any ? "" : "none";
 }
 const SKILLS_TITLE_DG = '副本職能 <small>依職業列出，可多選，至少勾一項；會顯示在明細供團員查看</small>';
 const SKILLS_TITLE_DAILY = '想打的細項 <small>可多選，至少勾一項；相同目標的人會優先分在同一團，卡片顯示全團細項總覽</small>';
@@ -1548,6 +1564,7 @@ function flagSkillsWarn(prefix){
 document.addEventListener("change", e=>{
   const t = e.target; if(!t || !/^(f|j)-skill$/.test(t.name||"")) return;
   const prefix = t.name[0];
+  updateHardHint(prefix);
   if(pickedSkills(prefix+"-skill").length){ const w=$(prefix+"-skills-wrap"), wn=$(prefix+"-skills-warn"); if(w) w.classList.remove("warn"); if(wn) wn.classList.remove("show"); }
 });
 function renderSkillBoxes(prefix){
@@ -1863,6 +1880,7 @@ function applyIdCard(i){
   if(c.activity && [...actEl.options].some(o=>o.value===c.activity)) actEl.value = c.activity;
   renderSkillBoxes("f");
   (c.skills||[]).forEach(k=>{ const el = document.querySelector('input[name="f-skill"][value="'+k+'"]'); if(el) el.checked = true; });
+  updateHardHint("f");
   // 帶入上次的出發時間：若已過（今日）就維持最早可選的，並提示
   const startEl = $("f-start"), has = [...startEl.options].some(o=>o.value===c.start);
   if(has) startEl.value = c.start;
