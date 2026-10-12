@@ -203,18 +203,30 @@ function buildSquads(act, members, t, dateStr, removedRegs) {
     // 單位順序：角色多的帳號先放；接著職業人數多→少、職業名、登記順序
     const jobFreq = {};
     core.forEach(m => { jobFreq[m.job] = (jobFreq[m.job] || 0) + 1; });
-    const units = unitsOf(core).sort((a, b) =>
+    const unitSort = (a, b) =>
       b.length - a.length ||
       (jobFreq[b[0].job] || 0) - (jobFreq[a[0].job] || 0) || cmpStr(a[0].job, b[0].job) ||
-      (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId));
+      (a[0].ts || 0) - (b[0].ts || 0) || cmpStr(a[0].charId, b[0].charId);
     // 分數：同帳號成員所在的團最優先 → 同職業少（職業平均）→ 人數少 → 組序
     const score = (g, unit, i) =>
       (hasMate(g, unit) ? 0 : 1) * 1e6 +
       unit.reduce((s, m) => s + jobCount(g, m.job), 0) * 1000 +
       g.length * 10 + i;
-    const count = Math.ceil(core.length / max);
+    // 每日團依「想打的細項組合」分群：同帳號單位的組合＝旗下角色細項的聯集（依 DAILY_TAGS 順序；無細項＝空字串）
+    const tagList = dailyTagsOf(act) || [];
+    const comboOf = unit => tagList.filter(tg => unit.some(m => skillsOf(m).includes(tg))).join(",");
+    const combos = {};
+    unitsOf(core).forEach(u => { const k = comboOf(u); const c = (combos[k] ||= { key: k, units: [], n: 0 }); c.units.push(u); c.n += u.length; });
+    const tagCount = k => k ? k.split(",").length : 0;
+    // 人數最多的組合為「主要目標」（同人數 → 細項多者、再依鍵值）：先只用這群人分成 ceil(n/12) 團並職業平均
+    const order = Object.values(combos).sort((a, b) => b.n - a.n || tagCount(b.key) - tagCount(a.key) || cmpStr(a.key, b.key));
+    const main = order[0];
+    const count = Math.ceil(main.n / max);
     for (let i = 0; i < count; i++) groups.push([]);
-    units.forEach(u => place(u, max, score));
+    main.units.sort(unitSort).forEach(u => place(u, max, score));
+    // 其餘組合依人數多→少，逐單位補進還有空位的團（同帳號優先 → 職業平均 → 人數少）；主要目標的團都滿了才另開一團，
+    // 之後其他少數組合的人也一起補進這個新團（例：24 人打 A+B+C、5 人只打 C → 12／12／5；20 人＋4 人 → 12／12）
+    order.slice(1).forEach(c => c.units.sort(unitSort).forEach(u => place(u, max, score)));
   } else groups.push(byTs(core));
   groups = groups.map(g => g.filter(m => !m.removed));   // 拿掉幽靈（提醒後退出的人），團序不變
   const maxLate = maxOf(act);
