@@ -1,4 +1,4 @@
-// GET /api/broadcasts — 遊戲內廣播訊息（不需登入）
+// GET /api/broadcasts — 遊戲內廣播訊息（需登入 Discord）
 // 資料由另一支程式寫入 D1 的 broadcasts 表（見 schema.sql），本端點只讀。
 // 參數：
 //   cat    分類：交易買賣 / 組隊資訊 / 系統公告 / 其他閒聊（省略或不合法＝全部；「MVP資訊」一律不回傳）
@@ -6,7 +6,7 @@
 //   before 只取 ts 小於此值（Unix 秒）的訊息，用於「載入更多」
 //   limit  一次幾筆（1～100，預設 50）
 // 只回傳最近 7 天內的訊息，依時間新→舊。回傳 { items:[{id, ts, type, sender, message, category}], hasMore, since }
-import { json } from "./_auth.js";
+import { json, getSession, needLogin } from "./_auth.js";
 
 export const BC_CATS = ["交易買賣", "組隊資訊", "系統公告", "其他閒聊"];
 export const BC_HIDDEN = "MVP資訊";
@@ -19,6 +19,7 @@ const noStore = (data, status = 200) => {
 };
 
 export async function onRequestGet({ request, env }) {
+  if (!(await getSession(request, env))) return needLogin();
   const url = new URL(request.url);
   const cat = url.searchParams.get("cat") || "";
   const q = (url.searchParams.get("q") || "").trim().slice(0, 60);

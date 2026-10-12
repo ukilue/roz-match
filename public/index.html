@@ -71,6 +71,10 @@ main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
   background:#F6EDD6;border:2px dashed var(--wood);color:var(--ink);
 }
 .login-bar .btn.small{background:linear-gradient(180deg,#5865F2,#3C48C8);border-color:#2A339E;box-shadow:0 3px 0 #2A339E;letter-spacing:1px}
+.gate-login{flex-direction:column;align-items:center;text-align:center;padding:26px 16px;font-size:15px}
+.gate-login .btn.small{min-width:200px;font-size:15px}
+.open-banner{margin-bottom:14px;padding:11px 14px;border-radius:8px;font-size:14px;line-height:1.6;background:#D9A44126;border:2px solid var(--gold);color:#F6EDD6}
+.open-banner b{color:var(--gold);letter-spacing:1px}
 /* ── 廣播訊息 ── */
 .bc-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .bc-cat{
@@ -495,8 +499,13 @@ button{touch-action:manipulation}
 
   <!-- ═══ 廣播訊息（不需登入） ═══ -->
   <section class="view" id="view-bc">
+    <div class="login-bar gate-login" id="bc-login" style="display:none">
+      <span>🔐 廣播訊息需先登入 Discord 才能查看。</span>
+      <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
+    </div>
+    <div class="gate-body" id="bc-body">
     <div class="panel">
-      <div class="panel-title"><span>📢 廣播訊息</span> <small>遊戲內廣播，只顯示最近 7 天，由新到舊</small></div>
+      <div class="panel-title"><span>📢 廣播訊息</span> <small>遊戲內廣播，只顯示最近 7 天，由新到舊（需登入 Discord）</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="bc-cats" id="bc-cats"></div>
         <div class="bc-search">
@@ -509,10 +518,17 @@ button{touch-action:manipulation}
     <div id="bc-list" class="bc-list"></div>
     <div id="bc-empty" class="empty" style="display:none">最近 7 天沒有廣播訊息。</div>
     <div class="bc-more-wrap"><button class="btn blue small" id="bc-more" onclick="bcLoad(false)" style="display:none">載入更早的訊息</button></div>
+    </div>
   </section>
 
   <!-- ═══ MVP 資訊（需登入且帳號在 mvp_viewers 表內） ═══ -->
   <section class="view" id="view-mvp">
+    <div class="open-banner" id="mvp-open-banner" style="display:none">🎉 <b>限時開放查詢</b>：目前所有登入 Discord 的玩家都可以查看 MVP 資訊，開放期間結束後將恢復為授權帳號限定。</div>
+    <div class="login-bar gate-login" id="mvp-login" style="display:none">
+      <span>🔐 MVP 資訊需先登入 Discord 才能查看。</span>
+      <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
+    </div>
+    <div class="gate-body" id="mvp-body">
     <div class="panel">
       <div class="panel-title"><span>👑 MVP 資訊</span> <small>依騎士團偵查隊報告整理；PK 棲息地 2 小時重生、一般棲息地 3 小時重生</small></div>
       <div class="panel-body" style="padding:14px 18px">
@@ -529,6 +545,7 @@ button{touch-action:manipulation}
     </div>
     <div id="mvp-list" class="mvp-list"></div>
     <div id="mvp-empty" class="empty" style="display:none">目前沒有 MVP 討伐紀錄。</div>
+    </div>
   </section>
 
 </main>
@@ -716,8 +733,21 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 
 /* ─── Discord 登入狀態 ─── */
-let USER = null;   // {id, name, member, mvp} 或 null
+let USER = null;   // {id, name, member, mvp, mvpPublic} 或 null
+let CONFIG = { mvpPublic: false };   // /api/config：登入前就要知道的公開設定
+async function loadConfig(){
+  try{ const r = await fetch(API+"/config"); if(r.ok) CONFIG = Object.assign(CONFIG, await r.json()); }catch(e){}
+}
 const canMvp = () => !!(USER && USER.mvp);
+// 「MVP 資訊」按鈕是否顯示：限時公開期（CONFIG.mvpPublic）對所有人顯示（未登入會看到登入提示），否則只給授權帳號
+const mvpVisible = () => CONFIG.mvpPublic || canMvp();
+// 廣播／MVP 頁的登入閘門：共用模式未登入 → 顯示 Discord 登入提示、隱藏內容
+const needLoginGate = () => store.online && !USER;
+function applyGates(){
+  const gate = needLoginGate();
+  ["bc","mvp"].forEach(k=>{ const l=$(k+"-login"), b=$(k+"-body"); if(l) l.style.display = gate ? "" : "none"; if(b) b.style.display = gate ? "none" : ""; });
+  const ob = $("mvp-open-banner"); if(ob) ob.style.display = CONFIG.mvpPublic ? "" : "none";
+}
 let PENDING_VIEW = null;   // 網址 #mvp 進站時登入狀態尚未載入，先記住、載入後再切過去
 async function loadUser(){
   try{
@@ -744,11 +774,14 @@ function updateNavMine(){
   $("nav-mine").style.display = visible ? "" : "none";
   if(!visible && currentView==="mine") showView("home");
   // 「MVP 資訊」只給 mvp_viewers 表內的帳號看（伺服器 /api/auth/me 回 mvp 旗標）
-  const mvpOk = canMvp();
+  const mvpOk = mvpVisible();
   $("nav-mvp").style.display = mvpOk ? "" : "none";
   document.querySelector("header nav").classList.toggle("has-mvp", mvpOk);
+  applyGates();
   if(!mvpOk && currentView==="mvp") showView("home");
   else if(mvpOk && PENDING_VIEW==="mvp"){ PENDING_VIEW = null; showView("mvp"); }
+  // 登入狀態改變後，正在看的廣播／MVP 頁重新載入（例如登出後要顯示登入提示、登入後要抓資料）
+  if(currentView==="bc") bcEnter(); if(currentView==="mvp") mvpEnter();
   // 組隊揪團頁最上方的登入提示列（未登入／未加入伺服器時顯示）
   const bar = $("login-bar");
   if(bar){
@@ -1084,7 +1117,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
 const PARTY_VIEWS = ["home","mine","all"];
 function showView(v){
   if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp") v = "home";
-  if(v==="mvp" && !canMvp()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
+  if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
   $("view-party").classList.toggle("show", inParty);
@@ -1599,11 +1632,13 @@ function bcSearchInput(){
 }
 function bcClearSearch(){ $("bc-q").value = ""; $("bc-clear").style.display="none"; if(BC.q){ BC.q=""; bcLoad(true); } $("bc-q").focus(); }
 async function bcFetch(params){
+  if(needLoginGate()) throw new Error("login");
   const u = new URLSearchParams({ limit: String(BC_PAGE) });
   if(BC.cat) u.set("cat", BC.cat);
   if(BC.q) u.set("q", BC.q);
   if(params && params.before) u.set("before", String(params.before));
   const r = await fetch(API+"/broadcasts?"+u.toString());
+  if(r.status===401){ USER=null; loadUser(); throw new Error("login"); }
   if(!r.ok) throw new Error("http "+r.status);
   return await r.json();
 }
@@ -1642,6 +1677,8 @@ async function bcPoll(){
   }catch(e){}
 }
 function bcEnter(){
+  applyGates();
+  if(needLoginGate()){ bcLeave(); return; }
   if(!BC.entered){ BC.entered = true; bcRenderCats(); bcLoad(true); }
   clearInterval(BC.timer); BC.timer = setInterval(bcPoll, BC_POLL_MS);
 }
@@ -1696,7 +1733,7 @@ const MVP = { items:[], now:0, fetchedAt:0, filter:"", timer:null, tick:null, lo
 const MVP_COLORS = { PK:"#C0452F", "一般":"#2F9E4F" };
 const MVP_SOON_SEC = 15*60;    // 15 分鐘內重生＝「即將重生」
 async function mvpLoad(){
-  if(!canMvp()) return;
+  if(!mvpVisible() || needLoginGate()) return;
   try{
     const r = await fetch(API+"/mvp");
     if(r.status===401){ USER=null; loadUser(); return; }
@@ -1710,6 +1747,8 @@ async function mvpLoad(){
   }
 }
 function mvpEnter(){
+  applyGates();
+  if(needLoginGate()){ mvpLeave(); return; }
   if(!MVP.loaded){ $("mvp-list").innerHTML = '<div class="bc-loading">載入中…</div>'; }
   mvpLoad();
   clearInterval(MVP.timer); MVP.timer = setInterval(mvpLoad, 60000);     // 每分鐘重新抓資料
@@ -1851,7 +1890,7 @@ async function refresh(){
     else toast("Discord 登入失敗，請再試一次");
   }
   syncDayTabs();
-  await Promise.all([loadUser(), refresh()]);
+  await Promise.all([loadConfig(), loadUser(), refresh()]);
   loadIdCards();
   $("mode-tag").textContent = store.online ? (USER ? "共用模式｜已登入" : "共用模式｜未登入") : "單機模式（僅本瀏覽器）";
   updateNavMine();

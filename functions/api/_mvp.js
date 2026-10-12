@@ -8,6 +8,15 @@
 
 export const RESPAWN_SEC = { PK: 2 * 3600, "一般": 3 * 3600 };
 
+// 限時公開：true＝所有已登入 Discord 的玩家都能看 MVP 資訊（mvp_viewers 表保留不動）；
+// 要結束公開期只需改回 false，就回到只有 mvp_viewers 內的帳號可看。前端經 /api/config 取得此旗標，不必另外改。
+export const MVP_PUBLIC = true;
+
+// 此帳號目前是否可看 MVP 頁：公開期一律 true，否則查 mvp_viewers
+export async function mvpAllowed(env, discordId) {
+  return MVP_PUBLIC || await canViewMvp(env, discordId);
+}
+
 // 可被授權查看 MVP 頁的帳號；表不存在時一律 false
 export async function canViewMvp(env, discordId) {
   if (!discordId) return false;
