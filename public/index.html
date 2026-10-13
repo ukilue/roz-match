@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RO 樂園佈告欄</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PCQP87M78T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // 本站是單頁應用（以 #hash 切換頁面），不送自動 page_view；改由 showView() 在每次切換頁面時送出
+  gtag('config', 'G-PCQP87M78T', { send_page_view: false });
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -1150,7 +1159,13 @@ function showView(v){
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
   const hash = "#"+v;
   if(location.hash !== hash) history.replaceState(null, "", hash);
+  trackPage(v);
   window.scrollTo({top:0});
+}
+// Google Analytics：每次切換頁面送一次 page_view（虛擬路徑 /home、/mine、/all、/bc、/mvp）；GA 未載入（被擋）時靜默
+const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊" };
+function trackPage(v){
+  try{ if(typeof gtag === "function") gtag("event", "page_view", { page_title: "RO 樂園佈告欄｜"+(PAGE_TITLES[v]||v), page_path: "/"+v, page_location: location.origin + "/#" + v }); }catch(e){}
 }
 window.addEventListener("hashchange", ()=>{ const v = location.hash.replace(/^#\/?/, ""); if(v && v!==currentView) showView(v); });
 
