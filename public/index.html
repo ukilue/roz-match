@@ -39,27 +39,31 @@ body{
   min-height:100vh;min-height:100dvh;
   -webkit-text-size-adjust:100%;
 }
-/* ── 頁首 ─────────────────────────── */
-header{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:14px 20px;flex-wrap:wrap;
-  background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);
-  border-bottom:3px solid var(--gold);
-  position:sticky;top:0;z-index:20;
+/* ── 版面：PC 左側功能欄＋右側主畫面；手機改為上功能欄／中內容／下登入列（見 RWD 區） ── */
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh;min-height:100dvh}
+.side{
+  background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 60vh,var(--ro-blue-dark) 100%);
+  border-right:3px solid var(--gold);z-index:20;
 }
-.logo{display:flex;align-items:baseline;gap:10px;color:#fff;cursor:pointer}
-.logo .px{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--gold);text-shadow:2px 2px 0 #00000055}
-.logo .zh{font-weight:900;font-size:19px;letter-spacing:2px}
-nav{display:flex;gap:8px}
+/* 側欄內容釘在視窗內（頁面很長時功能列與登入鈕都看得到），外層 .side 則撐滿整頁高度 */
+.side-in{position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:12px;padding:18px 14px 16px}
+.side-top{display:flex;flex-direction:column;gap:14px}
+.side-bottom{margin-top:auto}
+.logo{display:flex;align-items:baseline;gap:8px;color:#fff;cursor:pointer;padding:2px 4px 6px;border-bottom:1px solid #ffffff33}
+.logo .px{font-family:'Press Start 2P',monospace;font-size:16px;color:var(--gold);text-shadow:2px 2px 0 #00000055}
+.logo .zh{font-weight:900;font-size:18px;letter-spacing:2px}
+nav{display:flex;flex-direction:column;gap:8px}
 .nav-btn{
-  font-family:inherit;font-weight:700;font-size:14px;letter-spacing:1px;
+  font-family:inherit;font-weight:700;font-size:15px;letter-spacing:1px;text-align:left;
   color:#fff;background:#ffffff1f;border:1px solid #ffffff55;border-radius:4px;
-  padding:8px 14px;cursor:pointer;transition:background .15s;
+  padding:10px 14px;cursor:pointer;transition:background .15s;width:100%;
 }
 .nav-btn:hover{background:#ffffff38}
-.nav-btn{min-height:40px}
+.nav-btn{min-height:42px}
 .nav-btn.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
-main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
+.nav-btn.auth{text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.content{display:flex;flex-direction:column;min-width:0}
+main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .view{display:none}
 .view.show{display:block;animation:fade .25s ease}
 .subview{display:none}
@@ -121,8 +125,19 @@ main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
 .bc-more-wrap .btn.small{min-width:200px}
 .bc-loading{text-align:center;color:var(--parchment-dim);padding:20px;font-size:14px;letter-spacing:2px}
 /* ── MVP 資訊 ── */
-/* 一列 5 隻：卡片做成緊湊的「名稱 → 倒數 → 進度條」直式排版，一眼就能掃出哪隻快出 */
-.mvp-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+/* PC：左右兩欄（左＝存活中、右＝等待重生），每欄一列 3 隻；卡片做成緊湊的「名稱 → 倒數 → 進度條」直式排版，一眼就能掃出哪隻快出 */
+.mvp-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.mvp-col{min-width:0}
+.mvp-col-head{
+  font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold);letter-spacing:1px;text-shadow:1px 1px 0 #00000088;
+  padding:8px 10px;margin-bottom:10px;border-bottom:2px solid #ffffff22;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+}
+.mvp-col-head small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;letter-spacing:0}
+.mvp-col-head .n{font-family:'Noto Sans TC',sans-serif;font-size:13px;color:#fff;font-weight:900;letter-spacing:0}
+.mvp-col.alive .mvp-col-head{border-bottom-color:var(--green)}
+.mvp-col.dead .mvp-col-head{border-bottom-color:var(--gold)}
+.mvp-col .empty{padding:22px 10px;font-size:13.5px}
+.mvp-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .mvp-card{
   position:relative;min-width:0;background:var(--parchment);border:2px solid #2B2B2B;border-top:5px solid var(--c,var(--wood));border-radius:6px;
   padding:9px 10px 10px;box-shadow:0 4px 12px #00000055;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;
@@ -150,8 +165,6 @@ main{max-width:860px;margin:0 auto;padding:28px 16px 80px}
 .mvp-card.alive .mvp-bar i{background:var(--green)}
 .mvp-card.soon .mvp-bar i{background:var(--gold)}
 .mvp-killed{font-size:11px;color:#8a7858;font-variant-numeric:tabular-nums;letter-spacing:.3px}
-.mvp-group{grid-column:1/-1;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold);letter-spacing:1px;margin:6px 0 -4px;padding-left:4px;text-shadow:1px 1px 0 #00000088}
-.mvp-group small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;margin-left:8px;letter-spacing:0}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ── RO 風格視窗面板 ───────────────── */
@@ -349,21 +362,42 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 }
 .toast.show{opacity:1;transform:translateX(-50%)}
 .mode-tag{font-size:11px;color:#ffffffaa;letter-spacing:1px}
-/* 平板：一列 3 隻（5 隻會擠不下） */
+/* 小螢幕 PC／筆電：側欄窄一點，MVP 兩欄各一列 2 隻 */
+@media (max-width:1300px){
+  .app{grid-template-columns:190px minmax(0,1fr)}
+  .side-in{padding:16px 10px 14px}
+  .nav-btn{font-size:14px;padding:10px 10px}
+  main{padding:24px 20px 50px}
+  .mvp-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* 平板：側欄改到上方（功能列橫排），MVP 存活中／等待重生上下排、一列 3 隻 */
 @media (max-width:1024px){
+  .app{display:flex;flex-direction:column}
+  .side{border-right:0;border-bottom:3px solid var(--gold)}
+  .side-in{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:12px 16px}
+  .side-top{flex-direction:row;align-items:center;gap:16px;flex:1 1 auto}
+  .logo{padding:0;border-bottom:0}
+  nav{flex-direction:row}
+  .nav-btn{width:auto;text-align:center;padding:8px 14px}
+  .side-bottom{margin-top:0}
+  .mvp-cols{grid-template-columns:1fr;gap:12px}
   .mvp-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-/* ── 手機版（RWD）────────────────────── */
+/* ── 手機版（RWD）：上＝LOGO＋功能列、中＝內容、最下＝登入／登出（避免誤觸） ── */
 @media (max-width:720px){
-  header{padding:10px 12px;gap:8px}
+  .side,.side-in{display:contents}
+  .side-top{order:1;width:100%;flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px;background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);border-bottom:3px solid var(--gold)}
+  .content{order:2}
+  .side-bottom{order:3;width:100%;padding:14px 12px calc(16px + env(safe-area-inset-bottom));background:var(--night-2);border-top:2px solid #ffffff22}
+  .side-bottom .nav-btn.auth{width:100%;min-height:46px;font-size:15px}
+  .logo{padding:0;border-bottom:0}
   .logo .px{font-size:15px}
   .logo .zh{font-size:17px;letter-spacing:1px}
   nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
   nav.has-mvp{grid-template-columns:1fr 1fr 1fr}
   nav.has-mvp .nav-btn{padding:10px 4px;font-size:13px}
-  .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center}
-  .nav-btn.auth{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  main{padding:16px 12px 70px}
+  .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center;width:100%}
+  main{padding:16px 12px 40px}
   .panel{margin-bottom:16px;border-radius:6px}
   .panel-body{padding:14px 13px 16px}
   .panel-title{font-size:14px;letter-spacing:1px;flex-wrap:wrap;gap:4px}
@@ -389,7 +423,6 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .skills-list label{min-height:32px}
   .chk-row{min-height:36px;flex-wrap:wrap;row-gap:2px}
   .chk-row small{flex-basis:100%;padding-left:28px;line-height:1.5}
-  header{position:static}   /* 手機上不固定頁首，多留一點內容空間 */
   .bc-cats{gap:6px}
   .bc-cat{flex:1 1 calc(50% - 6px);text-align:center;font-size:13.5px;padding:8px 8px}
   .bc-cat.all{flex-basis:100%}
@@ -417,18 +450,27 @@ button{touch-action:manipulation}
 </head>
 <body>
 
-<header>
-  <div class="logo" onclick="showView('home')">
-    <span class="px">RO</span><span class="zh">樂園佈告欄</span>
+<div class="app">
+<!-- PC：左側功能欄（LOGO＋功能在上、登入／登出在最下）；手機：功能列在最上、登入／登出移到頁面最下方 -->
+<aside class="side">
+  <div class="side-in">
+  <div class="side-top">
+    <div class="logo" onclick="showView('home')">
+      <span class="px">RO</span><span class="zh">樂園佈告欄</span>
+    </div>
+    <nav id="main-nav">
+      <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
+      <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
+      <button class="nav-btn" id="nav-mvp" onclick="showView('mvp')" style="display:none">👑 MVP 資訊</button>
+    </nav>
   </div>
-  <nav>
-    <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
-    <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
-    <button class="nav-btn" id="nav-mvp" onclick="showView('mvp')" style="display:none">👑 MVP 資訊</button>
+  <div class="side-bottom">
     <button class="nav-btn auth" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
-  </nav>
-</header>
+  </div>
+  </div>
+</aside>
 
+<div class="content">
 <main>
 
   <!-- ═══ 組隊揪團（需登入 Discord） ═══ -->
@@ -564,10 +606,10 @@ button{touch-action:manipulation}
         <div class="bc-search">
           <input id="mvp-q" placeholder="🔍 搜尋 MVP 名稱" oninput="mvpRender()" autocomplete="off">
         </div>
-        <p class="hint" id="mvp-hint">存活中的排最上面，其餘依預計重生時間由近到遠；每分鐘自動更新。</p>
+        <p class="hint" id="mvp-hint">左欄「存活中」剛重生的排前面；右欄「等待重生」快重生的排前面；每分鐘自動更新。</p>
       </div>
     </div>
-    <div id="mvp-list" class="mvp-list"></div>
+    <div id="mvp-list" class="mvp-cols"></div>
     <div id="mvp-empty" class="empty" style="display:none">目前沒有 MVP 討伐紀錄。</div>
     </div>
   </section>
@@ -577,6 +619,8 @@ button{touch-action:manipulation}
 <footer style="text-align:center;color:#ffffff66;padding:26px 0 36px;font-size:13px;letter-spacing:1px">
   Designed by <a href="https://youtube.com/@yichigames" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">懿岐玩遊戲</a>
 </footer>
+</div><!-- /.content -->
+</div><!-- /.app -->
 
 <!-- ═══ 明細彈窗 ═══ -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
@@ -801,7 +845,7 @@ function updateNavMine(){
   // 「MVP 資訊」只給 mvp_viewers 表內的帳號看（伺服器 /api/auth/me 回 mvp 旗標）
   const mvpOk = mvpVisible();
   $("nav-mvp").style.display = mvpOk ? "" : "none";
-  document.querySelector("header nav").classList.toggle("has-mvp", mvpOk);
+  $("main-nav").classList.toggle("has-mvp", mvpOk);
   applyGates();
   if(!mvpOk && currentView==="mvp") showView("home");
   else if(mvpOk && PENDING_VIEW==="mvp"){ PENDING_VIEW = null; showView("mvp"); }
@@ -814,7 +858,7 @@ function updateNavMine(){
     bar.style.display = need ? "" : "none";
     const b = $("login-bar-btn");
     if(b){
-      if(USER && !USER.member){ b.textContent = "加入懿岐來揪團 DC"; b.onclick = ()=>{ window.open(DISCORD_INVITE_URL, "_blank"); toast("加入伺服器後，請點右上角重新登入驗證"); }; }
+      if(USER && !USER.member){ b.textContent = "加入懿岐來揪團 DC"; b.onclick = ()=>{ window.open(DISCORD_INVITE_URL, "_blank"); toast("加入伺服器後，請點「Discord 登入」按鈕重新登入驗證"); }; }
       else { b.textContent = "Discord 登入"; b.onclick = ()=>{ location.href = API+"/auth/login"; }; }
     }
   }
@@ -845,7 +889,7 @@ function updateRegForm(){
     btn.style.borderColor = "#1F5C33"; btn.style.boxShadow = "0 3px 0 #1F5C33";
     btn.onclick = ()=>{
       window.open(DISCORD_INVITE_URL, "_blank");
-      toast("加入伺服器後，請點右上角重新登入驗證");
+      toast("加入伺服器後，請點「Discord 登入」按鈕重新登入驗證");
     };
   }else{
     btn.textContent = "送出登記";
@@ -1237,7 +1281,7 @@ function renderMine(){
   $("mine-cards").innerHTML = mine.map(p=>cardHTML(p,"mine")).join("");
   $("mine-empty").style.display = mine.length ? "none" : "block";
   $("mine-empty").textContent = (store.online && !USER)
-    ? "請先點右上角以 Discord 登入，即可自動顯示你登記的揪團。"
+    ? "請先點「Discord 登入」按鈕登入，即可自動顯示你登記的揪團。"
     : (VIEW_DAY===0 ? "今天" : "明天") + "還沒有登記任何揪團。";
 }
 
@@ -1273,7 +1317,7 @@ function detailMainHTML(p){
     if(closed){
       main += `<div class="notice member" style="margin-top:14px">此私人房間${isDeparted(p) ? "已出發" : "出發時間已過、未成團"}，已關閉揪團，不再接受新成員加入。</div>`;
     }else if(store.online && !USER){
-      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。想加入請先點右上角以 <b>Discord 登入</b>，再輸入房間密碼。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。想加入請先點 <b>Discord 登入</b> 按鈕，再輸入房間密碼。</div>`;
     }else if(store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證，再輸入房間密碼。</div>`;
     }else{
@@ -1345,7 +1389,7 @@ function detailMainHTML(p){
   // 加入表單對所有人開放（同一帳號可用其他角色 ID 再報名；報名不設上限）
   {
     if(!closed && store.online && !USER){
-      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點右上角以 <b>Discord 登入</b>。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點 <b>Discord 登入</b> 按鈕。</div>`;
     }else if(!closed && store.online && !USER.member){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(closed){
@@ -1832,11 +1876,12 @@ function mvpRender(){
   let list = MVP.items.map(m=>({...m, alive: now >= m.respawnAt}));
   if(MVP.filter) list = list.filter(m=>m.habitat===MVP.filter);
   if(q) list = list.filter(m=>m.name.toLowerCase().includes(q));
-  list.sort((a,b)=> (a.alive!==b.alive) ? (a.alive?-1:1) : (a.respawnAt-b.respawnAt) || cmpStr(a.name,b.name));
   const box = $("mvp-list"), empty = $("mvp-empty");
   if(!list.length){ box.innerHTML=""; empty.style.display=""; empty.textContent = q ? `找不到名稱含「${q}」的 MVP` : "目前沒有 MVP 討伐紀錄。"; return; }
   empty.style.display = "none";
-  const alive = list.filter(m=>m.alive), dead = list.filter(m=>!m.alive);
+  // 左欄「存活中」：剛重生的排前面（重生時間晚→早）；右欄「等待重生」：快重生的排前面（重生時間早→晚）
+  const alive = list.filter(m=>m.alive).sort((a,b)=> (b.respawnAt-a.respawnAt) || cmpStr(a.name,b.name));
+  const dead  = list.filter(m=>!m.alive).sort((a,b)=> (a.respawnAt-b.respawnAt) || cmpStr(a.name,b.name));
   const card = m => {
     const total = m.respawnAt - m.killedAt, left = m.respawnAt - now;
     const soon = !m.alive && left <= MVP_SOON_SEC;
@@ -1858,10 +1903,13 @@ function mvpRender(){
       <div class="mvp-killed">💀 ${mvpFmt(m.killedAt)}（${mvpDur(now - m.killedAt)}前）</div>
     </div>`;
   };
-  let html = "";
-  if(alive.length){ html += `<div class="mvp-group">存活中<small>${alive.length} 隻，重生後尚未被討伐</small></div>` + alive.map(card).join(""); }
-  if(dead.length){ html += `<div class="mvp-group">等待重生<small>${dead.length} 隻，依重生時間近→遠</small></div>` + dead.map(card).join(""); }
-  box.innerHTML = html;
+  const col = (cls, title, note, arr, emptyText) => `<div class="mvp-col ${cls}">
+      <div class="mvp-col-head">${title}<span class="n">${arr.length} 隻</span><small>${note}</small></div>
+      ${arr.length ? `<div class="mvp-list">${arr.map(card).join("")}</div>` : `<div class="empty">${emptyText}</div>`}
+    </div>`;
+  box.innerHTML =
+    col("alive", "存活中", "剛重生的排前面", alive, "目前沒有存活中的 MVP") +
+    col("dead",  "等待重生", "快重生的排前面", dead, "目前沒有等待重生的 MVP");
 }
 
 /* ─── 初始化與輪詢 ─── */
