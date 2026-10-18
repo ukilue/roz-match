@@ -2085,10 +2085,10 @@ function mvpRender(){
     col("dead",  "等待重生", "快重生的排前面", dead, "目前沒有等待重生的 MVP");
 }
 
-/* ─── 交易買賣（需登入；資料來自 ro-broadcast Worker：GET /trades?side=&q=&item_id=&since=&until=&limit=） ───
+/* ─── 交易買賣（需登入；資料來自 ro-broadcast Worker 的 /trades，經同網域的 /api/trades 代理轉呼叫以避開 CORS） ───
    每筆＝一個道具的一筆交易；同一則喊話（broadcast_id 相同）可能有多筆（seq 1,2,3…）。
    注意：price 是玩家原文數字（有人寫單價、有人寫總價），絕不依數量換算；不同 price_unit 絕不互換。 */
-const TRADES_API = "https://ro-broadcast.ukilue727.workers.dev/trades";
+const TRADES_API = API + "/trades";   // functions/api/trades.js：伺服器端轉呼叫 Worker，參數原樣轉送
 const TRADE_POLL_MS = 15000, TRADE_PAGE = 100, TRADE_KEEP_DAYS = 30;
 const TRADE_RELIABLE = new Set(["連結","精確","別名"]);   // 道具對應可靠的三種；LLM 偶爾選錯、未對應只有原文
 const TRADE = {
@@ -2153,6 +2153,7 @@ async function tradeFetch(params){
   if(TRADE.side) u.set("side", TRADE.side);
   if(TRADE.q) u.set("q", TRADE.q);
   const r = await fetch(TRADES_API+"?"+u.toString());
+  if(r.status===401){ USER=null; loadUser(); throw new Error("401"); }
   if(!r.ok) throw new Error("HTTP "+r.status);
   const d = await r.json();
   return Array.isArray(d) ? d : (d.items||[]);
@@ -2239,6 +2240,7 @@ async function tradeItemLoad(silent){
   try{
     const u = new URLSearchParams({ item_id:id, limit:500, since: tradeNow() - TRADE.itemDays*86400 });
     const r = await fetch(TRADES_API+"?"+u.toString());
+    if(r.status===401){ USER=null; loadUser(); return; }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d = await r.json();
     if(seq!==TRADE.item.seq || TRADE.itemId!==id) return;   // 期間已切換道具／範圍
