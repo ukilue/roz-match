@@ -172,7 +172,8 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .tr-status .live i{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s ease-in-out infinite}
 .tr-newbar{position:sticky;top:8px;z-index:5;display:flex;justify-content:center;margin:-4px 0 10px;pointer-events:none}
 .tr-newbar button{pointer-events:auto;font-family:inherit;font-weight:900;font-size:14px;letter-spacing:1px;color:var(--wood-dark);background:var(--gold);border:2px solid #2B2B2B;border-radius:999px;padding:8px 18px;box-shadow:0 4px 12px #00000066;cursor:pointer}
-.tr-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}   /* PC 兩欄；手機一欄（見 RWD） */
+.tr-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}   /* PC 兩欄（JS 依高度把卡片放到較短的那欄，不留空洞）；手機一欄（見 RWD） */
+.tr-col{display:flex;flex-direction:column;gap:10px;min-width:0}
 /* 一則喊話一張卡；卡內一列一筆交易 */
 .tr-card{min-width:0;background:var(--parchment);border:2px solid #2B2B2B;border-radius:6px;box-shadow:0 4px 12px #00000055;overflow:hidden}
 .tr-card.new{animation:bcIn .6s ease}
@@ -2219,12 +2220,22 @@ function tradeRender(){
     g.rows.push(t); if(t._new) g.isNew = true;
   }
   const openSet = new Set([...box.querySelectorAll(".tr-card.open")].map(c=>c.dataset.id));
-  box.innerHTML = groups.map(g=>`<div class="tr-card${g.isNew?" new":""}${openSet.has(g.id)?" open":""}" data-id="${esc(g.id)}">
+  const cardHTML = g => `<div class="tr-card${g.isNew?" new":""}${openSet.has(g.id)?" open":""}" data-id="${esc(g.id)}">
       <div class="tr-head"><span class="bc-time" title="${mvpFmt(g.ts)}">${tradeRel(g.ts)}</span><span class="bc-sender">${esc(g.sender)}</span>${g.rows.length>1?`<span class="n">${g.rows.length} 筆</span>`:""}
         <button class="tr-toggle" onclick="this.closest('.tr-card').classList.toggle('open')">喊話全文</button></div>
       ${g.rows.sort((a,b)=>a.seq-b.seq).map(tradeRowHTML).join("")}
       <div class="tr-msg">${esc(g.message)}</div>
-    </div>`).join("");
+    </div>`;
+  // 瀑布式兩欄：依時間順序逐張放進目前較短的那一欄，左右長度不同也不會留空洞；手機一欄
+  const twoCols = window.matchMedia("(min-width:721px)").matches;
+  box.innerHTML = twoCols ? '<div class="tr-col"></div><div class="tr-col"></div>' : '<div class="tr-col"></div>';
+  const cols = [...box.querySelectorAll(".tr-col")];
+  const tpl = document.createElement("template");
+  for(const g of groups){
+    tpl.innerHTML = cardHTML(g);
+    const col = cols.length===1 ? cols[0] : (cols[0].offsetHeight <= cols[1].offsetHeight ? cols[0] : cols[1]);
+    col.appendChild(tpl.content.firstElementChild);
+  }
   TRADE.items.forEach(t=>{ t._new = false; });
 }
 
@@ -2362,6 +2373,9 @@ function tradeChartHTML(s){
     <div class="ti-legend"><span><i style="--c:var(--buy)"></i>收購</span><span><i style="--c:var(--sell)"></i>販賣</span><span><i class="hollow" style="--c:#7A6845"></i>有寫數量（價格可能是總價）</span><span>Y 軸：${esc(s.unit)||"玩家寫的數字"}，未換算</span></div>
     <div class="ti-pick">${pickHTML}</div></div>`;
 }
+// 視窗寬度跨過手機／PC 斷點時重排兩欄
+let tradeResizeT = null;
+window.addEventListener("resize", ()=>{ clearTimeout(tradeResizeT); tradeResizeT = setTimeout(()=>{ if(currentView==="trade" && !TRADE.itemId) tradeRender(); }, 200); });
 function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : id; tradeItemRender(); }
 
 /* ─── 初始化與輪詢 ─── */
