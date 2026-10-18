@@ -172,9 +172,9 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .tr-status .live i{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s ease-in-out infinite}
 .tr-newbar{position:sticky;top:8px;z-index:5;display:flex;justify-content:center;margin:-4px 0 10px;pointer-events:none}
 .tr-newbar button{pointer-events:auto;font-family:inherit;font-weight:900;font-size:14px;letter-spacing:1px;color:var(--wood-dark);background:var(--gold);border:2px solid #2B2B2B;border-radius:999px;padding:8px 18px;box-shadow:0 4px 12px #00000066;cursor:pointer}
-.tr-list{display:flex;flex-direction:column;gap:10px}
+.tr-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}   /* PC 兩欄；手機一欄（見 RWD） */
 /* 一則喊話一張卡；卡內一列一筆交易 */
-.tr-card{background:var(--parchment);border:2px solid #2B2B2B;border-radius:6px;box-shadow:0 4px 12px #00000055;overflow:hidden}
+.tr-card{min-width:0;background:var(--parchment);border:2px solid #2B2B2B;border-radius:6px;box-shadow:0 4px 12px #00000055;overflow:hidden}
 .tr-card.new{animation:bcIn .6s ease}
 .tr-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:7px 12px;background:#00000008;border-bottom:1px solid #00000014;font-size:12.5px;color:#6b5a3a}
 .tr-head .bc-time{cursor:default}
@@ -238,6 +238,7 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .ti-table th:first-child,.ti-table td:first-child{text-align:left}
 .ti-table td.buy{color:var(--buy-dark);font-weight:900} .ti-table td.sell{color:var(--sell-dark);font-weight:900}
 .ti-table td.none{color:#999}
+.ti-table tr.pick{cursor:pointer} .ti-table tr.pick:hover td{background:#4A6FA514}
 .ti-table-wrap{overflow-x:auto}
 .ti-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .ti-col{min-width:0}
@@ -524,6 +525,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .tr-row{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"side item" "qty price";gap:4px 8px;padding:8px 10px;font-size:14.5px}
   .tr-row .tr-side{grid-area:side} .tr-row .tr-item{grid-area:item} .tr-row .tr-qty{grid-area:qty;align-self:center} .tr-row .tr-price{grid-area:price}
   .tr-head{padding:6px 10px;font-size:12px}
+  .tr-list{grid-template-columns:1fr}
   .ti-name{font-size:19px}
   .ti-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .ti-tile .v{font-size:17px}
@@ -2090,7 +2092,7 @@ function mvpRender(){
    注意：price 是玩家原文數字（有人寫單價、有人寫總價），絕不依數量換算；不同 price_unit 絕不互換。 */
 const TRADES_API = API + "/trades";   // functions/api/trades.js：伺服器端轉呼叫 Worker，參數原樣轉送
 const TRADE_POLL_MS = 15000, TRADE_PAGE = 100, TRADE_KEEP_DAYS = 30;
-const TRADE_RELIABLE = new Set(["連結","精確","別名"]);   // 道具對應可靠的三種；LLM 偶爾選錯、未對應只有原文
+const TRADE_RELIABLE = new Set(["連結","精確","別名","LLM"]);   // 統計採用的對應方式（含 AI 判讀）；未對應只有原文、不列入
 const TRADE = {
   side:"", q:"", range:86400, items:[], seen:new Set(), hasMore:false, loading:false, timer:null, searchT:null,
   pending:[],            // 捲到下面時收到的新交易，先暫存、按「有 N 筆新交易」才插入
@@ -2105,10 +2107,10 @@ const tradeRel = ts => {
   return Math.floor(d/86400)+" 天前";
 };
 const tradeFmtNum = n => (Math.round(n*100)/100).toLocaleString("en-US");
-// 價格顯示：標價＝數字＋單位（不換算）；買方出價＝請出價；沒提＝未標價
+// 價格顯示：標價＝數字＋單位（不換算）；買方出價或沒寫價格＝請出價
 function tradePriceHTML(t){
   if(t.price_type==="買方出價") return `<span class="tr-price ask" title="${esc(t.price_text||"")}（請買方開價）">請出價</span>`;
-  if(t.price==null) return `<span class="tr-price none">未標價</span>`;
+  if(t.price==null) return `<span class="tr-price ask" title="沒有寫價格，請向對方詢價">請出價</span>`;
   return `<span class="tr-price" title="原文：${esc(t.price_text||"")}">${tradeFmtNum(t.price)}<span class="u">${esc(t.price_unit||"")}</span></span>`;
 }
 function tradeItemHTML(t){
@@ -2255,7 +2257,7 @@ async function tradeItemLoad(silent){
 }
 // 精煉分組鍵：null → "none"（玩家沒寫精煉值）
 const refKey = t => t.refine==null ? "none" : String(t.refine);
-const refLabel = k => k==="none" ? "未標精煉" : "+"+k;
+const refLabel = k => k==="none" ? "無精煉" : "+"+k;
 const unitKey = t => t.price_unit || "";
 const unitLabel = u => u ? "單位："+u : "無單位（玩家只寫數字）";
 // 統計只用：道具對應可靠（連結／精確／別名）＋ 有明確標價 的收購／販賣
@@ -2265,9 +2267,9 @@ function tradeStats(rows){
   for(const t of rows){
     if(!tradeStatRow(t)) continue;
     const k = refKey(t)+"|"+unitKey(t);
-    let s = m.get(k); if(!s){ s = { refine:refKey(t), unit:unitKey(t), buyMax:null, sellMin:null, nBuy:0, nSell:0, pts:[] }; m.set(k,s); }
-    if(t.side==="收購"){ s.nBuy++; if(s.buyMax==null || t.price>s.buyMax) s.buyMax = t.price; }
-    else { s.nSell++; if(s.sellMin==null || t.price<s.sellMin) s.sellMin = t.price; }
+    let s = m.get(k); if(!s){ s = { refine:refKey(t), unit:unitKey(t), buyMax:null, sellMin:null, nBuy:0, nSell:0, buyers:new Set(), sellers:new Set(), pts:[] }; m.set(k,s); }
+    if(t.side==="收購"){ s.nBuy++; s.buyers.add(t.sender); if(s.buyMax==null || t.price>s.buyMax) s.buyMax = t.price; }
+    else { s.nSell++; s.sellers.add(t.sender); if(s.sellMin==null || t.price<s.sellMin) s.sellMin = t.price; }
     s.pts.push(t);
   }
   const refOrder = (a,b)=> (a==="none")-(b==="none") || Number(a)-Number(b);
@@ -2291,10 +2293,10 @@ function tradeItemRender(){
   let statHTML = "";
   if(it.refine==="all"){
     // 總覽表：每個精煉值×單位一列；不同單位絕不混算
-    statHTML = stats.length ? `<div class="ti-table-wrap"><table class="ti-table"><thead><tr><th>精煉</th><th>單位</th><th>最高收購</th><th>最低販賣</th><th>收購筆數</th><th>販賣筆數</th></tr></thead><tbody>` +
-      stats.map(s=>`<tr><td>${refLabel(s.refine)}</td><td>${esc(s.unit||"—")}</td><td class="${s.buyMax!=null?"buy":"none"}">${s.buyMax!=null?tradeFmtNum(s.buyMax)+esc(s.unit):"—"}</td><td class="${s.sellMin!=null?"sell":"none"}">${s.sellMin!=null?tradeFmtNum(s.sellMin)+esc(s.unit):"—"}</td><td>${s.nBuy}</td><td>${s.nSell}</td></tr>`).join("") +
-      `</tbody></table></div><p class="hint" style="color:#ffffff99;margin-top:6px">點上方精煉值可看該精煉的走勢圖。統計只計「有明確標價、道具對應可靠」的收購／販賣；價格為玩家原文，未依數量換算。</p>`
-      : `<div class="empty" style="padding:18px">這段時間沒有可靠的標價資料可統計（請出價、未對應或 AI 判讀的不列入）。</div>`;
+    statHTML = stats.length ? `<div class="ti-table-wrap"><table class="ti-table"><thead><tr><th>精煉</th><th>單位</th><th>最高收購</th><th>最低販賣</th><th>收購人數</th><th>販賣人數</th></tr></thead><tbody>` +
+      stats.map(s=>`<tr class="pick" onclick="tradeItemRefine('${s.refine}')" title="點一下查看 ${refLabel(s.refine)} 的走勢與所有收購／販賣廣播"><td>${refLabel(s.refine)}</td><td>${esc(s.unit||"—")}</td><td class="${s.buyMax!=null?"buy":"none"}">${s.buyMax!=null?tradeFmtNum(s.buyMax)+esc(s.unit):"—"}</td><td class="${s.sellMin!=null?"sell":"none"}">${s.sellMin!=null?tradeFmtNum(s.sellMin)+esc(s.unit):"—"}</td><td>${s.buyers.size}</td><td>${s.sellers.size}</td></tr>`).join("") +
+      `</tbody></table></div><p class="hint" style="color:#ffffff99;margin-top:6px">點表格任一列（或上方精煉值）可看該精煉的走勢圖與所有收購／販賣廣播。人數＝不同發話者數；統計只計有明確標價的資料，價格為玩家原文，未依數量換算。</p>`
+      : `<div class="empty" style="padding:18px">這段時間沒有標價資料可統計（請出價、未對應的不列入）。</div>`;
   }else{
     const groups = stats.filter(s=>s.refine===it.refine);
     statHTML = groups.length ? groups.map(s=>`<div class="ti-unit"><div class="ti-unit-title">${refLabel(s.refine)}｜${unitLabel(s.unit)}</div>
@@ -2306,7 +2308,7 @@ function tradeItemRender(){
         </div>
         ${tradeChartHTML(s)}
       </div>`).join("")
-      : `<div class="empty" style="padding:18px">${refLabel(it.refine)} 沒有可靠的標價資料可統計（請出價、未對應或 AI 判讀的不列入）。</div>`;
+      : `<div class="empty" style="padding:18px">${refLabel(it.refine)} 沒有標價資料可統計（請出價、未對應的不列入）。</div>`;
   }
   // 下方列表：收購／販賣（＋交換），顯示所有筆（含請出價）；選了精煉值則只列該精煉
   const listRows = it.refine==="all" ? rows : rows.filter(t=>refKey(t)===it.refine);
