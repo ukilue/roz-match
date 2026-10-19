@@ -194,6 +194,17 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .tr-item a:hover{color:var(--ro-blue);border-bottom-style:solid}
 .tr-item .raw{font-weight:900;color:#4a3d28;word-break:break-all}
 .tr-item .orig{font-size:12px;color:#8a7858}
+.tr-item .slots{font-weight:900;color:#4a3d28;margin-left:1px}
+.tr-exs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 5px;margin-top:2px}
+.tr-exs.small{margin-top:4px;justify-content:center}
+.tr-ex{display:inline-block;font-size:11.5px;font-weight:700;color:#fff;border-radius:3px;padding:1px 7px;line-height:17px;letter-spacing:.3px;word-break:break-all}
+.tr-ex.ex-card{background:var(--swap)} .tr-ex.ex-opt{background:var(--ro-blue)}
+.tr-ex i{font-style:normal;opacity:.85}
+.tr-exs.small .tr-ex{font-size:10.5px;padding:0 5px;line-height:16px}
+.tr-ex-more{font-family:inherit;font-size:11.5px;font-weight:700;color:#6b5a3a;background:#00000010;border:1px solid #00000033;border-radius:3px;padding:1px 7px;line-height:17px;cursor:pointer}
+.tr-exs .tr-ex-more,.tr-exs .tr-ex-rest{display:none}
+.tr-exs.fold .tr-ex-more{display:inline-block}
+.tr-exs:not(.fold) .tr-ex-rest{display:contents}
 .tr-tag{display:inline-block;font-size:10.5px;font-weight:900;border-radius:3px;padding:0 5px;line-height:16px;letter-spacing:1px;vertical-align:1px;cursor:help}
 .tr-tag.llm{color:#6a4fb0;background:#7B4FB31f;border:1px solid #7B4FB366}
 .tr-tag.none{color:#666;background:#00000010;border:1px solid #00000033}
@@ -259,6 +270,9 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .ti-r-main .who .ref{color:var(--sell-dark);font-weight:900;margin-right:4px}
 .ti-r-main .who .q{color:#6b5a3a;font-weight:400;font-size:12.5px;margin-left:4px}
 .ti-r .tr-msg{padding:7px 10px 9px;font-size:13.5px}
+.ti-r-ex{grid-column:1/-1;margin-top:-2px}
+.ti-r-ex .tr-exs{margin-top:0}
+.ti-tile .tr-exs.small{margin-top:5px}
 .ti-r.open .tr-msg{display:block}
 .ti-col .empty{padding:18px 10px;font-size:13px}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -529,7 +543,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .mvp-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}   /* 手機：一列 2 隻 */
   /* 交易：一筆交易改兩行（上：類型＋道具；下：數量＋價格靠右） */
   .tr-row{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"side item" "qty price";gap:4px 8px;padding:8px 10px;font-size:14.5px}
-  .tr-row .tr-side{grid-area:side} .tr-row .tr-item{grid-area:item} .tr-row .tr-qty{grid-area:qty;align-self:center} .tr-row .tr-price{grid-area:price}
+  .tr-row .tr-side{grid-area:side;justify-self:start} .tr-row .tr-item{grid-area:item} .tr-row .tr-qty{grid-area:qty;align-self:center} .tr-row .tr-price{grid-area:price;justify-self:end}
   .tr-head{padding:6px 10px;font-size:12px}
   .tr-list{grid-template-columns:1fr}
   .ti-name{font-size:19px}
@@ -731,7 +745,7 @@ button{touch-action:manipulation}
             <button class="bc-cat" data-v="2592000" onclick="tradeSetRange(2592000)">30 天</button>
           </div>
           <div class="bc-search">
-            <input id="trade-q" placeholder="🔍 搜尋道具名稱，例：賢者之石、鐵祝、卡片" oninput="tradeSearchInput()" autocomplete="off">
+            <input id="trade-q" placeholder="🔍 搜尋道具名稱、喊話原文或發話者，例：賢者之石、鐵祝、卡片" oninput="tradeSearchInput()" autocomplete="off">
             <button class="bc-clear" id="trade-clear" onclick="tradeClearSearch()" title="清除" style="display:none">✕</button>
           </div>
           <div class="tr-status">
@@ -2099,11 +2113,12 @@ function mvpRender(){
    每筆＝一個道具的一筆交易；同一則喊話（broadcast_id 相同）可能有多筆（seq 1,2,3…）。
    注意：price 是玩家原文數字（有人寫單價、有人寫總價），絕不依數量換算；不同 price_unit 絕不互換。 */
 const TRADES_API = API + "/trades";   // functions/api/trades.js：伺服器端轉呼叫 Worker，參數原樣轉送
-const TRADE_POLL_MS = 15000, TRADE_PAGE = 100, TRADE_KEEP_DAYS = 30;
+const TRADE_POLL_MS = 15000, TRADE_PAGE = 100, TRADE_PAGE_Q = 500, TRADE_KEEP_DAYS = 30;   // 有搜尋字時一頁抓 500 筆在前端過濾
 const TRADE_RELIABLE = new Set(["連結","精確","別名","LLM"]);   // 統計採用的對應方式（含 AI 判讀）；未對應只有原文、不列入
 const TRADE = {
   side:"", q:"", range:86400, items:[], seen:new Set(), hasMore:false, loading:false, timer:null, searchT:null,
   pending:[],            // 捲到下面時收到的新交易，先暫存、按「有 N 筆新交易」才插入
+  newestTs:0, oldestTs:0, // 已抓到的「所有」交易（含被搜尋字濾掉的）的時間邊界，供增量更新與載入更早使用
   itemId:null, itemDays:7, item:{ id:null, rows:[], refine:"all", pick:null, loading:false, seq:0 },
 };
 const tradeNow = () => Math.floor(Date.now()/1000);
@@ -2131,8 +2146,30 @@ function tradeItemHTML(t){
     return `<span class="tr-item">${ref}<span class="raw">${esc(t.item_text||t.item_name)}</span><span class="tr-tag none" title="找不到對應的道具，只顯示玩家原文">未對應</span></span>`;
   const orig = (t.item_text && t.item_text!==t.item_name) ? `<span class="orig">（${esc(t.item_text)}）</span>` : "";
   const tag = t.match_type==="LLM" ? `<span class="tr-tag llm" title="道具名稱由 AI 判讀，偶爾會選錯">AI</span>` : "";
-  return `<span class="tr-item">${ref}<a href="#trade/item/${Number(t.item_id)}" title="查看「${esc(t.item_name)}」近期行情">${esc(t.item_name)}</a>${orig}${tag}</span>`;
+  return `<span class="tr-item">${ref}<a href="#trade/item/${Number(t.item_id)}" title="查看「${esc(t.item_name)}」近期行情">${esc(t.item_name)}${tradeSlots(t)}</a>${orig}${tag}${tradeExtrasHTML(t)}</span>`;
 }
+// 附加能力：洞數接在名稱後（[1]）；卡片／附魔＝紫色標籤、隨機屬性＝藍色標籤；相同卡片合併顯示 ×N；手機超過 3 個收合
+const TRADE_EXTRA_MAX_MOBILE = 3;
+function tradeExtras(t){
+  const list = [];
+  const cnt = new Map();
+  for(const c of (t.cards||[])){ cnt.set(c, (cnt.get(c)||0)+1); }
+  for(const [c,n] of cnt) list.push({ cls:"ex-card", text:c, n });
+  for(const o of (t.options||[])) list.push({ cls:"ex-opt", text:o, n:1 });
+  return list;
+}
+function tradeExtrasHTML(t, small){
+  const list = tradeExtras(t); if(!list.length) return "";
+  const tag = x => `<span class="tr-ex ${x.cls}">${x.cls==="ex-card"?"🃏 ":"✦ "}${esc(x.text)}${x.n>1?` <i>×${x.n}</i>`:""}</span>`;
+  const mobile = window.matchMedia("(max-width:720px)").matches;
+  if(mobile && list.length > TRADE_EXTRA_MAX_MOBILE){
+    const hidden = list.length - TRADE_EXTRA_MAX_MOBILE;
+    return `<div class="tr-exs${small?" small":""} fold">${list.slice(0,TRADE_EXTRA_MAX_MOBILE).map(tag).join("")}<button class="tr-ex-more" onclick="event.stopPropagation();this.parentNode.classList.remove('fold')">+${hidden} 項附加能力</button><span class="tr-ex-rest">${list.slice(TRADE_EXTRA_MAX_MOBILE).map(tag).join("")}</span></div>`;
+  }
+  return `<div class="tr-exs${small?" small":""}">${list.map(tag).join("")}</div>`;
+}
+const tradeExtrasText = t => tradeExtras(t).map(x=> x.text + (x.n>1?"×"+x.n:"")).join("、");
+const tradeSlots = t => (t.slots!=null && Number(t.slots)>0) ? `<span class="slots">[${esc(t.slots)}]</span>` : "";
 const tradeQtyHTML = t => `<span class="tr-qty">${t.quantity!=null ? "×"+tradeFmtNum(t.quantity) : ""}</span>`;
 const tradeRowHTML = t => `<div class="tr-row"><span class="tr-side ${esc(t.side)}">${esc(t.side)}</span>${tradeItemHTML(t)}${tradeQtyHTML(t)}${tradePriceHTML(t)}</div>`;
 
@@ -2165,27 +2202,36 @@ function tradeClearSearch(){ $("trade-q").value=""; $("trade-clear").style.displ
 async function tradeFetch(params){
   const u = new URLSearchParams(params);
   if(TRADE.side) u.set("side", TRADE.side);
-  if(TRADE.q) u.set("q", TRADE.q);
+  // 搜尋字不送給 API（API 的 q 只比對道具名稱），改在前端比對 道具名稱／玩家原文／發話者／整句喊話
   const r = await fetch(TRADES_API+"?"+u.toString());
   if(r.status===401){ USER=null; loadUser(); throw new Error("401"); }
   if(!r.ok) throw new Error("HTTP "+r.status);
   const d = await r.json();
   return Array.isArray(d) ? d : (d.items||[]);
 }
+// 前端搜尋：不分大小寫，比對整理後的道具名稱、玩家原文、附加能力、發話者與整則喊話原文
+function tradeMatch(t, q){
+  if(!q) return true;
+  const hay = [t.item_name, t.item_text, t.sender, t.message, ...(t.cards||[]), ...(t.options||[])].join("\n").toLowerCase();
+  return hay.includes(q);
+}
+function tradeTrack(rows){ for(const t of rows){ if(!TRADE.newestTs || t.ts>TRADE.newestTs) TRADE.newestTs = t.ts; if(!TRADE.oldestTs || t.ts<TRADE.oldestTs) TRADE.oldestTs = t.ts; } }
 function tradeSort(arr){ return arr.sort((a,b)=> (b.ts-a.ts) || cmpStr(a.broadcast_id,b.broadcast_id) || (a.seq-b.seq)); }
 async function tradeLoad(reset){
   if(TRADE.loading) return;
   TRADE.loading = true;
   const more = $("trade-more"); more.disabled = true; more.textContent = "載入中…";
-  if(reset){ TRADE.items=[]; TRADE.seen=new Set(); TRADE.pending=[]; $("trade-newbar").style.display="none"; $("trade-list").innerHTML='<div class="bc-loading">載入中…</div>'; $("trade-empty").style.display="none"; }
+  if(reset){ TRADE.items=[]; TRADE.seen=new Set(); TRADE.pending=[]; TRADE.newestTs=0; TRADE.oldestTs=0; $("trade-newbar").style.display="none"; $("trade-list").innerHTML='<div class="bc-loading">載入中…</div>'; $("trade-empty").style.display="none"; }
   try{
-    const params = { limit: TRADE_PAGE, since: tradeNow() - TRADE.range };
-    if(!reset && TRADE.items.length) params.until = TRADE.items[TRADE.items.length-1].ts;   // until 含等於 → 以 id 去重
+    const q = TRADE.q.toLowerCase(), page = q ? TRADE_PAGE_Q : TRADE_PAGE;
+    const params = { limit: page, since: tradeNow() - TRADE.range };
+    if(!reset && TRADE.oldestTs) params.until = TRADE.oldestTs;   // until 含等於 → 以 id 去重
     const rows = await tradeFetch(params);
     let added = 0;
-    for(const t of rows){ if(!TRADE.seen.has(t.id)){ TRADE.seen.add(t.id); TRADE.items.push(t); added++; } }
+    for(const t of rows){ if(!TRADE.seen.has(t.id)){ TRADE.seen.add(t.id); added++; if(tradeMatch(t,q)) TRADE.items.push(t); } }
+    tradeTrack(rows);
     tradeSort(TRADE.items);
-    TRADE.hasMore = rows.length >= TRADE_PAGE && added > 0;
+    TRADE.hasMore = rows.length >= page && added > 0;
     $("trade-updated").textContent = "最後更新 "+new Date().toLocaleTimeString("zh-TW",{hour12:false});
     tradeRender();
   }catch(e){
@@ -2197,19 +2243,23 @@ async function tradeLoad(reset){
   more.style.display = TRADE.hasMore ? "" : "none";
 }
 async function tradePoll(){
-  if(TRADE.loading || !TRADE.items.length) return;
+  if(TRADE.loading || !TRADE.newestTs) return;
   try{
-    const rows = await tradeFetch({ limit: TRADE_PAGE, since: TRADE.items[0].ts });   // since 含等於 → 以 id 去重
+    const rows = await tradeFetch({ limit: TRADE_PAGE_Q, since: TRADE.newestTs || TRADE.items[0].ts });   // since 含等於 → 以 id 去重
+    const q = TRADE.q.toLowerCase();
     const fresh = rows.filter(t=>!TRADE.seen.has(t.id));
+    fresh.forEach(t=> TRADE.seen.add(t.id));
+    tradeTrack(rows);
     $("trade-updated").textContent = "最後更新 "+new Date().toLocaleTimeString("zh-TW",{hour12:false});
-    if(!fresh.length) return;
-    fresh.forEach(t=>{ TRADE.seen.add(t.id); t._new = true; });
+    const hits = fresh.filter(t=>tradeMatch(t,q));
+    if(!hits.length) return;
+    hits.forEach(t=>{ t._new = true; });
     if(window.scrollY > 240){   // 使用者正在往下看：不打斷，先暫存、顯示「有 N 筆新交易」
-      TRADE.pending = TRADE.pending.concat(fresh);
+      TRADE.pending = TRADE.pending.concat(hits);
       $("trade-newcount").textContent = TRADE.pending.length; $("trade-newbar").style.display = "";
       return;
     }
-    TRADE.items = tradeSort(fresh.concat(TRADE.items));
+    TRADE.items = tradeSort(hits.concat(TRADE.items));
     tradeRender();
   }catch(e){}
 }
@@ -2292,9 +2342,9 @@ function tradeStats(rows){
   for(const t of rows){
     if(!tradeStatRow(t)) continue;
     const k = refKey(t)+"|"+unitKey(t);
-    let s = m.get(k); if(!s){ s = { refine:refKey(t), unit:unitKey(t), buyMax:null, sellMin:null, nBuy:0, nSell:0, buyers:new Set(), sellers:new Set(), pts:[] }; m.set(k,s); }
-    if(t.side==="收購"){ s.nBuy++; s.buyers.add(t.sender); if(s.buyMax==null || t.price>s.buyMax) s.buyMax = t.price; }
-    else { s.nSell++; s.sellers.add(t.sender); if(s.sellMin==null || t.price<s.sellMin) s.sellMin = t.price; }
+    let s = m.get(k); if(!s){ s = { refine:refKey(t), unit:unitKey(t), buyMax:null, sellMin:null, nBuy:0, nSell:0, buyers:new Set(), sellers:new Set(), buyRow:null, sellRow:null, pts:[] }; m.set(k,s); }
+    if(t.side==="收購"){ s.nBuy++; s.buyers.add(t.sender); if(s.buyMax==null || t.price>s.buyMax){ s.buyMax = t.price; s.buyRow = t; } }
+    else { s.nSell++; s.sellers.add(t.sender); if(s.sellMin==null || t.price<s.sellMin){ s.sellMin = t.price; s.sellRow = t; } }
     s.pts.push(t);
   }
   const refOrder = (a,b)=> (a==="none")-(b==="none") || Number(a)-Number(b);
@@ -2327,8 +2377,8 @@ function tradeItemRender(){
     const groups = stats.filter(s=>s.refine===it.refine);
     statHTML = groups.length ? groups.map(s=>`<div class="ti-unit"><div class="ti-unit-title">${refLabel(s.refine)}｜${unitLabel(s.unit)}</div>
         <div class="ti-tiles">
-          <div class="ti-tile buy"><b>最高收購價</b><div class="v${s.buyMax==null?" none":""}">${s.buyMax!=null?tradeFmtNum(s.buyMax)+`<span class="u">${esc(s.unit)}</span>`:"沒有收購標價"}</div><small>${s.nBuy} 筆收購</small></div>
-          <div class="ti-tile sell"><b>最低販賣價</b><div class="v${s.sellMin==null?" none":""}">${s.sellMin!=null?tradeFmtNum(s.sellMin)+`<span class="u">${esc(s.unit)}</span>`:"沒有販賣標價"}</div><small>${s.nSell} 筆販賣</small></div>
+          <div class="ti-tile buy"><b>最高收購價</b><div class="v${s.buyMax==null?" none":""}">${s.buyMax!=null?tradeFmtNum(s.buyMax)+`<span class="u">${esc(s.unit)}</span>`:"沒有收購標價"}</div><small>${s.nBuy} 筆收購${s.buyRow?"・"+tradeRel(s.buyRow.ts)+"・"+esc(s.buyRow.sender):""}</small>${s.buyRow?tradeExtrasHTML(s.buyRow,true):""}</div>
+          <div class="ti-tile sell"><b>最低販賣價</b><div class="v${s.sellMin==null?" none":""}">${s.sellMin!=null?tradeFmtNum(s.sellMin)+`<span class="u">${esc(s.unit)}</span>`:"沒有販賣標價"}</div><small>${s.nSell} 筆販賣${s.sellRow?"・"+tradeRel(s.sellRow.ts)+"・"+esc(s.sellRow.sender):""}</small>${s.sellRow?tradeExtrasHTML(s.sellRow,true):""}</div>
           <div class="ti-tile"><b>最新收購</b>${tradeLatestTile(s.pts,"收購",s.unit)}</div>
           <div class="ti-tile"><b>最新販賣</b>${tradeLatestTile(s.pts,"販賣",s.unit)}</div>
         </div>
@@ -2342,7 +2392,7 @@ function tradeItemRender(){
     const arr = listRows.filter(t=>t.side===side);
     return `<div class="ti-col ${cls}"><div class="ti-col-head">${title}<small>${arr.length} 筆</small></div>
       ${arr.length ? `<div class="ti-rows">${arr.map(t=>`<div class="ti-r" style="--c:var(--${cls})" onclick="this.classList.toggle('open')">
-        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${t.refine!=null?`<span class="ref">+${esc(t.refine)}</span>`:""}${esc(t.sender)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}</div>
+        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${t.refine!=null?`<span class="ref">+${esc(t.refine)}</span>`:""}${esc(t.sender)}${tradeSlots(t)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}${tradeExtrasHTML(t)?`<div class="ti-r-ex">${tradeExtrasHTML(t)}</div>`:""}</div>
         <div class="tr-msg">${esc(t.message)}</div></div>`).join("")}</div>` : `<div class="empty">沒有${title}紀錄</div>`}
     </div>`;
   };
@@ -2375,7 +2425,7 @@ function tradeCurRender(){
 function tradeLatestTile(pts, side, unit){
   const t = pts.filter(p=>p.side===side)[0];   // pts 已依時間新→舊
   if(!t) return `<div class="v none">—</div><small>&nbsp;</small>`;
-  return `<div class="v">${tradeFmtNum(t.price)}<span class="u">${esc(unit)}</span></div><small>${tradeRel(t.ts)}・${esc(t.sender)}${t.quantity!=null?"・×"+tradeFmtNum(t.quantity):""}</small>`;
+  return `<div class="v">${tradeFmtNum(t.price)}<span class="u">${esc(unit)}</span></div><small>${tradeRel(t.ts)}・${esc(t.sender)}${t.quantity!=null?"・×"+tradeFmtNum(t.quantity):""}</small>${tradeExtrasHTML(t,true)}`;
 }
 /* 走勢圖：純 SVG，X＝時間、Y＝價格（同一單位）；收購綠、販賣紅；有寫數量的點用空心（價格可能是總價） */
 function tradeChartHTML(s){
@@ -2398,14 +2448,14 @@ function tradeChartHTML(s){
     ${yTicks.map(v=>`<line class="axis" x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tick" x="${L-6}" y="${Y(v)+4}" text-anchor="end">${fmtTick(v)}</text>`).join("")}
     ${xTicks.map(ts=>`<text class="tick" x="${X(ts)}" y="${H-B+16}" text-anchor="middle">${mvpFmt(ts).slice(0,5)}</text>`).join("")}
     <line class="axis" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/>
-    ${pts.slice().reverse().map(p=>`<circle class="${p.side==="收購"?"buy":"sell"}${p.quantity!=null?" qty":""}${sel===p.id?" sel":""}" cx="${X(p.ts).toFixed(1)}" cy="${Y(p.price).toFixed(1)}" r="${sel===p.id?6:4.5}" onclick="tradeChartPick(${p.id})"><title>${esc(p.side)} ${tradeFmtNum(p.price)}${esc(s.unit)}${p.quantity!=null?" ×"+tradeFmtNum(p.quantity):""}｜${refLabel(refKey(p))}｜${mvpFmt(p.ts)}｜${esc(p.sender)}</title></circle>`).join("")}
+    ${pts.slice().reverse().map(p=>`<circle class="${p.side==="收購"?"buy":"sell"}${p.quantity!=null?" qty":""}${sel===p.id?" sel":""}" cx="${X(p.ts).toFixed(1)}" cy="${Y(p.price).toFixed(1)}" r="${sel===p.id?6:4.5}" onclick="tradeChartPick(${p.id})"><title>${esc(p.side)} ${tradeFmtNum(p.price)}${esc(s.unit)}${p.quantity!=null?" ×"+tradeFmtNum(p.quantity):""}｜${refLabel(refKey(p))}｜${mvpFmt(p.ts)}｜${esc(p.sender)}${tradeExtrasText(p)?"｜"+esc(tradeExtrasText(p)):""}</title></circle>`).join("")}
   </svg>`;
   const picked = sel!=null ? pts.find(p=>p.id===sel) : null;
   const pickHTML = picked
-    ? `<b>${esc(picked.side)}</b> ${tradeFmtNum(picked.price)}${esc(s.unit)}${picked.quantity!=null?" ×"+tradeFmtNum(picked.quantity):""}｜${mvpFmt(picked.ts)}｜${esc(picked.sender)}<br><span style="color:#6b5a3a;font-size:12.5px">${esc(picked.message)}</span>`
+    ? `<b>${esc(picked.side)}</b> ${tradeFmtNum(picked.price)}${esc(s.unit)}${picked.quantity!=null?" ×"+tradeFmtNum(picked.quantity):""}｜${mvpFmt(picked.ts)}｜${esc(picked.sender)}${tradeExtrasHTML(picked)}<span style="color:#6b5a3a;font-size:12.5px">${esc(picked.message)}</span>`
     : `點圖上的點可看該筆明細`;
   return `<div class="ti-chart">${svg}
-    <div class="ti-legend"><span><i style="--c:var(--buy)"></i>收購</span><span><i style="--c:var(--sell)"></i>販賣</span><span><i class="hollow" style="--c:#7A6845"></i>有寫數量（價格可能是總價）</span><span>Y 軸：${esc(s.unit)||"玩家寫的數字"}，未換算</span></div>
+    <div class="ti-legend"><span><i style="--c:var(--buy)"></i>收購</span><span><i style="--c:var(--sell)"></i>販賣</span><span><i class="hollow" style="--c:#7A6845"></i>有寫數量（價格可能是總價）</span><span>Y 軸：${esc(s.unit)||"玩家寫的數字（無單位）"}，不同單位分開、未換算</span></div>
     <div class="ti-pick">${pickHTML}</div></div>`;
 }
 // 視窗寬度跨過手機／PC 斷點時重排兩欄
