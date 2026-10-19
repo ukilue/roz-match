@@ -197,6 +197,11 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .tr-tag{display:inline-block;font-size:10.5px;font-weight:900;border-radius:3px;padding:0 5px;line-height:16px;letter-spacing:1px;vertical-align:1px;cursor:help}
 .tr-tag.llm{color:#6a4fb0;background:#7B4FB31f;border:1px solid #7B4FB366}
 .tr-tag.none{color:#666;background:#00000010;border:1px solid #00000033}
+.tr-tag.cur{color:#8a5a10;background:#D9A44126;border:1px solid var(--gold)}
+.tr-price.cur{color:#8a5a10;font-size:15px}
+.bc-cat.cur{border-color:var(--gold);color:#8a5a10;background:#FFF8E6}
+.cur-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.cur-tiles .ti-tile .v{font-size:18px}
 .tr-qty{font-size:13.5px;color:#6b5a3a;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tr-price{font-weight:900;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;color:#3a2f1c}
 .tr-price .u{font-size:12.5px;margin-left:1px;color:#7A6845}
@@ -536,6 +541,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   #ti-days{margin:0;width:100%} #ti-days .bc-cat{flex:1 1 0}
   /* 交易篩選晶片：手機上各一列排滿，省空間 */
   #trade-sides .bc-cat,#trade-sides .bc-cat.all{flex:1 1 0;padding:7px 4px;font-size:13px;min-height:36px}
+  #trade-sides .bc-cat.cur{flex-basis:100%;margin-left:0;text-align:center}
   #trade-ranges .bc-cat{flex:1 1 0;padding:7px 2px;font-size:12.5px;min-height:36px;letter-spacing:0}
   #trade-sides,#trade-ranges{gap:5px}
   .ti-refs .bc-cat,.ti-refs .bc-cat.all{flex:0 1 auto;padding:7px 12px}
@@ -715,6 +721,7 @@ button{touch-action:manipulation}
             <button class="bc-cat" data-v="收購" style="--c:var(--buy)" onclick="tradeSetSide('收購')"><span class="dot"></span>收購</button>
             <button class="bc-cat" data-v="販賣" style="--c:var(--sell)" onclick="tradeSetSide('販賣')"><span class="dot"></span>販賣</button>
             <button class="bc-cat" data-v="交換" style="--c:var(--swap)" onclick="tradeSetSide('交換')"><span class="dot"></span>交換</button>
+            <a class="bc-cat cur" href="#trade/currency" style="--c:var(--gold);text-decoration:none;margin-left:auto">💱 R幣匯率專區</a>
           </div>
           <div class="bc-cats" id="trade-ranges">
             <button class="bc-cat" data-v="3600" onclick="tradeSetRange(3600)">1 小時</button>
@@ -1364,8 +1371,8 @@ const PARTY_VIEWS = ["home","mine","all"];
 function showView(v){
   // 交易買賣：#trade（列表）或 #trade/item/{item_id}（道具頁）
   let tradeItem = null;
-  const tm = /^trade(?:\/item\/(\d+))?$/.exec(v||"");
-  if(tm){ tradeItem = tm[1] ? Number(tm[1]) : null; v = "trade"; }
+  const tm = /^trade(?:\/item\/(\d+)|\/(currency))?$/.exec(v||"");
+  if(tm){ tradeItem = tm[2] ? "currency" : (tm[1] ? Number(tm[1]) : null); v = "trade"; }
   if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade") v = "home";
   if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
@@ -1388,7 +1395,7 @@ function showView(v){
   if(v==="mvp") mvpEnter(); else mvpLeave();
   if(v==="trade") tradeEnter(tradeItem); else tradeLeave();
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
-  const hash = (v==="trade" && tradeItem) ? "#trade/item/"+tradeItem : "#"+v;
+  const hash = (v==="trade" && tradeItem) ? (tradeItem==="currency" ? "#trade/currency" : "#trade/item/"+tradeItem) : "#"+v;
   if(location.hash !== hash) history.replaceState(null, "", hash);
   trackPage(v);
   window.scrollTo({top:0});
@@ -2107,15 +2114,19 @@ const tradeRel = ts => {
   if(d < 86400) return Math.floor(d/3600)+" 小時前";
   return Math.floor(d/86400)+" 天前";
 };
-const tradeFmtNum = n => (Math.round(n*100)/100).toLocaleString("en-US");
+const tradeFmtNum = n => Number(n).toLocaleString("en-US",{maximumFractionDigits:4});   // 小數原樣保留（例如 3.5）
 // 價格顯示：標價＝數字＋單位（不換算）；買方出價或沒寫價格＝請出價
 function tradePriceHTML(t){
+  // 貨幣（R幣）的金額是比例（例如 1:10w），直接顯示原文最不會誤解
+  if(t.match_type==="貨幣" && t.price_text && t.price_type!=="買方出價") return `<span class="tr-price cur" title="R幣匯率，玩家原文">${esc(t.price_text)}</span>`;
   if(t.price_type==="買方出價") return `<span class="tr-price ask" title="${esc(t.price_text||"")}（請買方開價）">請出價</span>`;
   if(t.price==null) return `<span class="tr-price ask" title="沒有寫價格，請向對方詢價">請出價</span>`;
   return `<span class="tr-price" title="原文：${esc(t.price_text||"")}">${tradeFmtNum(t.price)}<span class="u">${esc(t.price_unit||"")}</span></span>`;
 }
 function tradeItemHTML(t){
   const ref = t.refine!=null ? `<span class="ref">+${esc(t.refine)}</span>` : "";
+  if(t.match_type==="貨幣")   // R幣等貨幣：不在道具表，連到匯率專區
+    return `<span class="tr-item"><a href="#trade/currency" title="查看 R幣匯率專區">${esc(t.item_name||t.item_text)}</a><span class="tr-tag cur" title="貨幣：價格通常是比例，顯示玩家原文">貨幣</span></span>`;
   if(t.match_type==="未對應" || t.item_id==null)
     return `<span class="tr-item">${ref}<span class="raw">${esc(t.item_text||t.item_name)}</span><span class="tr-tag none" title="找不到對應的道具，只顯示玩家原文">未對應</span></span>`;
   const orig = (t.item_text && t.item_text!==t.item_name) ? `<span class="orig">（${esc(t.item_text)}）</span>` : "";
@@ -2251,13 +2262,16 @@ async function tradeItemLoad(silent){
     tradeSyncChips("ti-days", String(TRADE.itemDays));
   }
   try{
-    const u = new URLSearchParams({ item_id:id, limit:500, since: tradeNow() - TRADE.itemDays*86400 });
+    const u = id==="currency"
+      ? new URLSearchParams({ q:"R幣", limit:500, since: tradeNow() - TRADE.itemDays*86400 })
+      : new URLSearchParams({ item_id:id, limit:500, since: tradeNow() - TRADE.itemDays*86400 });
     const r = await fetch(TRADES_API+"?"+u.toString());
     if(r.status===401){ USER=null; loadUser(); return; }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d = await r.json();
     if(seq!==TRADE.item.seq || TRADE.itemId!==id) return;   // 期間已切換道具／範圍
-    const rows = (Array.isArray(d)?d:(d.items||[])).filter(t=>Number(t.item_id)===Number(id));
+    const all = Array.isArray(d)?d:(d.items||[]);
+    const rows = id==="currency" ? all.filter(t=>t.match_type==="貨幣") : all.filter(t=>Number(t.item_id)===Number(id));
     const sig = rows.length+":"+(rows[0]?rows[0].id:"");
     if(silent && sig===TRADE.item.sig) return;   // 沒有新資料就不重畫（保留展開狀態）
     TRADE.item.rows = tradeSort(rows); TRADE.item.loading = false; TRADE.item.sig = sig;
@@ -2289,6 +2303,7 @@ function tradeStats(rows){
 }
 function tradeItemRender(){
   if(currentView!=="trade" || !TRADE.itemId) return;
+  if(TRADE.itemId==="currency") return tradeCurRender();
   const rows = TRADE.item.rows, it = TRADE.item;
   const nameRow = rows.find(t=>TRADE_RELIABLE.has(t.match_type)) || rows[0];
   $("ti-name").innerHTML = nameRow ? `${esc(nameRow.item_name)}<small>#${esc(TRADE.itemId)}</small>` : `道具 #${esc(TRADE.itemId)}`;
@@ -2336,6 +2351,26 @@ function tradeItemRender(){
     `<div class="ti-sec">近期交易<small>最近 ${TRADE.itemDays} 天，共 ${listRows.length} 筆；點一筆可看喊話全文</small></div>
      <div class="ti-cols">${col("buy","收購","收購")}${col("sell","販賣","販賣")}</div>` +
     (swaps.length ? `<div class="ti-cols" style="margin-top:14px;grid-template-columns:1fr">${col("swap","交換","交換")}</div>` : "");
+}
+/* R幣匯率專區：match_type＝貨幣 的交易；金額是比例（1:10w），一律顯示玩家原文，不做統計、不畫圖 */
+function tradeCurRender(){
+  const rows = TRADE.item.rows;
+  $("ti-name").innerHTML = `💱 R幣匯率<small>收購／販賣 R幣的喊話</small>`;
+  if(!rows.length){ $("ti-body").innerHTML = `<div class="empty">最近 ${TRADE.itemDays} 天沒有 R幣的交易喊話。</div>`; return; }
+  const latest = side => rows.find(t=>t.side===side);
+  const tile = (cls, title, t) => `<div class="ti-tile ${cls}"><b>${title}</b>${t ? `<div class="v">${t.price_type==="買方出價"||!t.price_text ? "請出價" : esc(t.price_text)}</div><small>${tradeRel(t.ts)}・${esc(t.sender)}${t.quantity!=null?"・×"+tradeFmtNum(t.quantity):""}</small>` : `<div class="v none">—</div><small>&nbsp;</small>`}</div>`;
+  const col = (cls, title, side) => {
+    const arr = rows.filter(t=>t.side===side);
+    return `<div class="ti-col ${cls}"><div class="ti-col-head">${title} R幣<small>${arr.length} 筆</small></div>
+      ${arr.length ? `<div class="ti-rows">${arr.map(t=>`<div class="ti-r" style="--c:var(--${cls})" onclick="this.classList.toggle('open')">
+        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${esc(t.sender)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}</div>
+        <div class="tr-msg">${esc(t.message)}</div></div>`).join("")}</div>` : `<div class="empty">沒有${title}紀錄</div>`}
+    </div>`;
+  };
+  $("ti-body").innerHTML =
+    `<div class="cur-tiles">${tile("buy","最新收購 R幣",latest("收購"))}${tile("sell","最新販賣 R幣",latest("販賣"))}</div>
+     <p class="hint" style="color:#ffffff99;margin-bottom:10px">匯率為玩家原文（例如「1:10w」＝1 R幣換 10 萬），不做換算或統計；最近 ${TRADE.itemDays} 天共 ${rows.length} 筆，點一筆可看喊話全文。</p>
+     <div class="ti-cols">${col("buy","收購","收購")}${col("sell","販賣","販賣")}</div>`;
 }
 function tradeLatestTile(pts, side, unit){
   const t = pts.filter(p=>p.side===side)[0];   // pts 已依時間新→舊
