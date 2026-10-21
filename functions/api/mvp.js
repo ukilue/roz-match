@@ -13,13 +13,15 @@ export async function onRequestGet({ request, env }) {
   if (!user) return needLogin();
   if (!(await mvpAllowed(env, user.id))) return json({ error: "沒有查看 MVP 資訊的權限" }, 403);
   const now = Math.floor(Date.now() / 1000);
+  // server：伺服器名稱（必帶）。各伺服器的 MVP 死亡／重生時間獨立，只用該伺服器的訊息計算
+  const server = (new URL(request.url).searchParams.get("server") || "").trim().slice(0, 40);
   let rows = [];
   try {
-    const r = await env.DB
-      .prepare(`SELECT ts, message FROM broadcasts
-                WHERE category = 'MVP資訊' OR message LIKE '%棲息地的MVP%'
-                ORDER BY ts DESC LIMIT ?`)
-      .bind(MAX_ROWS).all();
+    const sql = `SELECT ts, message FROM broadcasts
+                 WHERE (category = 'MVP資訊' OR message LIKE '%棲息地的MVP%')${server ? " AND server = ?" : ""}
+                 ORDER BY ts DESC LIMIT ?`;
+    const stmt = server ? env.DB.prepare(sql).bind(server, MAX_ROWS) : env.DB.prepare(sql).bind(MAX_ROWS);
+    const r = await stmt.all();
     rows = r.results || [];
   } catch (e) {
     console.log("mvp query failed:", e && e.message);

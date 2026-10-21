@@ -5,6 +5,7 @@
 //   q      關鍵字（比對訊息內容與發話者，不分大小寫；最多 60 字）
 //   before 只取 ts 小於此值（Unix 秒）的訊息，用於「載入更多」
 //   limit  一次幾筆（1～100，預設 50）
+//   server 伺服器名稱（必帶；資料表的 server 欄位，由 Worker 寫入）
 // 只回傳最近 7 天內的訊息，依時間新→舊。回傳 { items:[{id, ts, type, sender, message, category}], hasMore, since }
 import { json, getSession, needLogin } from "./_auth.js";
 
@@ -25,10 +26,12 @@ export async function onRequestGet({ request, env }) {
   const q = (url.searchParams.get("q") || "").trim().slice(0, 60);
   const before = Number(url.searchParams.get("before")) || 0;
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit")) || 50));
+  const server = (url.searchParams.get("server") || "").trim().slice(0, 40);
   const since = Math.floor(Date.now() / 1000) - BC_DAYS * 86400;
 
   const where = ["ts >= ?"];
   const args = [since];
+  if (server) { where.push("server = ?"); args.push(server); }
   if (BC_CATS.includes(cat)) { where.push("category = ?"); args.push(cat); }
   else { where.push("(category IS NULL OR category != ?)"); args.push(BC_HIDDEN); }   // 全部：排除 MVP 資訊
   if (before > 0) { where.push("ts < ?"); args.push(before); }

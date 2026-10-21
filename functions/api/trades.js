@@ -2,12 +2,12 @@
 // 交易資料由另一個 Worker（ro-broadcast）的 /trades 提供；前端若直接跨網域呼叫會被瀏覽器 CORS 擋下，
 // 因此改由這支 Pages Function 在伺服器端轉呼叫，再把 JSON 原樣回給前端（同網域，不涉及 CORS）。
 // 順便做到：未登入回 401（與廣播／MVP 頁一致）、只放行白名單內的查詢參數。
-// 參數（原樣轉給 Worker）：side、q、item_id、since、until、limit
+// 參數（原樣轉給 Worker）：server、side、q、item_id、since、until、limit
 // Worker 網址可用環境變數 TRADES_API 覆寫（Pages 專案設定 → 環境變數），預設為下方常數。
 import { json, getSession, needLogin } from "./_auth.js";
 
 const DEFAULT_TRADES_API = "https://ro-broadcast.ukilue727.workers.dev/trades";
-const ALLOWED = ["side", "q", "item_id", "since", "until", "limit"];
+const ALLOWED = ["server", "side", "q", "item_id", "since", "until", "limit"];
 
 export async function onRequestGet({ request, env }) {
   if (!(await getSession(request, env))) return needLogin();

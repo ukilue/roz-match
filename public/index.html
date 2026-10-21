@@ -165,6 +165,14 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .mvp-card.alive .mvp-bar i{background:var(--green)}
 .mvp-card.soon .mvp-bar i{background:var(--gold)}
 .mvp-killed{font-size:11px;color:#8a7858;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+/* ── 伺服器切換（廣播／交易／MVP 各頁頂端） ── */
+.srv-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-bottom:12px}
+.srv-label{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;text-shadow:1px 1px 0 #00000088;white-space:nowrap}
+.srv-chips{margin-bottom:0}
+.srv-chips .bc-cat{background:#ffffff14;color:#fff;border-color:#ffffff66}
+.srv-chips .bc-cat.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
+.srv-chips .bc-cat small{font-size:11px;opacity:.75;margin-left:4px;letter-spacing:0}
+.srv-tag{display:inline-block;font-size:11.5px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 8px;letter-spacing:1px;margin-left:8px;vertical-align:2px;white-space:nowrap}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -553,6 +561,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ti-r-main{grid-template-columns:auto minmax(0,1fr);font-size:13.5px}
   .ti-r-main .tr-price{grid-column:1/-1;text-align:left}
   #ti-days{margin:0;width:100%} #ti-days .bc-cat{flex:1 1 0}
+  .srv-bar{gap:6px 10px;margin-bottom:10px}
+  .srv-chips{flex:1 1 auto;gap:6px}
+  .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
   /* 交易篩選晶片：手機上各一列排滿，省空間 */
   #trade-sides .bc-cat,#trade-sides .bc-cat.all{flex:1 1 0;padding:7px 4px;font-size:13px;min-height:36px}
   #trade-sides .bc-cat.cur{flex-basis:100%;margin-left:0;text-align:center}
@@ -695,13 +706,14 @@ button{touch-action:manipulation}
 
   <!-- ═══ 廣播訊息（不需登入） ═══ -->
   <section class="view" id="view-bc">
+    <div class="srv-bar" id="bc-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="login-bar gate-login" id="bc-login" style="display:none">
       <span>🔐 廣播訊息需先登入 Discord 才能查看。</span>
       <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
     </div>
     <div class="gate-body" id="bc-body">
     <div class="panel">
-      <div class="panel-title"><span>📢 廣播訊息</span> <small>遊戲內廣播，只顯示最近 7 天，由新到舊（需登入 Discord）</small></div>
+      <div class="panel-title"><span>📢 廣播訊息<span class="srv-tag" data-srv-tag></span></span> <small>遊戲內廣播，只顯示最近 7 天，由新到舊（需登入 Discord）</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="bc-cats" id="bc-cats"></div>
         <div class="bc-search">
@@ -719,6 +731,7 @@ button{touch-action:manipulation}
 
   <!-- ═══ 交易買賣（需登入；資料來自 ro-broadcast Worker 的 /trades API） ═══ -->
   <section class="view" id="view-trade">
+    <div class="srv-bar" id="trade-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="login-bar gate-login" id="trade-login" style="display:none">
       <span>🔐 交易買賣需先登入 Discord 才能查看。</span>
       <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
@@ -728,7 +741,7 @@ button{touch-action:manipulation}
     <!-- 交易列表 -->
     <div class="subview" id="trade-list-view">
       <div class="panel">
-        <div class="panel-title"><span>💰 交易買賣</span> <small>從廣播喊話解析出的收購／販賣／交換，一則喊話可能拆成多筆</small></div>
+        <div class="panel-title"><span>💰 交易買賣<span class="srv-tag" data-srv-tag></span></span> <small>從廣播喊話解析出的收購／販賣／交換，一則喊話可能拆成多筆</small></div>
         <div class="panel-body" style="padding:14px 18px">
           <div class="bc-cats" id="trade-sides">
             <button class="bc-cat all active" data-v="" onclick="tradeSetSide('')">全部</button>
@@ -779,6 +792,7 @@ button{touch-action:manipulation}
 
   <!-- ═══ MVP 資訊（需登入且帳號在 mvp_viewers 表內） ═══ -->
   <section class="view" id="view-mvp">
+    <div class="srv-bar" id="mvp-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="open-banner" id="mvp-open-banner" style="display:none">🎉 <b>限時開放查詢</b>：目前所有登入 Discord 的玩家都可以查看 MVP 資訊，開放期間結束後將恢復為授權帳號限定。</div>
     <div class="login-bar gate-login" id="mvp-login" style="display:none">
       <span>🔐 MVP 資訊需先登入 Discord 才能查看。</span>
@@ -786,7 +800,7 @@ button{touch-action:manipulation}
     </div>
     <div class="gate-body" id="mvp-body">
     <div class="panel">
-      <div class="panel-title"><span>👑 MVP 資訊</span> <small>依騎士團偵查隊報告整理；PK 棲息地 2 小時重生、一般棲息地 3 小時重生</small></div>
+      <div class="panel-title"><span>👑 MVP 資訊<span class="srv-tag" data-srv-tag></span></span> <small>依騎士團偵查隊報告整理；PK 棲息地 2 小時重生、一般棲息地 3 小時重生</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="bc-cats" id="mvp-filters">
           <button class="bc-cat all active" data-h="" onclick="mvpSetFilter('')">全部</button>
@@ -1929,6 +1943,7 @@ async function bcFetch(params){
   if(BC.cat) u.set("cat", BC.cat);
   if(BC.q) u.set("q", BC.q);
   if(params && params.before) u.set("before", String(params.before));
+  u.set("server", SRV.cur);
   const r = await fetch(API+"/broadcasts?"+u.toString());
   if(r.status===401){ USER=null; loadUser(); throw new Error("login"); }
   if(!r.ok) throw new Error("http "+r.status);
@@ -2027,7 +2042,7 @@ const MVP_SOON_SEC = 15*60;    // 15 分鐘內重生＝「即將重生」
 async function mvpLoad(){
   if(!mvpVisible() || needLoginGate()) return;
   try{
-    const r = await fetch(API+"/mvp");
+    const r = await fetch(API+"/mvp?server="+encodeURIComponent(SRV.cur));
     if(r.status===401){ USER=null; loadUser(); return; }
     if(r.status===403){ toast("沒有查看 MVP 資訊的權限"); USER.mvp=false; updateNavMine(); return; }
     if(!r.ok) throw 0;
@@ -2107,6 +2122,58 @@ function mvpRender(){
   box.innerHTML =
     col("alive", "存活中", "剛重生的排前面", alive, "目前沒有存活中的 MVP") +
     col("dead",  "等待重生", "快重生的排前面", dead, "目前沒有等待重生的 MVP");
+}
+
+/* ─── 伺服器切換 ───
+   清單來自 GET /api/servers（代理 Worker 的 /servers，不寫死名稱、「未設定」不顯示）。
+   目前選擇：網址 ?server= → localStorage → 清單第一個（最近有資料的）。廣播／交易／MVP 各頁頂端都有切換晶片，
+   切換時清掉該些頁的資料與增量更新邊界後重新載入；揪團頁不分伺服器。 */
+const SRV = { list:[], cur:"", timer:null, ready:false };
+const SRV_KEY = "ro_server";
+async function serversLoad(){
+  try{
+    const r = await fetch(API+"/servers");
+    const d = r.ok ? await r.json() : { items:[] };
+    SRV.list = (d.items||[]).filter(x=>x && x.server && x.server!=="未設定");
+  }catch(e){ SRV.list = SRV.list || []; }
+  const names = SRV.list.map(x=>x.server);
+  const fromUrl = new URLSearchParams(location.search).get("server") || "";
+  let saved = ""; try{ saved = localStorage.getItem(SRV_KEY) || ""; }catch(e){}
+  const pick = [fromUrl, SRV.cur, saved].find(n=> n && names.includes(n)) || names[0] || "";
+  serverApply(pick, !SRV.ready);   // 第一次只設定、不重載；之後若目前伺服器從清單消失才會切換並重載
+  SRV.ready = true;
+  if(!SRV.timer) SRV.timer = setInterval(serversLoad, 10*60*1000);   // 每 10 分鐘重抓，新伺服器上線會自動出現
+}
+function serverApply(name, silent){
+  const changed = name !== SRV.cur;
+  SRV.cur = name;
+  try{ if(name) localStorage.setItem(SRV_KEY, name); }catch(e){}
+  // 網址 ?server=（放在 hash 之前，不影響 #hash 路由）；沒有伺服器時移除
+  const want = name ? "?server="+encodeURIComponent(name) : "";
+  if(location.search !== want) history.replaceState(null, "", location.pathname + want + location.hash);
+  serverRenderChips();
+  if(changed && !silent) serverReload();
+}
+function setServer(name){ if(name && name!==SRV.cur) serverApply(name, false); }
+function serverRenderChips(){
+  const html = SRV.list.map(x=>`<button class="bc-cat${x.server===SRV.cur?" active":""}" onclick="setServer('${esc(x.server).replace(/'/g,"\\'")}')">${esc(x.server)}</button>`).join("");
+  ["bc-servers","trade-servers","mvp-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
+  document.querySelectorAll("[data-srv-tag]").forEach(e=>{ e.textContent = SRV.cur ? "🌐 "+SRV.cur : ""; e.style.display = SRV.cur ? "" : "none"; });
+}
+// 切換伺服器：清掉廣播／交易／MVP 的資料與增量邊界，重新載入目前所在的頁
+function serverReload(){
+  // 廣播
+  bcLeave(); BC.items = []; BC.seen = new Set(); BC.hasMore = false; BC.entered = false; BC.loading = false;
+  // 交易列表與道具頁
+  tradeLeave(); TRADE.items = []; TRADE.seen = new Set(); TRADE.pending = []; TRADE.newestTs = 0; TRADE.oldestTs = 0; TRADE.hasMore = false; TRADE.loading = false;
+  TRADE.item = { id:null, rows:[], refine:"all", pick:null, loading:false, seq:(TRADE.item.seq||0)+1, sig:"" };
+  const nb = $("trade-newbar"); if(nb) nb.style.display = "none";
+  // MVP
+  mvpLeave(); MVP.items = []; MVP.loaded = false;
+  if(currentView==="bc") bcEnter();
+  else if(currentView==="trade") tradeEnter(TRADE.itemId);
+  else if(currentView==="mvp") mvpEnter();
+  toast("已切換到「"+SRV.cur+"」");
 }
 
 /* ─── 交易買賣（需登入；資料來自 ro-broadcast Worker 的 /trades，經同網域的 /api/trades 代理轉呼叫以避開 CORS） ───
@@ -2201,6 +2268,7 @@ function tradeSearchInput(){
 function tradeClearSearch(){ $("trade-q").value=""; $("trade-clear").style.display="none"; if(TRADE.q){ TRADE.q=""; tradeLoad(true); } $("trade-q").focus(); }
 async function tradeFetch(params){
   const u = new URLSearchParams(params);
+  u.set("server", SRV.cur);
   if(TRADE.side) u.set("side", TRADE.side);
   // 搜尋字不送給 API（API 的 q 只比對道具名稱），改在前端比對 道具名稱／玩家原文／發話者／整句喊話
   const r = await fetch(TRADES_API+"?"+u.toString());
@@ -2315,6 +2383,7 @@ async function tradeItemLoad(silent){
     const u = id==="currency"
       ? new URLSearchParams({ q:"R幣", limit:500, since: tradeNow() - TRADE.itemDays*86400 })
       : new URLSearchParams({ item_id:id, limit:500, since: tradeNow() - TRADE.itemDays*86400 });
+    u.set("server", SRV.cur);
     const r = await fetch(TRADES_API+"?"+u.toString());
     if(r.status===401){ USER=null; loadUser(); return; }
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -2534,11 +2603,12 @@ async function refresh(){
   setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的出發時間
   const firstView = location.hash.replace(/^#\/?/, "") || "home";
   if(firstView==="mvp") PENDING_VIEW = "mvp";
+  await serversLoad();          // 伺服器清單（不需登入）先到手，各頁才知道要帶哪個 server
   showView(firstView);
   // OAuth 回跳結果提示
   const auth = new URLSearchParams(location.search).get("auth");
   if(auth){
-    history.replaceState(null, "", location.pathname);
+    history.replaceState(null, "", location.pathname + (SRV.cur ? "?server="+encodeURIComponent(SRV.cur) : "") + location.hash);
     if(auth==="ok") toast("Discord 登入成功！");
     else if(auth==="joined") toast("登入成功，已自動幫你加入懿岐來揪團伺服器！");
     else if(auth==="nonmember") toast("已登入，但尚未能加入懿岐來揪團伺服器，請點按鈕手動加入");
