@@ -427,6 +427,13 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .chk-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:700;font-size:14px;cursor:pointer}
 .chk-row input{width:auto;transform:scale(1.25)}
 .chk-row small{font-weight:400;color:#7A6845}
+/* 願意當隊長：金色高亮 */
+.chk-row.leader-chk{background:#D9A44126;border:2px solid var(--gold);border-radius:6px;padding:8px 10px;margin-top:10px}
+.chk-row.leader-chk b{color:#8a5a10}
+.squad-head .lock-tag{margin-left:6px;font-size:11px;vertical-align:middle}
+.squad-head .acting{font-size:11.5px;color:#8a5a10;font-weight:700;margin-left:4px}
+.lock-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;border:2px dashed var(--gold);border-radius:6px;background:#D9A44114;font-size:13.5px}
+.lock-bar .btn.small{white-space:nowrap}
 .day-tabs{display:flex;gap:6px;margin-bottom:10px}
 .day-tab{font-family:inherit;font-weight:700;font-size:13.5px;letter-spacing:1px;cursor:pointer;color:var(--wood-dark);background:#FFFDF6;border:1.5px solid var(--wood);border-radius:4px;padding:5px 14px}
 .day-tab.active{background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));color:#fff;border-color:#22375B}
@@ -660,6 +667,7 @@ button{touch-action:manipulation}
               <select id="f-start"></select>
             </div>
             <label class="chk-row"><input type="checkbox" id="f-tomorrow" onchange="fillTimeSelects()"> 預先報名明日的團 <small id="f-tomorrow-date"></small></label>
+            <label class="chk-row leader-chk"><input type="checkbox" id="f-leader" checked> 👑 <b>願意當隊長</b> <small>預設勾選。不勾的話，系統分團時不會指派你當隊長（出發時由隊長建隊、邀請成員）</small></label>
             <label class="chk-row"><input type="checkbox" id="f-priv" onchange="togglePriv()"> 🔒 設為私人房間 <small>需輸入房間密碼才能加入；同出發時間的一般登記不會被併進來</small></label>
             <div id="f-pw-wrap" class="pw-wrap" style="display:none">
               <label>房間密碼（4 位數字）</label>
@@ -1078,7 +1086,7 @@ function updateRegForm(){
     else if(!USER.member) mode = "join";
   }
   const disabled = mode !== "ok";
-  ["f-id","f-lv","f-job","f-act","f-start","f-tomorrow","f-priv","f-pw"].forEach(id=>{
+  ["f-id","f-lv","f-job","f-act","f-start","f-tomorrow","f-priv","f-pw","f-leader"].forEach(id=>{
     const el = $(id); if(el) el.disabled = disabled;
   });
   document.querySelectorAll('input[name="f-skill"]').forEach(el=>{ el.disabled = disabled; });
@@ -1280,7 +1288,35 @@ function buildParties(regs, dateStr){
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
+// ── 隊長與鎖定（三處一致）──
+//   隊長＝該團最早登記且「願意當隊長」（leader 欄位）的人；全團都不願意時由最早登記者暫代（acting=true）
+//   鎖定：隊長鎖定後，該團所有成員的 lockKey 相同（含建立時間、依鎖定先後排序）；分團時先把鎖定團固定下來
+//   （不加人、不重排、有人退出不補），其餘「未鎖定」成員再照原規則分團，鎖定團排在前面並依序編號
+const willingLeader = m => !(m.leader === false || m.leader === 0 || m.leader === "0");
+const lockKeyOf = m => (m.lockKey ? String(m.lockKey) : "");
 function buildSquads(act, members, t, dateStr, removedRegs) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+  const lockedMap = {};
+  members.forEach(m => { const k = lockKeyOf(m); if (k) (lockedMap[k] ||= []).push(m); });
+  const free = members.filter(m => !lockKeyOf(m));
+  const lockedSquads = Object.keys(lockedMap).sort().map(k => {
+    const g = byTs(lockedMap[k]);
+    const s = { members: g, complete: true, missing: [], slot: {}, locked: true, lockKey: k };
+    if (isOdin(act)) {
+      const r = odinTeams(g);
+      s.slot = Object.assign({}, ...r.teams.map(x => x.slot)); s.complete = r.teams.length === 1 && r.teams[0].complete;
+      s.missing = r.teams.length ? r.teams[0].missing : []; s.power = r.teams.reduce((p, x) => p + x.power, 0);
+    } else if (isDungeon(act)) s.complete = g.length >= MIN_PARTY;
+    return s;
+  });
+  const built = free.length ? buildSquadsFree(act, free, t, dateStr, (removedRegs || []).filter(r => !lockKeyOf(r))) : { squads: [], waitlist: [] };
+  const squads = lockedSquads.concat(built.squads.filter(s => s.members.length)).map((s, i) => {
+    const sorted = byTs(s.members), leader = sorted.find(willingLeader) || sorted[0];
+    return Object.assign(s, { index: i + 1, leader, acting: !willingLeader(leader), locked: !!s.locked, lockKey: s.lockKey || "" });
+  });
+  return { squads, waitlist: built.waitlist };
+}
+function buildSquadsFree(act, members, t, dateStr, removedRegs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   const readyMs = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));   // 「請準備」提醒時刻（出發前 10 分）
@@ -1446,6 +1482,25 @@ const isReady = p => p.ok && viewNow() >= p.readyMin;   // 出發前 10 分鐘�
 // 出發時間一到（該分鐘過後）揪團就關閉：成團的＝已出發、未成團的＝已結束（明日檢視一律未關閉）
 const isDeparted = p => p.ok && viewNow() > p.time;
 const isClosed   = p => viewNow() > p.time;
+// 出發前 30 分鐘內「各團已滿」就不再開放報名（與伺服器 regs.js 的規則一致）：
+//   每日團＝未鎖定成員剛好是 12 的倍數（再加一人就多開一團）；59~90 副本不分團、永不關閉；奧丁由伺服器精確判斷
+const CLOSE_BEFORE_MIN = 30;
+const inClosingWindow = p => VIEW_DAY===0 && !isClosed(p) && viewNow() >= p.time - CLOSE_BEFORE_MIN;
+function isFullClosed(p){
+  if(!inClosingWindow(p) || isDungeon(p.activity)) return false;
+  const freeN = p.members.filter(m=>!m.lockKey).length;
+  return freeN % SQUAD_SIZE === 0;
+}
+async function toggleSquadLock(uid, action){
+  if(!requireLogin()) return;
+  try{
+    const r = await fetch(API+"/squads/lock", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({uid, action})});
+    const d = await r.json();
+    if(!r.ok){ toast(d.error||"操作失敗"); return; }
+    toast(d.locked ? "已鎖定本團，不再加人" : "已解鎖本團");
+    await refresh();
+  }catch(e){ toast("連線失敗，請稍後再試"); }
+}
 function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
@@ -1570,9 +1625,9 @@ function detailMainHTML(p){
   const readyMs = taipeiMs(viewDate(), p.readyMin);
   const lateTag = m => isReady(p) && (m.ts||0) >= readyMs ? `<span class="slot-tag late">🆕 補人</span>` : "";
   main += p.squads.map(s=>`
-    ${(multi || odin) ? `<div class="squad-head${odin && !s.complete ? " bad" : ""}">第 ${s.index} 團 ${odin ? (s.complete ? '<span class="ok-tag">✓ 成團</span>' : `<span class="bad-tag">未成團｜缺 ${esc(s.missing.join("、"))}</span>`) : ""}<small>${s.members.length} 人${odin?"｜打手戰力 "+(s.power||0):""}${p.ok && s.complete?"｜隊長 "+esc(s.leader.charId):""}</small></div>` : ""}
+    ${(multi || odin || s.locked) ? `<div class="squad-head${odin && !s.complete ? " bad" : ""}">第 ${s.index} 團 ${odin ? (s.complete ? '<span class="ok-tag">✓ 成團</span>' : `<span class="bad-tag">未成團｜缺 ${esc(s.missing.join("、"))}</span>`) : ""}${s.locked ? '<span class="lock-tag">🔒 已鎖定・不再加人</span>' : ""}<small>${s.members.length} 人${odin?"｜打手戰力 "+(s.power||0):""}${p.ok && s.complete?"｜隊長 "+esc(s.leader.charId)+(s.acting?'<span class="acting">（暫代）</span>':""):""}</small></div>` : ""}
     <ul class="member-list">` +
-      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${slotTag(s,m)}${lateTag(m)}${skillTags(m)}</span><span style="display:flex;gap:6px;align-items:center">${p.ok && s.complete && m.charId===s.leader.charId?'<span class="lead">★ 隊長</span>':""}</span></li>`).join("") +
+      s.members.map(m=>`<li><span>${esc(m.charId)}｜Lv.${esc(m.level)}｜${esc(m.job)}${slotTag(s,m)}${lateTag(m)}${skillTags(m)}${m.leader===false?'<span class="slot-tag" title="不願當隊長">不當隊長</span>':""}</span><span style="display:flex;gap:6px;align-items:center">${p.ok && s.complete && m.charId===s.leader.charId?'<span class="lead">★ 隊長'+(s.acting?"（暫代）":"")+'</span>':""}</span></li>`).join("") +
     `</ul>`).join("");
   if(p.waitlist && p.waitlist.length){
     main += `<div class="squad-head bad">候補 <small>${p.waitlist.length} 人（非必要職能名額已滿）</small></div><ul class="member-list">` +
@@ -1592,9 +1647,15 @@ function detailMainHTML(p){
     main += `<div class="notice member">⚠ 你所在的第 ${mySquad.index} 團必要職能尚未湊齊（缺 ${esc(mySquad.missing.join("、"))}）；請等待必要職能成員加入，或到留言板協調。</div>`;
   }else if(p.ok && viewerMember){
     main += iAmLeader
-      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長！</b><br>出發時請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，機器人私訊會附上依名單產出的 <code>/invite 角色ID</code> 指令供你直接複製。</div>`
-      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+"</b>"}，出發時請等待隊長邀請入隊。</div>`;
+      ? `<div class="notice leader"><b>您是${multi?"第 "+mySquad.index+" 團的":""}隊長${mySquad.acting?"（暫代：本團無人勾選願意當隊長）":""}！</b><br>出發時請在遊戲中輸入 <code>/organize 團名</code> 建立隊伍，機器人私訊會附上依名單產出的 <code>/invite 角色ID</code> 指令供你直接複製。</div>`
+      : `<div class="notice member">${multi ? "各團隊長標示於名單中" : "隊長為 <b>"+esc(p.leader.charId)+(p.squads[0].acting?"（暫代）":"")+"</b>"}，出發時請等待隊長邀請入隊。</div>`;
   }
+  // 隊長鎖定：我是某一團的隊長（含暫代）就能鎖定／解鎖那一團；鎖定後該團名單固定、不再加人也不重排
+  const myLeadSquads = closed ? [] : p.squads.filter(s=>s.leader && s.leader.mine);
+  myLeadSquads.forEach(s=>{
+    main += `<div class="lock-bar"><span>👑 你是${multi?"第 "+s.index+" 團的":""}隊長${s.acting?"（暫代）":""}：${s.locked ? "本團已<b>鎖定</b>，名單固定、不再加人；解鎖後成員會重新參與分團。" : "鎖定後本團名單固定、不再加人也不會被重新分配。"}</span>
+      <button class="btn ${s.locked?"blue":"red"} small" onclick="toggleSquadLock('${esc(s.leader.uid).replace(/'/g,"\\'")}','${s.locked?"unlock":"lock"}')">${s.locked?"🔓 解鎖本團":"🔒 鎖定本團"}</button></div>`;
+  });
 
   // 退出：明細最上方的「退出揪團」列；留言板在右欄，由 openDetail 建立
   // 加入表單對所有人開放（同一帳號可用其他角色 ID 再報名；報名不設上限）
@@ -1605,15 +1666,19 @@ function detailMainHTML(p){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(closed){
       main += `<div class="notice member" style="margin-top:14px">${isDeparted(p) ? "此團已出發" : "出發時間已過、未成團"}，已關閉揪團，不再接受新成員加入。</div>`;
+    }else if(isFullClosed(p)){
+      main += `<div class="notice member" style="margin-top:14px">⛔ <b>出發前 ${CLOSE_BEFORE_MIN} 分鐘內各團已滿</b>，不再開放報名：再加入會多開一團、導致戰力不足。</div>`;
     }else{
       main += `
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
+        ${(isOdin(p.activity) && inClosingWindow(p)) ? `<div class="hint" style="margin-bottom:8px">出發前 ${CLOSE_BEFORE_MIN} 分鐘內，若加入會需要另開新團或進候補，伺服器將不接受報名。</div>` : ""}
         <label style="margin-bottom:8px">${viewerMember ? "用其他角色再加入這個揪團" : "加入這個揪團"}</label>
         <div class="form-grid">
           <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
           <div><input id="j-lv" type="number" min="1" max="120" placeholder="角色等級"></div>
           <div><select id="j-job" onchange="renderSkillBoxes('j')">${JOBS.map(j=>`<option value="${j}">${j}</option>`).join("")}</select></div>
           ${(dg || dailyTagsOf(p.activity))?`<div class="full" style="grid-column:1/-1"><div class="skills-wrap" id="j-skills-wrap"><div class="skills-title" id="j-skills-title">${dailyTagsOf(p.activity) ? '想打的細項 <small>可多選，至少勾一項；相同目標的人會優先分在同一團</small>' : '副本職能 <small>可多選，至少勾一項</small>'}<span class="skills-warn" id="j-skills-warn">請勾選正確目標</span></div><div class="skills-list" id="j-skills">${skillBoxesHTML("j", JOBS[0], [], p.activity)}</div></div></div>`:""}
+          <div class="full" style="grid-column:1/-1"><label class="chk-row leader-chk" style="margin-top:0"><input type="checkbox" id="j-leader" checked> 👑 <b>願意當隊長</b> <small>不勾的話，系統分團時不會指派你當隊長</small></label></div>
           <div><button class="btn blue small" style="width:100%" onclick="joinParty()">加入揪團</button></div>
         </div>
       </div>`;
@@ -1883,11 +1948,11 @@ async function submitReg(){
   const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
   if(priv && !/^\d{4}$/.test(pw)) return toast("私人房間密碼須為 4 位數字");
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
-    skills,
+    skills, leader: $("f-leader").checked,
     priv, pw: priv ? pw : "",
     date: forTomorrow ? addDays(todayKey(),1) : todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
-  $("f-pw").value=""; $("f-priv").checked=false; togglePriv();
+  $("f-pw").value=""; $("f-priv").checked=false; togglePriv(); $("f-leader").checked = true;
   if(forTomorrow && VIEW_DAY!==1) VIEW_DAY = 1; else if(!forTomorrow && VIEW_DAY!==0) VIEW_DAY = 0;   // 切到登記的那一天
   syncDayTabs();
   await refresh(); loadIdCards();
@@ -1908,7 +1973,7 @@ async function joinParty(){
   if(isDungeon(p.activity) && !skills.length) return toast("副本團需至少勾選一項職能");
   if(dailyTagsOf(p.activity) && !skills.length){ flagSkillsWarn("j"); return toast("請勾選正確目標：至少勾選一項想打的細項"); }
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.time),
-    skills,
+    skills, leader: !$("j-leader") || $("j-leader").checked,
     room: p.room || "", pw: (p.priv && !p.open) ? (ROOM_PW.get(p.room) || "") : "",   // 鎖上的私人房間：附上已驗證的密碼，伺服器再驗一次；開放中不需密碼
     date:viewDate(), ts:Date.now(), uid:newUid()});
   if(!added) return;

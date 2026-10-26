@@ -161,7 +161,35 @@ export function taipeiNow() {
 //   副本團：59~90級 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
+// ── 隊長與鎖定（三處一致）──
+//   隊長＝該團最早登記且「願意當隊長」（leader 欄位）的人；全團都不願意時由最早登記者暫代（acting=true）
+//   鎖定：隊長鎖定後，該團所有成員的 lockKey 相同（含建立時間、依鎖定先後排序）；分團時先把鎖定團固定下來
+//   （不加人、不重排、有人退出不補），其餘「未鎖定」成員再照原規則分團，鎖定團排在前面並依序編號
+const willingLeader = m => !(m.leader === false || m.leader === 0 || m.leader === "0");
+const lockKeyOf = m => (m.lockKey ? String(m.lockKey) : "");
 function buildSquads(act, members, t, dateStr, removedRegs) {
+  const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+  const lockedMap = {};
+  members.forEach(m => { const k = lockKeyOf(m); if (k) (lockedMap[k] ||= []).push(m); });
+  const free = members.filter(m => !lockKeyOf(m));
+  const lockedSquads = Object.keys(lockedMap).sort().map(k => {
+    const g = byTs(lockedMap[k]);
+    const s = { members: g, complete: true, missing: [], slot: {}, locked: true, lockKey: k };
+    if (isOdin(act)) {
+      const r = odinTeams(g);
+      s.slot = Object.assign({}, ...r.teams.map(x => x.slot)); s.complete = r.teams.length === 1 && r.teams[0].complete;
+      s.missing = r.teams.length ? r.teams[0].missing : []; s.power = r.teams.reduce((p, x) => p + x.power, 0);
+    } else if (isDungeon(act)) s.complete = g.length >= MIN_PARTY;
+    return s;
+  });
+  const built = free.length ? buildSquadsFree(act, free, t, dateStr, (removedRegs || []).filter(r => !lockKeyOf(r))) : { squads: [], waitlist: [] };
+  const squads = lockedSquads.concat(built.squads.filter(s => s.members.length)).map((s, i) => {
+    const sorted = byTs(s.members), leader = sorted.find(willingLeader) || sorted[0];
+    return Object.assign(s, { index: i + 1, leader, acting: !willingLeader(leader), locked: !!s.locked, lockKey: s.lockKey || "" });
+  });
+  return { squads, waitlist: built.waitlist };
+}
+function buildSquadsFree(act, members, t, dateStr, removedRegs) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const leaderOf = g => byTs(g)[0];   // 每個預期分團的隊長＝該團最早登記者（補人只會往後加，隊長不會因此變動）
   const readyMs = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));   // 「請準備」提醒時刻（出發前 10 分）
