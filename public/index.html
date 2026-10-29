@@ -173,6 +173,54 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .srv-chips .bc-cat.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
 .srv-chips .bc-cat small{font-size:11px;opacity:.75;margin-left:4px;letter-spacing:0}
 .srv-tag{display:inline-block;font-size:11.5px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 8px;letter-spacing:1px;margin-left:8px;vertical-align:2px;white-space:nowrap}
+/* ── 活動日程（月曆） ── */
+.cal-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cal-nav .month{font-weight:900;font-size:20px;letter-spacing:2px;margin:0 6px;font-variant-numeric:tabular-nums}
+.cal-legend{margin-left:auto;display:flex;gap:12px;font-size:12.5px;color:#7A6845;align-items:center;flex-wrap:wrap}
+.cal-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px}
+.cal-legend i.live{background:var(--parchment);outline:2px solid var(--gold)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1.5px solid #2B2B2B;border-radius:6px;overflow:hidden;background:#FFFDF6}
+.cal .dow{background:#00000010;font-size:12px;font-weight:900;letter-spacing:1px;color:#6b5a3a;text-align:center;padding:6px 0;border-bottom:1.5px solid #2B2B2B}
+.cal .dow.wk{color:var(--red)}
+.cal .week{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:relative;border-bottom:1px solid #00000022;min-height:100px}
+.cal .week:last-child{border-bottom:0}
+.cal .day{border-right:1px solid #00000014;padding:4px 6px;font-size:12.5px;font-weight:700;color:#6b5a3a;font-variant-numeric:tabular-nums}
+.cal .day:last-child{border-right:0}
+.cal .day.other{color:#b8a98a;background:#00000006}
+.cal .day.today span{display:inline-block;background:var(--red);color:#fff;border-radius:999px;min-width:22px;height:22px;line-height:22px;text-align:center;font-weight:900;padding:0 4px}
+.cal .bars{position:absolute;left:0;right:0;top:28px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:24px;gap:3px 0;pointer-events:none;padding-bottom:6px}
+.cal .bar{pointer-events:auto;height:22px;line-height:22px;margin:0 3px;padding:0 8px;border-radius:4px;font-size:12.5px;font-weight:700;color:#fff;background:var(--c,#4A6FA5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:0 1px 0 #00000033;border:0;font-family:inherit;text-align:left;display:block;min-width:0}
+.cal .bar.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
+.cal .bar.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.cal .bar.live{outline:2px solid var(--gold);outline-offset:-2px}
+.cal .bar .t{font-weight:400;opacity:.85;font-size:11px;margin-right:4px}
+.cal .bar.link::after{content:" ↗";opacity:.8}
+.cal .more{pointer-events:auto;font-size:11.5px;color:var(--ro-blue-dark);font-weight:700;padding-left:8px;line-height:22px;cursor:pointer;background:none;border:0;font-family:inherit;text-align:left}
+.cal-pop{position:fixed;z-index:60;width:min(320px,calc(100vw - 24px));background:var(--parchment);border:2px solid #2B2B2B;border-left:6px solid var(--c,#4A6FA5);border-radius:6px;box-shadow:0 8px 24px #00000088;padding:12px 14px;font-size:14px}
+.cal-pop b.t{display:block;font-size:16px;margin-bottom:4px;word-break:break-word}
+.cal-pop .row{color:#6b5a3a;font-size:13px;margin-top:3px;word-break:break-word;white-space:pre-wrap}
+.cal-pop .btns{display:flex;gap:8px;margin-top:10px}
+.cal-pop .pbtn{flex:1;text-align:center;font-weight:900;font-size:13.5px;color:#fff;background:linear-gradient(180deg,var(--ro-blue),var(--ro-blue-dark));border:1px solid #22375B;border-radius:5px;padding:7px;text-decoration:none;cursor:pointer;font-family:inherit}
+.cal-pop .pbtn.ghost{background:#FFFDF6;color:var(--wood-dark);border-color:var(--wood)}
+.cal-pop .kind{display:inline-block;font-size:11px;font-weight:900;color:#fff;background:var(--c,#4A6FA5);border-radius:3px;padding:1px 7px;margin-bottom:4px;letter-spacing:1px}
+/* 手機清單 */
+.ev-list{display:none;flex-direction:column;gap:10px}
+.ev-sec{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;margin:6px 0 0;text-shadow:1px 1px 0 #00000088}
+.ev-sec small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;margin-left:8px;letter-spacing:0}
+.ev{background:var(--parchment);border:2px solid #2B2B2B;border-left:6px solid var(--c,#4A6FA5);border-radius:6px;padding:10px 12px;box-shadow:0 3px 8px #00000044}
+.ev.ended{opacity:.65}
+.ev .name{font-weight:900;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;word-break:break-word}
+.ev .tag{font-size:11px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 7px;white-space:nowrap}
+.ev .tag.soon{background:#00000012;color:#555}
+.ev .time{font-size:13px;color:#6b5a3a;margin-top:3px;font-variant-numeric:tabular-nums}
+.ev .note{font-size:13px;color:#5b4a2a;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.ev .prog{height:7px;background:#00000015;border-radius:99px;overflow:hidden;margin-top:7px}
+.ev .prog i{display:block;height:100%;background:var(--c,#4A6FA5);border-radius:99px}
+.ev .left{font-size:12px;color:#7A6845;margin-top:4px;display:flex;justify-content:space-between;gap:8px}
+.ev .go{font-weight:900;color:var(--ro-blue-dark);text-decoration:none;white-space:nowrap}
+.ev-toggle{font-family:inherit;font-size:13px;font-weight:700;color:var(--wood-dark);background:#FFFDF6;border:1.5px solid var(--wood);border-radius:999px;padding:7px 14px;cursor:pointer;align-self:flex-start}
+.ev-sec{color:#8a5a10;text-shadow:none}
+.ev-sec small{color:#7A6845}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -508,6 +556,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .mvp-cols{grid-template-columns:1fr;gap:12px}
   .mvp-list{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ti-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cal .bar{font-size:11.5px;padding:0 5px} .cal .bar .t{display:none}
 }
 /* ── 手機版（RWD）：上＝LOGO＋功能列、中＝內容、最下＝登入／登出（避免誤觸） ── */
 @media (max-width:720px){
@@ -520,7 +569,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .logo .px{font-size:15px}
   .logo .zh{font-size:17px;letter-spacing:1px}
   nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  nav.has-mvp{grid-template-columns:1fr 1fr}   /* 4 顆功能鈕：2×2 */
+  nav.has-mvp{grid-template-columns:1fr 1fr 1fr}   /* 5 顆功能鈕：3＋2 */
   nav.has-mvp .nav-btn{padding:10px 4px;font-size:13.5px}
   .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center;width:100%}
   main{padding:16px 12px 40px}
@@ -568,6 +617,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ti-r-main{grid-template-columns:auto minmax(0,1fr);font-size:13.5px}
   .ti-r-main .tr-price{grid-column:1/-1;text-align:left}
   #ti-days{margin:0;width:100%} #ti-days .bc-cat{flex:1 1 0}
+  .cal{display:none} .ev-list{display:flex} .cal-legend{margin-left:0} .cal-nav .month{font-size:18px}
+  .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
   .srv-bar{gap:6px 10px;margin-bottom:10px}
   .srv-chips{flex:1 1 auto;gap:6px}
   .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
@@ -609,6 +660,7 @@ button{touch-action:manipulation}
       <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
       <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
       <button class="nav-btn" id="nav-trade" onclick="showView('trade')">💰 交易買賣</button>
+      <button class="nav-btn" id="nav-events" onclick="showView('events')">📅 活動日程</button>
       <button class="nav-btn" id="nav-mvp" onclick="showView('mvp')" style="display:none">👑 MVP 資訊</button>
     </nav>
   </div>
@@ -795,6 +847,25 @@ button{touch-action:manipulation}
       <div id="ti-body"></div>
     </div>
 
+    </div>
+  </section>
+
+  <!-- ═══ 活動日程（不需登入；資料來自 D1 的 events 表） ═══ -->
+  <section class="view" id="view-events">
+    <div class="srv-bar" id="events-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
+    <div class="panel">
+      <div class="panel-title"><span>📅 活動日程<span class="srv-tag" data-srv-tag></span></span> <small>官方活動與限時任務的起訖時間；點活動條可看詳情或前往公告</small></div>
+      <div class="panel-body" style="padding:14px 16px 18px">
+        <div class="cal-nav">
+          <button class="bc-cat" onclick="evShift(-1)">‹ 上月</button><span class="month" id="ev-month"></span><button class="bc-cat" onclick="evShift(1)">下月 ›</button>
+          <button class="bc-cat" id="ev-today-btn" onclick="evGoToday()">本月</button>
+          <div class="cal-legend" id="ev-legend"></div>
+        </div>
+        <div id="ev-cal" class="cal"></div>
+        <div id="ev-list" class="ev-list"></div>
+        <div id="ev-empty" class="empty" style="display:none">這個月沒有活動。</div>
+        <p class="hint" style="margin-top:10px">每格一天，跨日的活動連成一條；進行中的活動有金色外框。手機版改為依開始時間排列的清單。資料每 5 分鐘自動更新。</p>
+      </div>
     </div>
   </section>
 
@@ -1437,7 +1508,11 @@ function showView(v){
   let tradeItem = null;
   const tm = /^trade(?:\/item\/(\d+)|\/(currency))?$/.exec(v||"");
   if(tm){ tradeItem = tm[2] ? "currency" : (tm[1] ? Number(tm[1]) : null); v = "trade"; }
-  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade") v = "home";
+  // 活動日程：#events 或 #events/YYYY-MM
+  let evMonth = null;
+  const em = /^events(?:\/(\d{4}-\d{2}))?$/.exec(v||"");
+  if(em){ evMonth = em[1] || null; v = "events"; }
+  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events") v = "home";
   if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
@@ -1445,6 +1520,8 @@ function showView(v){
   $("view-bc").classList.toggle("show", v==="bc");
   $("view-mvp").classList.toggle("show", v==="mvp");
   $("view-trade").classList.toggle("show", v==="trade");
+  $("view-events").classList.toggle("show", v==="events");
+  $("nav-events").classList.toggle("active", v==="events");
   $("nav-party").classList.toggle("active", inParty);
   $("nav-bc").classList.toggle("active", v==="bc");
   $("nav-mvp").classList.toggle("active", v==="mvp");
@@ -1458,18 +1535,19 @@ function showView(v){
   if(v==="bc") bcEnter(); else bcLeave();
   if(v==="mvp") mvpEnter(); else mvpLeave();
   if(v==="trade") tradeEnter(tradeItem); else tradeLeave();
+  if(v==="events") evEnter(evMonth); else evLeave();
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
-  const hash = (v==="trade" && tradeItem) ? (tradeItem==="currency" ? "#trade/currency" : "#trade/item/"+tradeItem) : "#"+v;
+  const hash = (v==="trade" && tradeItem) ? (tradeItem==="currency" ? "#trade/currency" : "#trade/item/"+tradeItem) : (v==="events" ? "#events/"+EV.ym : "#"+v);
   if(location.hash !== hash) history.replaceState(null, "", hash);
   trackPage(v);
   window.scrollTo({top:0});
 }
 // Google Analytics：每次切換頁面送一次 page_view（虛擬路徑 /home、/mine、/all、/bc、/mvp）；GA 未載入（被擋）時靜默
-const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣" };
+const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程" };
 function trackPage(v){
   try{ if(typeof gtag === "function") gtag("event", "page_view", { page_title: "RO 樂園佈告欄｜"+(PAGE_TITLES[v]||v), page_path: "/"+v, page_location: location.origin + "/#" + v }); }catch(e){}
 }
-window.addEventListener("hashchange", ()=>{ const v = location.hash.replace(/^#\/?/, ""); if(v && (v!==currentView || v==="trade")) showView(v); });
+window.addEventListener("hashchange", ()=>{ const v = location.hash.replace(/^#\/?/, ""); if(v && (v!==currentView || v==="trade" || v.startsWith("events"))) showView(v); });
 
 function statusOf(p){
   // 揪團中(藍,收人) → 已成團(綠,仍可加入) → 即將出發(紅章,出發前 10 分鐘已私訊、開語音房，仍可加入) → 已出發／已結束(紅,關團)
@@ -2222,7 +2300,7 @@ function serverApply(name, silent){
 function setServer(name){ if(name && name!==SRV.cur) serverApply(name, false); }
 function serverRenderChips(){
   const html = SRV.list.map(x=>`<button class="bc-cat${x.server===SRV.cur?" active":""}" onclick="setServer('${esc(x.server).replace(/'/g,"\\'")}')">${esc(x.server)}</button>`).join("");
-  ["bc-servers","trade-servers","mvp-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
+  ["bc-servers","trade-servers","mvp-servers","events-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
   document.querySelectorAll("[data-srv-tag]").forEach(e=>{ e.textContent = SRV.cur ? "🌐 "+SRV.cur : ""; e.style.display = SRV.cur ? "" : "none"; });
 }
 // 切換伺服器：清掉廣播／交易／MVP 的資料與增量邊界，重新載入目前所在的頁
@@ -2235,9 +2313,11 @@ function serverReload(){
   const nb = $("trade-newbar"); if(nb) nb.style.display = "none";
   // MVP
   mvpLeave(); MVP.items = []; MVP.loaded = false;
+  EV.items = []; EV.loaded = false;
   if(currentView==="bc") bcEnter();
   else if(currentView==="trade") tradeEnter(TRADE.itemId);
   else if(currentView==="mvp") mvpEnter();
+  else if(currentView==="events") evEnter(EV.ym);
   toast("已切換到「"+SRV.cur+"」");
 }
 
@@ -2596,6 +2676,172 @@ function tradeChartHTML(s){
 let tradeResizeT = null;
 window.addEventListener("resize", ()=>{ clearTimeout(tradeResizeT); tradeResizeT = setTimeout(()=>{ if(currentView==="trade" && !TRADE.itemId) tradeRender(); }, 200); });
 function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : id; tradeItemRender(); }
+
+/* ─── 活動日程（不需登入；資料來自 GET /api/events，D1 的 events 表直接維護） ───
+   PC：月曆（7 欄、每格一天），一個活動一條橫 bar，跨日連成一條、跨週分段；同週多個活動依「車道」排列不重疊
+   手機：依開始時間排列的清單（進行中 → 即將開始 → 已結束）。月份記在 #events/YYYY-MM。 */
+const EV_KINDS = { "一般":"#4A6FA5", "限時副本":"#7B4FB3", "PVP":"#C0452F", "加倍":"#2F9E4F" };
+const EV_MAX_LANES = 4;              // 一週最多顯示幾條，超過收成「+N 更多」
+const EV_RELOAD_MS = 5*60*1000;      // 每 5 分鐘重抓；每分鐘重算進行中狀態
+const EV = { ym:"", items:[], loaded:false, loading:false, timer:null, tick:null, open:new Set(), pop:null };
+const evColor = k => EV_KINDS[k] || EV_KINDS["一般"];
+const evDaySec = dateStr => Math.floor(taipeiMs(dateStr, 0)/1000);          // 台北某日 00:00 的 Unix 秒
+const evDateOf = ts => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ts*1000));
+const EV_WD = ["日","一","二","三","四","五","六"];
+function evFmt(ts, withDate){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",weekday:"short",hour12:false}).formatToParts(new Date(ts*1000));
+  const g = t => (p.find(x=>x.type===t)||{}).value || "";
+  const wd = EV_WD[new Date((ts + 8*3600)*1000).getUTCDay()];
+  return withDate ? `${g("month")}/${g("day")}（${wd}）${g("hour")}:${g("minute")}` : `${g("hour")}:${g("minute")}`;
+}
+function evDur(sec){ sec = Math.max(0, Math.round(sec)); const d = Math.floor(sec/86400), h = Math.floor(sec%86400/3600), m = Math.floor(sec%3600/60); return d>0 ? `${d} 天 ${h} 小時` : h>0 ? `${h} 小時 ${m} 分` : `${m} 分`; }
+const evYmOf = dateStr => dateStr.slice(0,7);
+function evMonthRange(ym){
+  // 月曆格：該月 1 日所在週的週日 → 該月最後一天所在週的週六（固定由週日開始）
+  const first = ym+"-01";
+  const firstDow = new Date(first+"T00:00:00Z").getUTCDay();
+  const gridStart = addDays(first, -firstDow);
+  const [y,m] = ym.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const last = ym+"-"+String(lastDay).padStart(2,"0");
+  const gridEnd = addDays(last, 6 - new Date(last+"T00:00:00Z").getUTCDay());
+  const weeks = []; for(let d = gridStart; d <= gridEnd; d = addDays(d, 7)) weeks.push(d);
+  return { gridStart, gridEnd, weeks, lastDay };
+}
+function evEnter(ym){
+  const nowYm = evYmOf(todayKey());
+  if(ym && /^\d{4}-(0[1-9]|1[0-2])$/.test(ym)) { if(ym!==EV.ym){ EV.ym = ym; EV.loaded = false; } }
+  else if(!EV.ym){ EV.ym = nowYm; }
+  evRender();
+  if(!EV.loaded) evLoad();
+  clearInterval(EV.timer); EV.timer = setInterval(evLoad, EV_RELOAD_MS);
+  clearInterval(EV.tick);  EV.tick  = setInterval(evRender, 60000);
+}
+function evLeave(){ clearInterval(EV.timer); clearInterval(EV.tick); EV.timer = EV.tick = null; evClosePop(); }
+function evShift(n){
+  const [y,m] = EV.ym.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m-1+n, 1));
+  const ym = d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0");
+  EV.ym = ym; EV.loaded = false; EV.open = new Set(); evClosePop();
+  history.replaceState(null, "", location.pathname + location.search + "#events/"+ym);
+  trackPage("events");
+  evRender(); evLoad();
+}
+function evGoToday(){ const ym = evYmOf(todayKey()); if(ym!==EV.ym){ EV.ym = ym; EV.loaded=false; EV.open=new Set(); evClosePop(); history.replaceState(null,"",location.pathname+location.search+"#events/"+ym); evRender(); evLoad(); } }
+async function evLoad(){
+  if(EV.loading || currentView!=="events") return;
+  EV.loading = true;
+  const ym = EV.ym, { gridStart, gridEnd } = evMonthRange(ym);
+  try{
+    const u = new URLSearchParams({ from: evDaySec(gridStart), to: evDaySec(addDays(gridEnd,1)), server: SRV.cur });
+    const r = await fetch(API+"/events?"+u.toString());
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    if(ym!==EV.ym) return;   // 期間已切換月份
+    EV.items = (d.items||[]).filter(e=>e.end > e.start).sort((a,b)=> a.start-b.start || (b.end-b.start)-(a.end-a.start) || cmpStr(a.title,b.title));
+    EV.loaded = true;
+    evRender();
+  }catch(e){
+    if(!EV.loaded){ $("ev-cal").innerHTML=""; $("ev-list").innerHTML=""; $("ev-empty").style.display=""; $("ev-empty").textContent="無法讀取活動資料，請稍後再試。"; }
+  }
+  EV.loading = false;
+}
+function evRender(){
+  if(currentView!=="events") return;
+  const [y,m] = EV.ym.split("-").map(Number);
+  $("ev-month").textContent = `${y} 年 ${m} 月`;
+  $("ev-today-btn").classList.toggle("active", EV.ym===evYmOf(todayKey()));
+  $("ev-legend").innerHTML = Object.keys(EV_KINDS).map(k=>`<span><i style="background:${EV_KINDS[k]}"></i>${k}</span>`).join("") + `<span><i class="live"></i>進行中</span>`;
+  const now = Math.floor(Date.now()/1000), today = todayKey();
+  const { weeks } = evMonthRange(EV.ym);
+  const items = EV.items;
+  const empty = $("ev-empty");
+  if(EV.loaded && !items.length){ empty.style.display=""; empty.textContent="這個月沒有活動。"; } else empty.style.display="none";
+  if(!EV.loaded){ $("ev-cal").innerHTML = `<div class="bc-loading" style="grid-column:1/-1">載入中…</div>`; $("ev-list").innerHTML = `<div class="bc-loading">載入中…</div>`; return; }
+  // ── 月曆 ──
+  let html = EV_WD.map((w,i)=>`<div class="dow${i===0||i===6?" wk":""}">${w}</div>`).join("");
+  for(const wk of weeks){
+    const days = [...Array(7)].map((_,i)=>addDays(wk,i));
+    const wStart = evDaySec(wk), wEnd = evDaySec(addDays(wk,7));
+    html += `<div class="week" data-wk="${wk}">` + days.map(d=>{
+      const other = evYmOf(d)!==EV.ym, isToday = d===today;
+      const label = (d.endsWith("-01") || d===wk) ? Number(d.slice(5,7))+"/"+Number(d.slice(8,10)) : String(Number(d.slice(8,10)));
+      return `<div class="day${other?" other":""}${isToday?" today":""}"><span>${label}</span></div>`;
+    }).join("");
+    // 本週內的活動 → 車道配置
+    const segs = [];
+    for(const e of items){
+      if(e.start >= wEnd || e.end <= wStart) continue;
+      const c0 = Math.max(0, Math.floor((e.start - wStart)/86400));
+      const c1 = Math.min(6, Math.floor((e.end - 1 - wStart)/86400));
+      segs.push({ e, c0, c1, contL: e.start < wStart, contR: e.end > wEnd });
+    }
+    const lanes = [];
+    segs.forEach(sg=>{ let L = lanes.findIndex(l=> l.every(x=> x.c1 < sg.c0 || x.c0 > sg.c1)); if(L<0){ lanes.push([]); L = lanes.length-1; } lanes[L].push(sg); sg.lane = L; });
+    const expanded = EV.open.has(wk);
+    const visibleLanes = expanded ? lanes.length : Math.min(lanes.length, EV_MAX_LANES);
+    const hiddenCount = lanes.slice(visibleLanes).reduce((n,l)=>n+l.length,0);
+    html += `<div class="bars">` + segs.filter(sg=>sg.lane < visibleLanes).map(sg=>{
+      const e = sg.e, live = now>=e.start && now<e.end;
+      const t = !sg.contL ? `<span class="t">${evFmt(e.start,false)}</span>` : (!sg.contR ? `<span class="t">～ ${evFmt(e.end,true).replace(/（.）/," ")}</span>` : "");
+      return `<button class="bar${sg.contL?" cont-l":""}${sg.contR?" cont-r":""}${live?" live":""}${e.url?" link":""}" style="--c:${evColor(e.kind)};grid-column:${sg.c0+1}/${sg.c1+2};grid-row:${sg.lane+1}" title="${esc(e.title)}｜${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}" onclick="evOpenPop(${e.id}, this)">${t}${esc(e.title)}</button>`;
+    }).join("") + (hiddenCount ? `<button class="more" style="grid-column:1/8;grid-row:${visibleLanes+1}" onclick="evToggleWeek('${wk}')">+${hiddenCount} 更多</button>` : (expanded && lanes.length > EV_MAX_LANES ? `<button class="more" style="grid-column:1/8;grid-row:${lanes.length+1}" onclick="evToggleWeek('${wk}')">收合</button>` : "")) + `</div>`;
+    html += `</div>`;
+    // 週列高度隨活動條數增加（活動條是絕對定位，否則會蓋到下一週）
+    const rows = visibleLanes + ((hiddenCount || (expanded && lanes.length > EV_MAX_LANES)) ? 1 : 0);
+    html = html.replace(`<div class="week" data-wk="${wk}">`, `<div class="week" style="min-height:${Math.max(100, 28 + rows*27 + 8)}px">`);
+  }
+  $("ev-cal").innerHTML = html;
+  // ── 手機清單 ──
+  const monthStart = evDaySec(EV.ym+"-01"), monthEnd = evDaySec(addDays(EV.ym+"-01", evMonthRange(EV.ym).lastDay));
+  const inMonth = items.filter(e=> e.start < monthEnd && e.end > monthStart);
+  const live = inMonth.filter(e=> now>=e.start && now<e.end);
+  const soon = inMonth.filter(e=> e.start > now).sort((a,b)=>a.start-b.start);
+  const ended = inMonth.filter(e=> e.end <= now).sort((a,b)=>b.end-a.end);
+  const card = (e, state) => {
+    const pct = state==="live" ? Math.round((now-e.start)/(e.end-e.start)*100) : 0;
+    const tag = state==="live" ? `<span class="tag">進行中</span>` : state==="soon" ? `<span class="tag soon">${evFmt(e.start,true).slice(0,5)} 開始</span>` : `<span class="tag soon">已結束</span>`;
+    const left = state==="live" ? `剩 ${evDur(e.end-now)}` : state==="soon" ? `${evDur(e.start-now)}後開始` : `${evDur(now-e.end)}前結束`;
+    return `<div class="ev${state==="ended"?" ended":""}" style="--c:${evColor(e.kind)}">
+      <div class="name">${esc(e.title)} ${tag}</div>
+      <div class="time">${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}</div>
+      ${e.note?`<div class="note">${esc(e.note)}</div>`:""}
+      ${state==="live"?`<div class="prog"><i style="width:${pct}%"></i></div>`:""}
+      <div class="left"><span>${left}</span>${e.url?`<a class="go" href="${esc(e.url)}" target="_blank" rel="noopener">前往連結 ↗</a>`:""}</div>
+    </div>`;
+  };
+  let list = "";
+  if(live.length) list += `<div class="ev-sec">進行中<small>${live.length} 個</small></div>` + live.map(e=>card(e,"live")).join("");
+  if(soon.length) list += `<div class="ev-sec">即將開始<small>${soon.length} 個</small></div>` + soon.map(e=>card(e,"soon")).join("");
+  if(ended.length) list += `<div class="ev-sec">已結束<small>${ended.length} 個</small></div>` + (EV.open.has("ended") ? ended.map(e=>card(e,"ended")).join("") : `<button class="ev-toggle" onclick="evToggleWeek('ended')">顯示已結束的 ${ended.length} 個活動</button>`);
+  $("ev-list").innerHTML = list;
+}
+function evToggleWeek(k){ if(EV.open.has(k)) EV.open.delete(k); else EV.open.add(k); evRender(); }
+/* 詳情框：點活動條後貼在該條附近（固定定位、不超出視窗）；再點一次或點外面關閉 */
+function evOpenPop(id, el){
+  const e = EV.items.find(x=>x.id===id); if(!e) return;
+  if(EV.pop && EV.pop.dataset.id===String(id)){ evClosePop(); return; }
+  evClosePop();
+  const now = Math.floor(Date.now()/1000);
+  const state = now<e.start ? `⏳ ${evDur(e.start-now)}後開始` : now<e.end ? `⏳ 進行中，剩 ${evDur(e.end-now)}` : `✔ 已結束（${evDur(now-e.end)}前）`;
+  const pop = document.createElement("div");
+  pop.className = "cal-pop"; pop.dataset.id = String(id); pop.style.setProperty("--c", evColor(e.kind));
+  pop.innerHTML = `<span class="kind">${esc(e.kind)}</span><b class="t">${esc(e.title)}</b>
+    <div class="row">🕒 ${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}</div>
+    <div class="row">${state}</div>
+    ${e.note?`<div class="row">📝 ${esc(e.note)}</div>`:""}
+    <div class="btns">${e.url?`<a class="pbtn" href="${esc(e.url)}" target="_blank" rel="noopener">前往連結 ↗</a>`:""}<button class="pbtn ghost" onclick="evClosePop()">關閉</button></div>`;
+  document.body.appendChild(pop);
+  const r = el.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = Math.min(Math.max(12, r.left), window.innerWidth - pw - 12);
+  let top = r.bottom + 6; if(top + ph > window.innerHeight - 12) top = Math.max(12, r.top - ph - 6);
+  pop.style.left = left+"px"; pop.style.top = top+"px";
+  EV.pop = pop;
+  setTimeout(()=> document.addEventListener("click", evDocClick), 0);
+}
+function evDocClick(ev){ if(EV.pop && !EV.pop.contains(ev.target) && !(ev.target.closest && ev.target.closest(".cal .bar"))) evClosePop(); }
+function evClosePop(){ if(EV.pop){ EV.pop.remove(); EV.pop = null; } document.removeEventListener("click", evDocClick); }
+window.addEventListener("resize", ()=>{ if(currentView==="events") evClosePop(); });
 
 /* ─── 初始化與輪詢 ─── */
 function fillTimeSelects(){
