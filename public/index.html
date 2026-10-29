@@ -852,19 +852,18 @@ button{touch-action:manipulation}
 
   <!-- ═══ 活動日程（不需登入；資料來自 D1 的 events 表） ═══ -->
   <section class="view" id="view-events">
-    <div class="srv-bar" id="events-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="panel">
-      <div class="panel-title"><span>📅 活動日程<span class="srv-tag" data-srv-tag></span></span> <small>官方活動與限時任務的起訖時間；點活動條可看詳情或前往公告</small></div>
+      <div class="panel-title"><span>📅 活動日程</span> <small>官方活動與限時任務的起訖時間；點活動條可看詳情或前往公告</small></div>
       <div class="panel-body" style="padding:14px 16px 18px">
         <div class="cal-nav">
           <button class="bc-cat" onclick="evShift(-1)">‹ 上月</button><span class="month" id="ev-month"></span><button class="bc-cat" onclick="evShift(1)">下月 ›</button>
           <button class="bc-cat" id="ev-today-btn" onclick="evGoToday()">本月</button>
-          <div class="cal-legend" id="ev-legend"></div>
+          <div class="cal-legend" id="ev-legend"><span><i class="live"></i>金框＝進行中</span></div>
         </div>
         <div id="ev-cal" class="cal"></div>
         <div id="ev-list" class="ev-list"></div>
         <div id="ev-empty" class="empty" style="display:none">這個月沒有活動。</div>
-        <p class="hint" style="margin-top:10px">每格一天，跨日的活動連成一條；進行中的活動有金色外框。手機版改為依開始時間排列的清單。資料每 5 分鐘自動更新。</p>
+        <p class="hint" style="margin-top:10px">每格一天，跨日的活動連成一條，一條一個活動（顏色僅用來區分）；進行中的活動有金色外框。手機版改為依開始時間排列的清單。資料每 5 分鐘自動更新。</p>
       </div>
     </div>
   </section>
@@ -2300,7 +2299,7 @@ function serverApply(name, silent){
 function setServer(name){ if(name && name!==SRV.cur) serverApply(name, false); }
 function serverRenderChips(){
   const html = SRV.list.map(x=>`<button class="bc-cat${x.server===SRV.cur?" active":""}" onclick="setServer('${esc(x.server).replace(/'/g,"\\'")}')">${esc(x.server)}</button>`).join("");
-  ["bc-servers","trade-servers","mvp-servers","events-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
+  ["bc-servers","trade-servers","mvp-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
   document.querySelectorAll("[data-srv-tag]").forEach(e=>{ e.textContent = SRV.cur ? "🌐 "+SRV.cur : ""; e.style.display = SRV.cur ? "" : "none"; });
 }
 // 切換伺服器：清掉廣播／交易／MVP 的資料與增量邊界，重新載入目前所在的頁
@@ -2313,11 +2312,9 @@ function serverReload(){
   const nb = $("trade-newbar"); if(nb) nb.style.display = "none";
   // MVP
   mvpLeave(); MVP.items = []; MVP.loaded = false;
-  EV.items = []; EV.loaded = false;
   if(currentView==="bc") bcEnter();
   else if(currentView==="trade") tradeEnter(TRADE.itemId);
   else if(currentView==="mvp") mvpEnter();
-  else if(currentView==="events") evEnter(EV.ym);
   toast("已切換到「"+SRV.cur+"」");
 }
 
@@ -2680,11 +2677,11 @@ function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : i
 /* ─── 活動日程（不需登入；資料來自 GET /api/events，D1 的 events 表直接維護） ───
    PC：月曆（7 欄、每格一天），一個活動一條橫 bar，跨日連成一條、跨週分段；同週多個活動依「車道」排列不重疊
    手機：依開始時間排列的清單（進行中 → 即將開始 → 已結束）。月份記在 #events/YYYY-MM。 */
-const EV_KINDS = { "一般":"#4A6FA5", "限時副本":"#7B4FB3", "PVP":"#C0452F", "加倍":"#2F9E4F" };
-const EV_MAX_LANES = 4;              // 一週最多顯示幾條，超過收成「+N 更多」
+// 每個活動一種顏色（依 id 輪流取，純粹用來區分）
+const EV_COLORS = ["#4A6FA5","#7B4FB3","#C0452F","#2F9E4F","#B8731B","#1F8A8A","#8E4A6B","#5B6B2F","#3E5FBF","#A0522D"];
 const EV_RELOAD_MS = 5*60*1000;      // 每 5 分鐘重抓；每分鐘重算進行中狀態
 const EV = { ym:"", items:[], loaded:false, loading:false, timer:null, tick:null, open:new Set(), pop:null };
-const evColor = k => EV_KINDS[k] || EV_KINDS["一般"];
+const evColor = e => EV_COLORS[Math.abs(Number(e.id)||0) % EV_COLORS.length];
 const evDaySec = dateStr => Math.floor(taipeiMs(dateStr, 0)/1000);          // 台北某日 00:00 的 Unix 秒
 const evDateOf = ts => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ts*1000));
 const EV_WD = ["日","一","二","三","四","五","六"];
@@ -2733,7 +2730,7 @@ async function evLoad(){
   EV.loading = true;
   const ym = EV.ym, { gridStart, gridEnd } = evMonthRange(ym);
   try{
-    const u = new URLSearchParams({ from: evDaySec(gridStart), to: evDaySec(addDays(gridEnd,1)), server: SRV.cur });
+    const u = new URLSearchParams({ from: evDaySec(gridStart), to: evDaySec(addDays(gridEnd,1)) });
     const r = await fetch(API+"/events?"+u.toString());
     if(!r.ok) throw new Error("HTTP "+r.status);
     const d = await r.json();
@@ -2751,7 +2748,6 @@ function evRender(){
   const [y,m] = EV.ym.split("-").map(Number);
   $("ev-month").textContent = `${y} 年 ${m} 月`;
   $("ev-today-btn").classList.toggle("active", EV.ym===evYmOf(todayKey()));
-  $("ev-legend").innerHTML = Object.keys(EV_KINDS).map(k=>`<span><i style="background:${EV_KINDS[k]}"></i>${k}</span>`).join("") + `<span><i class="live"></i>進行中</span>`;
   const now = Math.floor(Date.now()/1000), today = todayKey();
   const { weeks } = evMonthRange(EV.ym);
   const items = EV.items;
@@ -2778,18 +2774,15 @@ function evRender(){
     }
     const lanes = [];
     segs.forEach(sg=>{ let L = lanes.findIndex(l=> l.every(x=> x.c1 < sg.c0 || x.c0 > sg.c1)); if(L<0){ lanes.push([]); L = lanes.length-1; } lanes[L].push(sg); sg.lane = L; });
-    const expanded = EV.open.has(wk);
-    const visibleLanes = expanded ? lanes.length : Math.min(lanes.length, EV_MAX_LANES);
-    const hiddenCount = lanes.slice(visibleLanes).reduce((n,l)=>n+l.length,0);
-    html += `<div class="bars">` + segs.filter(sg=>sg.lane < visibleLanes).map(sg=>{
+    // 所有活動條都顯示，週列高度隨條數增加
+    html += `<div class="bars">` + segs.map(sg=>{
       const e = sg.e, live = now>=e.start && now<e.end;
       const t = !sg.contL ? `<span class="t">${evFmt(e.start,false)}</span>` : (!sg.contR ? `<span class="t">～ ${evFmt(e.end,true).replace(/（.）/," ")}</span>` : "");
-      return `<button class="bar${sg.contL?" cont-l":""}${sg.contR?" cont-r":""}${live?" live":""}${e.url?" link":""}" style="--c:${evColor(e.kind)};grid-column:${sg.c0+1}/${sg.c1+2};grid-row:${sg.lane+1}" title="${esc(e.title)}｜${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}" onclick="evOpenPop(${e.id}, this)">${t}${esc(e.title)}</button>`;
-    }).join("") + (hiddenCount ? `<button class="more" style="grid-column:1/8;grid-row:${visibleLanes+1}" onclick="evToggleWeek('${wk}')">+${hiddenCount} 更多</button>` : (expanded && lanes.length > EV_MAX_LANES ? `<button class="more" style="grid-column:1/8;grid-row:${lanes.length+1}" onclick="evToggleWeek('${wk}')">收合</button>` : "")) + `</div>`;
+      return `<button class="bar${sg.contL?" cont-l":""}${sg.contR?" cont-r":""}${live?" live":""}${e.url?" link":""}" style="--c:${evColor(e)};grid-column:${sg.c0+1}/${sg.c1+2};grid-row:${sg.lane+1}" title="${esc(e.title)}｜${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}" onclick="evOpenPop(${e.id}, this)">${t}${esc(e.title)}</button>`;
+    }).join("") + `</div>`;
     html += `</div>`;
     // 週列高度隨活動條數增加（活動條是絕對定位，否則會蓋到下一週）
-    const rows = visibleLanes + ((hiddenCount || (expanded && lanes.length > EV_MAX_LANES)) ? 1 : 0);
-    html = html.replace(`<div class="week" data-wk="${wk}">`, `<div class="week" style="min-height:${Math.max(100, 28 + rows*27 + 8)}px">`);
+    html = html.replace(`<div class="week" data-wk="${wk}">`, `<div class="week" style="min-height:${Math.max(100, 28 + lanes.length*27 + 8)}px">`);
   }
   $("ev-cal").innerHTML = html;
   // ── 手機清單 ──
@@ -2802,7 +2795,7 @@ function evRender(){
     const pct = state==="live" ? Math.round((now-e.start)/(e.end-e.start)*100) : 0;
     const tag = state==="live" ? `<span class="tag">進行中</span>` : state==="soon" ? `<span class="tag soon">${evFmt(e.start,true).slice(0,5)} 開始</span>` : `<span class="tag soon">已結束</span>`;
     const left = state==="live" ? `剩 ${evDur(e.end-now)}` : state==="soon" ? `${evDur(e.start-now)}後開始` : `${evDur(now-e.end)}前結束`;
-    return `<div class="ev${state==="ended"?" ended":""}" style="--c:${evColor(e.kind)}">
+    return `<div class="ev${state==="ended"?" ended":""}" style="--c:${evColor(e)}">
       <div class="name">${esc(e.title)} ${tag}</div>
       <div class="time">${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}</div>
       ${e.note?`<div class="note">${esc(e.note)}</div>`:""}
@@ -2825,8 +2818,8 @@ function evOpenPop(id, el){
   const now = Math.floor(Date.now()/1000);
   const state = now<e.start ? `⏳ ${evDur(e.start-now)}後開始` : now<e.end ? `⏳ 進行中，剩 ${evDur(e.end-now)}` : `✔ 已結束（${evDur(now-e.end)}前）`;
   const pop = document.createElement("div");
-  pop.className = "cal-pop"; pop.dataset.id = String(id); pop.style.setProperty("--c", evColor(e.kind));
-  pop.innerHTML = `<span class="kind">${esc(e.kind)}</span><b class="t">${esc(e.title)}</b>
+  pop.className = "cal-pop"; pop.dataset.id = String(id); pop.style.setProperty("--c", evColor(e));
+  pop.innerHTML = `<b class="t">${esc(e.title)}</b>
     <div class="row">🕒 ${evFmt(e.start,true)} ～ ${evFmt(e.end,true)}</div>
     <div class="row">${state}</div>
     ${e.note?`<div class="row">📝 ${esc(e.note)}</div>`:""}
