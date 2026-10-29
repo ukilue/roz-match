@@ -187,7 +187,13 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .cal .day{border-right:1px solid #00000014;padding:4px 6px;font-size:12.5px;font-weight:700;color:#6b5a3a;font-variant-numeric:tabular-nums}
 .cal .day:last-child{border-right:0}
 .cal .day.other{color:#b8a98a;background:#00000006}
+.cal .day.today{background:#D9A44138;box-shadow:inset 0 0 0 3px var(--gold);border-radius:4px;z-index:1}
 .cal .day.today span{display:inline-block;background:var(--red);color:#fff;border-radius:999px;min-width:22px;height:22px;line-height:22px;text-align:center;font-weight:900;padding:0 4px}
+/* 檢視模式：預設卡片清單，可切換成月曆（手機固定清單） */
+.ev-wrap .cal{display:none} .ev-wrap .ev-list{display:grid}
+.ev-wrap.mode-cal .cal{display:grid} .ev-wrap.mode-cal .ev-list{display:none}
+.ev-modes{display:flex;gap:6px;margin-left:auto}
+.ev-modes .bc-cat{padding:6px 12px;min-height:34px;font-size:13.5px}
 .cal .bars{position:absolute;left:0;right:0;top:28px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:24px;gap:3px 0;pointer-events:none;padding-bottom:6px}
 .cal .bar{pointer-events:auto;height:22px;line-height:22px;margin:0 3px;padding:0 8px;border-radius:4px;font-size:12.5px;font-weight:700;color:#fff;background:var(--c,#4A6FA5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:0 1px 0 #00000033;border:0;font-family:inherit;text-align:left;display:block;min-width:0}
 .cal .bar.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
@@ -204,7 +210,9 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .cal-pop .pbtn.ghost{background:#FFFDF6;color:var(--wood-dark);border-color:var(--wood)}
 .cal-pop .kind{display:inline-block;font-size:11px;font-weight:900;color:#fff;background:var(--c,#4A6FA5);border-radius:3px;padding:1px 7px;margin-bottom:4px;letter-spacing:1px}
 /* 手機清單 */
-.ev-list{display:none;flex-direction:column;gap:10px}
+.ev-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start}   /* PC 一排 3 個；平板 2、手機 1（見 RWD） */
+.ev-list .ev-sec,.ev-list .ev-toggle,.ev-list .bc-loading{grid-column:1/-1} .ev-list .ev-toggle{justify-self:start}
+.ev{min-width:0}
 .ev-sec{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;margin:6px 0 0;text-shadow:1px 1px 0 #00000088}
 .ev-sec small{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:#ffffff99;margin-left:8px;letter-spacing:0}
 .ev{background:var(--parchment);border:2px solid #2B2B2B;border-left:6px solid var(--c,#4A6FA5);border-radius:6px;padding:10px 12px;box-shadow:0 3px 8px #00000044}
@@ -557,6 +565,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .mvp-list{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ti-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cal .bar{font-size:11.5px;padding:0 5px} .cal .bar .t{display:none}
+  .ev-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 /* ── 手機版（RWD）：上＝LOGO＋功能列、中＝內容、最下＝登入／登出（避免誤觸） ── */
 @media (max-width:720px){
@@ -617,7 +626,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ti-r-main{grid-template-columns:auto minmax(0,1fr);font-size:13.5px}
   .ti-r-main .tr-price{grid-column:1/-1;text-align:left}
   #ti-days{margin:0;width:100%} #ti-days .bc-cat{flex:1 1 0}
-  .cal{display:none} .ev-list{display:flex} .cal-legend{margin-left:0} .cal-nav .month{font-size:18px}
+  .ev-wrap.mode-cal .cal{display:none} .ev-wrap.mode-cal .ev-list{display:grid} .ev-list{grid-template-columns:1fr} .ev-modes{display:none} .cal-legend{display:none} .cal-nav .month{font-size:18px}
   .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
   .srv-bar{gap:6px 10px;margin-bottom:10px}
   .srv-chips{flex:1 1 auto;gap:6px}
@@ -858,12 +867,15 @@ button{touch-action:manipulation}
         <div class="cal-nav">
           <button class="bc-cat" onclick="evShift(-1)">‹ 上月</button><span class="month" id="ev-month"></span><button class="bc-cat" onclick="evShift(1)">下月 ›</button>
           <button class="bc-cat" id="ev-today-btn" onclick="evGoToday()">本月</button>
-          <div class="cal-legend" id="ev-legend"><span><i class="live"></i>金框＝進行中</span></div>
+          <div class="ev-modes"><button class="bc-cat" id="ev-mode-list" onclick="evSetMode('list')">📋 清單</button><button class="bc-cat" id="ev-mode-cal" onclick="evSetMode('cal')">📅 日曆</button></div>
+          <div class="cal-legend" id="ev-legend" style="margin-left:0;flex-basis:100%"><span><i class="live"></i>金框＝進行中</span><span><i style="background:#D9A44138;outline:2px solid var(--gold)"></i>今天</span></div>
         </div>
-        <div id="ev-cal" class="cal"></div>
-        <div id="ev-list" class="ev-list"></div>
+        <div class="ev-wrap" id="ev-wrap">
+          <div id="ev-cal" class="cal"></div>
+          <div id="ev-list" class="ev-list"></div>
+        </div>
         <div id="ev-empty" class="empty" style="display:none">這個月沒有活動。</div>
-        <p class="hint" style="margin-top:10px">每格一天，跨日的活動連成一條，一條一個活動（顏色僅用來區分）；進行中的活動有金色外框。手機版改為依開始時間排列的清單。資料每 5 分鐘自動更新。</p>
+        <p class="hint" style="margin-top:10px">清單依開始時間排列（進行中 → 即將開始 → 已結束）；切到日曆後每格一天、跨日的活動連成一條，一條一個活動（顏色僅用來區分），進行中的有金色外框。資料每 5 分鐘自動更新。</p>
       </div>
     </div>
   </section>
@@ -2680,7 +2692,20 @@ function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : i
 // 每個活動一種顏色（依 id 輪流取，純粹用來區分）
 const EV_COLORS = ["#4A6FA5","#7B4FB3","#C0452F","#2F9E4F","#B8731B","#1F8A8A","#8E4A6B","#5B6B2F","#3E5FBF","#A0522D"];
 const EV_RELOAD_MS = 5*60*1000;      // 每 5 分鐘重抓；每分鐘重算進行中狀態
-const EV = { ym:"", items:[], loaded:false, loading:false, timer:null, tick:null, open:new Set(), pop:null };
+const EV = { ym:"", items:[], loaded:false, loading:false, timer:null, tick:null, open:new Set(), pop:null, mode:"list" };
+try{ EV.mode = localStorage.getItem("ro_ev_mode")==="cal" ? "cal" : "list"; }catch(e){}
+function evSetMode(m){
+  EV.mode = m==="cal" ? "cal" : "list";
+  try{ localStorage.setItem("ro_ev_mode", EV.mode); }catch(e){}
+  evClosePop(); evApplyMode();
+}
+function evApplyMode(){
+  const w = $("ev-wrap"); if(!w) return;
+  w.classList.toggle("mode-cal", EV.mode==="cal");
+  $("ev-mode-list").classList.toggle("active", EV.mode!=="cal");
+  $("ev-mode-cal").classList.toggle("active", EV.mode==="cal");
+  const lg = $("ev-legend"); if(lg) lg.style.display = EV.mode==="cal" ? "" : "none";
+}
 const evColor = e => EV_COLORS[Math.abs(Number(e.id)||0) % EV_COLORS.length];
 const evDaySec = dateStr => Math.floor(taipeiMs(dateStr, 0)/1000);          // 台北某日 00:00 的 Unix 秒
 const evDateOf = ts => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ts*1000));
@@ -2748,6 +2773,7 @@ function evRender(){
   const [y,m] = EV.ym.split("-").map(Number);
   $("ev-month").textContent = `${y} 年 ${m} 月`;
   $("ev-today-btn").classList.toggle("active", EV.ym===evYmOf(todayKey()));
+  evApplyMode();
   const now = Math.floor(Date.now()/1000), today = todayKey();
   const { weeks } = evMonthRange(EV.ym);
   const items = EV.items;
@@ -2788,7 +2814,7 @@ function evRender(){
   // ── 手機清單 ──
   const monthStart = evDaySec(EV.ym+"-01"), monthEnd = evDaySec(addDays(EV.ym+"-01", evMonthRange(EV.ym).lastDay));
   const inMonth = items.filter(e=> e.start < monthEnd && e.end > monthStart);
-  const live = inMonth.filter(e=> now>=e.start && now<e.end);
+  const live = inMonth.filter(e=> now>=e.start && now<e.end).sort((a,b)=> a.end-b.end || a.start-b.start);   // 快結束的排最上面
   const soon = inMonth.filter(e=> e.start > now).sort((a,b)=>a.start-b.start);
   const ended = inMonth.filter(e=> e.end <= now).sort((a,b)=>b.end-a.end);
   const card = (e, state) => {
@@ -2804,7 +2830,7 @@ function evRender(){
     </div>`;
   };
   let list = "";
-  if(live.length) list += `<div class="ev-sec">進行中<small>${live.length} 個</small></div>` + live.map(e=>card(e,"live")).join("");
+  if(live.length) list += `<div class="ev-sec">進行中<small>${live.length} 個，快結束的排前面</small></div>` + live.map(e=>card(e,"live")).join("");
   if(soon.length) list += `<div class="ev-sec">即將開始<small>${soon.length} 個</small></div>` + soon.map(e=>card(e,"soon")).join("");
   if(ended.length) list += `<div class="ev-sec">已結束<small>${ended.length} 個</small></div>` + (EV.open.has("ended") ? ended.map(e=>card(e,"ended")).join("") : `<button class="ev-toggle" onclick="evToggleWeek('ended')">顯示已結束的 ${ended.length} 個活動</button>`);
   $("ev-list").innerHTML = list;
