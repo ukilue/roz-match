@@ -3,7 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RO 樂園佈告欄</title>
+<title>RO 樂園佈告欄｜仙境傳說 RO 樂園 揪團、廣播、交易行情、MVP 重生、活動日程</title>
+<meta name="description" content="RO 樂園（仙境傳說）玩家社群佈告欄：每日團／副本組隊揪團自動分團與 Discord 語音通知、遊戲內廣播訊息、交易買賣行情與道具價格走勢、MVP 重生倒數、官方活動日程。">
+<meta name="keywords" content="RO 樂園, 仙境傳說, RO, 揪團, 組隊, 奧丁, 每日團, 廣播, 交易, 收購, 販賣, MVP 重生, 活動日程, 西格倫, 懿岐玩遊戲">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://roz-match.yichigames.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RO 樂園佈告欄">
+<meta property="og:title" content="RO 樂園佈告欄｜揪團・廣播・交易行情・MVP・活動日程">
+<meta property="og:description" content="RO 樂園玩家社群佈告欄：自動分團的組隊揪團、遊戲廣播、交易行情、MVP 重生倒數與活動日程。">
+<meta property="og:url" content="https://roz-match.yichigames.com/">
+<meta property="og:locale" content="zh_TW">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#33507E">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"RO 樂園佈告欄","alternateName":"RO 樂園 揪團佈告欄","url":"https://roz-match.yichigames.com/","inLanguage":"zh-Hant","description":"RO 樂園（仙境傳說）玩家社群佈告欄：組隊揪團、廣播訊息、交易行情、MVP 重生、活動日程。","publisher":{"@type":"Organization","name":"懿岐玩遊戲","url":"https://youtube.com/@yichigames"}}
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PCQP87M78T"></script>
 <script>
@@ -51,7 +66,7 @@ body{
 .side-bottom{margin-top:auto}
 .logo{display:flex;align-items:baseline;gap:8px;color:#fff;cursor:pointer;padding:2px 4px 6px;border-bottom:1px solid #ffffff33}
 .logo .px{font-family:'Press Start 2P',monospace;font-size:16px;color:var(--gold);text-shadow:2px 2px 0 #00000055}
-.logo .zh{font-weight:900;font-size:18px;letter-spacing:2px}
+.logo .zh{font-weight:900;font-size:18px;letter-spacing:2px;display:inline;margin:0;color:inherit}
 nav{display:flex;flex-direction:column;gap:8px}
 .nav-btn{
   font-family:inherit;font-weight:700;font-size:15px;letter-spacing:1px;text-align:left;
@@ -62,6 +77,8 @@ nav{display:flex;flex-direction:column;gap:8px}
 .nav-btn{min-height:42px}
 .nav-btn.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
 .nav-btn.auth{text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-btn.donate{display:block;text-align:center;text-decoration:none;color:var(--wood-dark);background:linear-gradient(180deg,#F2CC6B,var(--gold));border-color:#B8862B;margin-bottom:8px;box-sizing:border-box}
+.nav-btn.donate:hover{filter:brightness(1.06);background:linear-gradient(180deg,#F2CC6B,var(--gold))}
 .content{display:flex;flex-direction:column;min-width:0}
 main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .view{display:none}
@@ -560,7 +577,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .logo{padding:0;border-bottom:0}
   nav{flex-direction:row}
   .nav-btn{width:auto;text-align:center;padding:8px 14px}
-  .side-bottom{margin-top:0}
+  .side-bottom{margin-top:0;display:flex;gap:8px;align-items:center}
+  .side-bottom .nav-btn.donate{margin-bottom:0}
   .mvp-cols{grid-template-columns:1fr;gap:12px}
   .mvp-list{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ti-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -573,7 +591,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .side-top{order:1;width:100%;flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px;background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);border-bottom:3px solid var(--gold)}
   .content{order:2}
   .side-bottom{order:3;width:100%;padding:14px 12px calc(16px + env(safe-area-inset-bottom));background:var(--night-2);border-top:2px solid #ffffff22}
+  .side-bottom{flex-direction:column;align-items:stretch;gap:0}
   .side-bottom .nav-btn.auth{width:100%;min-height:46px;font-size:15px}
+  .side-bottom .nav-btn.donate{width:100%;min-height:44px;font-size:15px;margin-bottom:8px;line-height:22px}
   .logo{padding:0;border-bottom:0}
   .logo .px{font-size:15px}
   .logo .zh{font-size:17px;letter-spacing:1px}
@@ -663,7 +683,7 @@ button{touch-action:manipulation}
   <div class="side-in">
   <div class="side-top">
     <div class="logo" onclick="showView('home')">
-      <span class="px">RO</span><span class="zh">樂園佈告欄</span>
+      <span class="px">RO</span><h1 class="zh">樂園佈告欄</h1>
     </div>
     <nav id="main-nav">
       <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
@@ -674,6 +694,7 @@ button{touch-action:manipulation}
     </nav>
   </div>
   <div class="side-bottom">
+    <a class="nav-btn donate" href="https://payment.opay.tw/Broadcaster/Donate/F282CA5A0B4DC352B40DE957D23C9441" target="_blank" rel="noopener" onclick="try{gtag('event','donate_click')}catch(e){}">☕ 贊助我們</a>
     <button class="nav-btn auth" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </div>
   </div>
@@ -910,7 +931,8 @@ button{touch-action:manipulation}
 
 </main>
 
-<footer style="text-align:center;color:#ffffff66;padding:26px 0 36px;font-size:13px;letter-spacing:1px">
+<footer style="text-align:center;color:#ffffff66;padding:26px 16px 36px;font-size:13px;letter-spacing:1px">
+  <p style="max-width:760px;margin:0 auto 12px;line-height:1.7;letter-spacing:0;color:#ffffff80">RO 樂園佈告欄是仙境傳說 RO 樂園玩家的社群工具：每日團與副本（含 105 級奧丁）的組隊揪團會依職業自動分團並由 Discord 機器人通知與開語音房；另提供遊戲內廣播訊息、交易買賣行情與道具價格走勢、MVP 重生倒數、官方活動日程。</p>
   Designed by <a href="https://youtube.com/@yichigames" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">懿岐玩遊戲</a>
 </footer>
 </div><!-- /.content -->
@@ -1130,6 +1152,25 @@ async function loadUser(){
   }
   if(store.online) $("mode-tag").textContent = !USER ? "共用模式｜未登入" : (USER.member ? "共用模式｜已登入" : "共用模式｜未加入伺服器");
   updateNavMine();
+  gaIdentify();
+}
+// Google Analytics 使用者識別：登入後以「Discord ID 的 SHA-256 雜湊」當 GA 的 user_id（不送原始 ID、暱稱等個資），
+// 讓同一位玩家跨裝置／跨瀏覽器算同一個使用者；另設 user_properties.member（是否為公會伺服器成員）供報表分組。
+// GA4 後台需在「管理 → 報表識別資訊」選含 User-ID 的選項，報表才會以 user_id 合併；「使用者多層檢視」可逐一查看。
+async function gaIdentify(){
+  if(typeof gtag !== "function") return;
+  try{
+    if(USER && USER.id){
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ro-party|" + USER.id));
+      const hex = [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0, 32);
+      gtag("set", { user_id: hex });
+      gtag("set", "user_properties", { member: USER.member ? "yes" : "no", mvp_viewer: USER.mvp ? "yes" : "no" });
+      gtag("event", "login", { method: "Discord" });
+    }else{
+      gtag("set", { user_id: undefined });
+      gtag("set", "user_properties", { member: "guest" });
+    }
+  }catch(e){}
 }
 // 未登入時隱藏「我的揪團」（單機預覽模式不受限）
 function updateNavMine(){
@@ -2045,6 +2086,7 @@ async function submitReg(){
   if(forTomorrow && VIEW_DAY!==1) VIEW_DAY = 1; else if(!forTomorrow && VIEW_DAY!==0) VIEW_DAY = 0;   // 切到登記的那一天
   syncDayTabs();
   await refresh(); loadIdCards();
+  try{ gtag("event", "party_register", { activity: $("f-act").value, priv: priv ? "yes" : "no" }); }catch(e){}
   toast(priv ? "已建立私人房間！請把 4 位數密碼私下告知隊友" : (forTomorrow ? "已預先登記明日的揪團！可到「我的揪團」切到明日查看" : "登記完成！可到「我的揪團」查看進度"));
   $("f-id").value=$("f-lv").value="";
   document.querySelectorAll('input[name="f-skill"]').forEach(el=>{ el.checked=false; });
@@ -2068,6 +2110,7 @@ async function joinParty(){
   if(!added) return;
   await refresh(); loadIdCards();
   closeModal();
+  try{ gtag("event", "party_join", { activity: p.activity }); }catch(e){}
   toast(p.priv ? (p.open ? "已加入這個開放中的房間！" : "已加入這個私人房間！") : "已為你登記加入這個揪團！");
 }
 
