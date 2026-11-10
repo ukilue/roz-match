@@ -264,6 +264,20 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .cp-rewards{display:flex;flex-wrap:wrap;gap:5px 6px;min-width:0}
 .cp-reward{font-size:13.5px;font-weight:700;color:#3a2f1c;background:#FFFDF6;border:1px solid #00000033;border-radius:4px;padding:2px 8px;word-break:break-word}
 .cp-exp{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;padding-top:2px}
+/* ── 廣播關鍵字通知 ── */
+.kw-box{margin-top:12px;padding:10px 12px;border:2px dashed var(--gold);border-radius:6px;background:#D9A44114}
+.kw-title{font-weight:900;font-size:14.5px;letter-spacing:1px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.kw-title small{font-weight:400;font-size:12.5px;color:#7A6845;letter-spacing:0}
+.kw-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.kw-form select{width:auto;flex:0 0 auto;min-width:120px}
+.kw-form input{flex:1 1 160px;min-width:0}
+.kw-form .btn.small{width:auto;flex:0 0 auto;white-space:nowrap}
+.kw-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#FFFDF6;border:1.5px solid var(--wood);border-radius:6px;padding:7px 10px;font-size:14.5px}
+.kw-item .srv{font-size:11.5px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 8px;white-space:nowrap}
+.kw-item .kw{font-weight:900;word-break:break-all;flex:1 1 auto}
+.kw-item .off{font-size:12.5px;color:var(--red);font-weight:700;flex-basis:100%}
+.kw-item button{font-family:inherit;font-size:13px;font-weight:700;border-radius:999px;padding:4px 12px;cursor:pointer;border:1px solid var(--red);color:var(--red);background:none}
+.kw-item button.on{border-color:var(--green-dark);color:var(--green-dark)}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -831,6 +845,10 @@ button{touch-action:manipulation}
           <button class="bc-clear" id="bc-clear" onclick="bcClearSearch()" title="清除" style="display:none">✕</button>
         </div>
         <p class="hint" id="bc-hint">每 30 秒自動更新。</p>
+        <div class="kw-box" id="kw-box">
+          <div class="kw-title">🔔 關鍵字通知 <small>喇叭廣播的內容含關鍵字時，機器人會私訊你（約 5 分鐘內送達）</small></div>
+          <div id="kw-body"></div>
+        </div>
       </div>
     </div>
     <div id="bc-list" class="bc-list"></div>
@@ -2220,6 +2238,7 @@ function bcEnter(){
   applyGates();
   if(needLoginGate()){ bcLeave(); return; }
   if(!BC.entered){ BC.entered = true; bcRenderCats(); bcLoad(true); }
+  kwLoad();
   clearInterval(BC.timer); BC.timer = setInterval(bcPoll, BC_POLL_MS);
 }
 function bcLeave(){ clearInterval(BC.timer); BC.timer = null; }
@@ -2764,6 +2783,51 @@ function tradeChartHTML(s){
 let tradeResizeT = null;
 window.addEventListener("resize", ()=>{ clearTimeout(tradeResizeT); tradeResizeT = setTimeout(()=>{ if(currentView==="trade" && !TRADE.itemId) tradeRender(); }, 200); });
 function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : id; tradeItemRender(); }
+
+/* ─── 廣播關鍵字通知（設定存在 /api/alerts；符合的喇叭廣播由 roz-match-cron 輪詢後私訊） ─── */
+const KW = { items:[], max:1, loaded:false, busy:false };
+async function kwLoad(){
+  if(needLoginGate() || !USER){ kwRender(); return; }
+  if(!USER.member){ kwRender(); return; }
+  try{
+    const r = await fetch(API+"/alerts");
+    if(r.ok){ const d = await r.json(); KW.items = d.items||[]; KW.max = d.max||1; KW.loaded = true; }
+  }catch(e){}
+  kwRender();
+}
+function kwRender(){
+  const box = $("kw-body"); if(!box) return;
+  if(!USER){ box.innerHTML = `<span class="hint">登入 Discord 後可設定。</span>`; return; }
+  if(!USER.member){ box.innerHTML = `<span class="hint">需先加入懿岐來揪團 DC 伺服器，機器人才能私訊你。</span>`; return; }
+  const list = KW.items.map(a=>`<div class="kw-item"><span class="srv">🌐 ${esc(a.server)}</span><span class="kw">${esc(a.keyword)}</span>
+      ${a.enabled ? "" : `<button class="on" onclick="kwEnable(${a.id})">重新啟用</button>`}<button onclick="kwDelete(${a.id})">刪除</button>
+      ${a.enabled ? "" : `<span class="off">⚠ 私訊失敗已停用：請在 Discord 開啟「允許伺服器成員私訊」後按「重新啟用」。</span>`}</div>`).join("");
+  const canAdd = KW.items.length < KW.max;
+  const form = canAdd ? `<div class="kw-form">
+      <select id="kw-server">${SRV.list.map(x=>`<option value="${esc(x.server)}"${x.server===SRV.cur?" selected":""}>${esc(x.server)}</option>`).join("")}</select>
+      <input id="kw-input" maxlength="20" placeholder="關鍵字，例：鐵祝、收賢者之石" autocomplete="off" onkeydown="if(event.key==='Enter')kwAdd()">
+      <button class="btn blue small" onclick="kwAdd()">開啟通知</button>
+    </div>` : `<p class="hint" style="margin-top:6px">每人最多設定 ${KW.max} 組；要換關鍵字請先刪除原本的設定。</p>`;
+  box.innerHTML = list + (list && canAdd ? '<div style="height:8px"></div>' : "") + form;
+}
+async function kwCall(method, url, body){
+  if(KW.busy) return; KW.busy = true;
+  try{
+    const r = await fetch(API+url, { method, headers: body ? {"Content-Type":"application/json"} : undefined, body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json();
+    if(r.status===401){ USER=null; loadUser(); toast(d.error||"請先登入 Discord"); }
+    else if(!r.ok) toast(d.error||"操作失敗");
+    else { KW.items = d.items||[]; KW.max = d.max||KW.max; KW.busy = false; kwRender(); return true; }
+  }catch(e){ toast("連線失敗，請稍後再試"); }
+  KW.busy = false; return false;
+}
+async function kwAdd(){
+  const keyword = ($("kw-input").value||"").trim(), server = $("kw-server").value;
+  if([...keyword].length < 2) return toast("關鍵字至少 2 個字");
+  if(await kwCall("POST", "/alerts", { server, keyword })){ toast("已開啟通知：符合的喇叭廣播會私訊你"); try{ gtag("event","kw_alert_add"); }catch(e){} }
+}
+async function kwDelete(id){ if(await kwCall("DELETE", "/alerts?id="+id)) toast("已刪除關鍵字通知"); }
+async function kwEnable(id){ if(await kwCall("POST", "/alerts", { id, enable:true })) toast("已重新啟用"); }
 
 /* ─── 序號領取（不需登入；資料來自 GET /api/coupons，D1 的 coupons 表直接維護） ─── */
 const COUPON_URL = "https://www.gnjoy.com.tw/Coupon/Zone";
