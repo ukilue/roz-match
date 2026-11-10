@@ -246,6 +246,24 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .ev-toggle{font-family:inherit;font-size:13px;font-weight:700;color:var(--wood-dark);background:#FFFDF6;border:1.5px solid var(--wood);border-radius:999px;padding:7px 14px;cursor:pointer;align-self:flex-start}
 .ev-sec{color:#8a5a10;text-shadow:none}
 .ev-sec small{color:#7A6845}
+/* ── 序號領取 ── */
+.cp-url{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:15px}
+.cp-url a.link{font-weight:900;color:var(--ro-blue-dark);word-break:break-all}
+.cp-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.cp-card{min-width:0;background:var(--parchment);border:2px solid #2B2B2B;border-top:5px solid var(--gold);border-radius:6px;box-shadow:0 4px 12px #00000055;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.cp-card.expired{opacity:.6;border-top-color:#888}
+.cp-name{font-weight:900;font-size:17px;letter-spacing:1px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;word-break:break-word}
+.cp-tag{font-size:11.5px;font-weight:900;border-radius:3px;padding:1px 7px;letter-spacing:0;white-space:nowrap}
+.cp-tag.soon{color:#8a5a10;background:#D9A44126;border:1px solid var(--gold)}
+.cp-tag.dead{color:#fff;background:#888}
+.cp-label{flex:0 0 auto;min-width:64px;font-size:12.5px;font-weight:900;color:#6b5a3a;letter-spacing:1px;padding-top:3px}
+.cp-row,.cp-code-row{display:flex;align-items:flex-start;gap:8px}
+.cp-code-row{align-items:center;flex-wrap:wrap}
+.cp-code{font-family:'Press Start 2P',monospace;font-size:15px;letter-spacing:1px;color:var(--sell-dark);background:#FFFDF6;border:2px dashed var(--wood);border-radius:5px;padding:8px 12px;user-select:all;word-break:break-all}
+.cp-copy{width:auto;padding:8px 14px;font-size:14px}
+.cp-rewards{display:flex;flex-wrap:wrap;gap:5px 6px;min-width:0}
+.cp-reward{font-size:13.5px;font-weight:700;color:#3a2f1c;background:#FFFDF6;border:1px solid #00000033;border-radius:4px;padding:2px 8px;word-break:break-word}
+.cp-exp{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;padding-top:2px}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -598,7 +616,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .logo .px{font-size:15px}
   .logo .zh{font-size:17px;letter-spacing:1px}
   nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  nav.has-mvp{grid-template-columns:1fr 1fr 1fr}   /* 5 顆功能鈕：3＋2 */
+  nav.has-mvp{grid-template-columns:1fr 1fr 1fr}   /* 6 顆功能鈕：3×2 */
   nav.has-mvp .nav-btn{padding:10px 4px;font-size:13.5px}
   .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center;width:100%}
   main{padding:16px 12px 40px}
@@ -648,6 +666,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   #ti-days{margin:0;width:100%} #ti-days .bc-cat{flex:1 1 0}
   .ev-wrap.mode-cal .cal{display:none} .ev-wrap.mode-cal .ev-list{display:grid} .ev-list{grid-template-columns:1fr} .ev-modes{display:none} .cal-legend{display:none} .cal-nav .month{font-size:18px}
   .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
+  .cp-list{grid-template-columns:1fr} .cp-code{font-size:13px} .cp-label{min-width:56px}
   .srv-bar{gap:6px 10px;margin-bottom:10px}
   .srv-chips{flex:1 1 auto;gap:6px}
   .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
@@ -690,6 +709,7 @@ button{touch-action:manipulation}
       <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
       <button class="nav-btn" id="nav-trade" onclick="showView('trade')">💰 交易買賣</button>
       <button class="nav-btn" id="nav-events" onclick="showView('events')">📅 活動日程</button>
+      <button class="nav-btn" id="nav-coupon" onclick="showView('coupon')">🎁 序號領取</button>
       <button class="nav-btn" id="nav-mvp" onclick="showView('mvp')" style="display:none">👑 MVP 資訊</button>
     </nav>
   </div>
@@ -878,6 +898,19 @@ button{touch-action:manipulation}
     </div>
 
     </div>
+  </section>
+
+  <!-- ═══ 序號領取（不需登入；資料來自 D1 的 coupons 表） ═══ -->
+  <section class="view" id="view-coupon">
+    <div class="panel">
+      <div class="panel-title"><span>🎁 序號領取</span> <small>複製序號後，到官方兌換頁輸入即可領取獎勵</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <div class="cp-url"><b>兌換網址</b><a class="link" href="https://www.gnjoy.com.tw/Coupon/Zone" target="_blank" rel="noopener">https://www.gnjoy.com.tw/Coupon/Zone</a><a class="btn small" style="width:auto;text-decoration:none" href="https://www.gnjoy.com.tw/Coupon/Zone" target="_blank" rel="noopener">前往兌換 ↗</a></div>
+        <p class="hint" style="margin-top:8px">登入遊戲官方帳號後輸入序號即可兌換，實際規則以官方公告為準。</p>
+      </div>
+    </div>
+    <div id="cp-list" class="cp-list"></div>
+    <div id="cp-empty" class="empty" style="display:none">目前沒有可兌換的序號。</div>
   </section>
 
   <!-- ═══ 活動日程（不需登入；資料來自 D1 的 events 表） ═══ -->
@@ -1564,7 +1597,7 @@ function showView(v){
   let evMonth = null;
   const em = /^events(?:\/(\d{4}-\d{2}))?$/.exec(v||"");
   if(em){ evMonth = em[1] || null; v = "events"; }
-  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events") v = "home";
+  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events" && v!=="coupon") v = "home";
   if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
@@ -1574,6 +1607,8 @@ function showView(v){
   $("view-trade").classList.toggle("show", v==="trade");
   $("view-events").classList.toggle("show", v==="events");
   $("nav-events").classList.toggle("active", v==="events");
+  $("view-coupon").classList.toggle("show", v==="coupon");
+  $("nav-coupon").classList.toggle("active", v==="coupon");
   $("nav-party").classList.toggle("active", inParty);
   $("nav-bc").classList.toggle("active", v==="bc");
   $("nav-mvp").classList.toggle("active", v==="mvp");
@@ -1588,6 +1623,7 @@ function showView(v){
   if(v==="mvp") mvpEnter(); else mvpLeave();
   if(v==="trade") tradeEnter(tradeItem); else tradeLeave();
   if(v==="events") evEnter(evMonth); else evLeave();
+  if(v==="coupon") cpEnter(); else cpLeave();
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
   const hash = (v==="trade" && tradeItem) ? (tradeItem==="currency" ? "#trade/currency" : "#trade/item/"+tradeItem) : (v==="events" ? "#events/"+EV.ym : "#"+v);
   if(location.hash !== hash) history.replaceState(null, "", hash);
@@ -1595,7 +1631,7 @@ function showView(v){
   window.scrollTo({top:0});
 }
 // Google Analytics：每次切換頁面送一次 page_view（虛擬路徑 /home、/mine、/all、/bc、/mvp）；GA 未載入（被擋）時靜默
-const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程" };
+const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程", coupon:"序號領取" };
 function trackPage(v){
   try{ if(typeof gtag === "function") gtag("event", "page_view", { page_title: "RO 樂園佈告欄｜"+(PAGE_TITLES[v]||v), page_path: "/"+v, page_location: location.origin + "/#" + v }); }catch(e){}
 }
@@ -2728,6 +2764,64 @@ function tradeChartHTML(s){
 let tradeResizeT = null;
 window.addEventListener("resize", ()=>{ clearTimeout(tradeResizeT); tradeResizeT = setTimeout(()=>{ if(currentView==="trade" && !TRADE.itemId) tradeRender(); }, 200); });
 function tradeChartPick(id){ TRADE.item.pick = (TRADE.item.pick===id) ? null : id; tradeItemRender(); }
+
+/* ─── 序號領取（不需登入；資料來自 GET /api/coupons，D1 的 coupons 表直接維護） ─── */
+const COUPON_URL = "https://www.gnjoy.com.tw/Coupon/Zone";
+const CP = { items:[], now:0, fetchedAt:0, loaded:false, loading:false, timer:null };
+async function cpLoad(){
+  if(CP.loading) return; CP.loading = true;
+  try{
+    const r = await fetch(API+"/coupons");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    CP.items = d.items||[]; CP.now = d.now||Math.floor(Date.now()/1000); CP.fetchedAt = Date.now(); CP.loaded = true;
+    cpRender();
+  }catch(e){
+    if(!CP.loaded){ $("cp-list").innerHTML=""; $("cp-empty").style.display=""; $("cp-empty").textContent="無法讀取序號資料，請稍後再試。"; }
+  }
+  CP.loading = false;
+}
+function cpEnter(){
+  if(!CP.loaded) $("cp-list").innerHTML = '<div class="bc-loading">載入中…</div>';
+  else cpRender();
+  cpLoad();
+  clearInterval(CP.timer); CP.timer = setInterval(cpLoad, 5*60*1000);
+}
+function cpLeave(){ clearInterval(CP.timer); CP.timer = null; }
+function cpRender(){
+  if(currentView!=="coupon" || !CP.loaded) return;
+  const now = CP.now + Math.round((Date.now()-CP.fetchedAt)/1000);
+  const box = $("cp-list"), empty = $("cp-empty");
+  if(!CP.items.length){ box.innerHTML=""; empty.style.display=""; empty.textContent="目前沒有可兌換的序號。"; return; }
+  empty.style.display = "none";
+  const live = CP.items.filter(c=> c.expire==null || c.expire > now), dead = CP.items.filter(c=> c.expire!=null && c.expire <= now);
+  const card = (c, expired) => {
+    const left = c.expire==null ? "" : (expired ? "已過期" : (c.expire-now < 7*86400 ? `剩 ${evDur(c.expire-now)}` : ""));
+    return `<div class="cp-card${expired?" expired":""}">
+      <div class="cp-name">${esc(c.name)}${expired?'<span class="cp-tag dead">已過期</span>':(left?`<span class="cp-tag soon">⏳ ${left}</span>`:"")}</div>
+      <div class="cp-code-row"><span class="cp-label">序號</span><code class="cp-code">${esc(c.code)}</code><button class="btn blue small cp-copy" onclick="cpCopy(this, ${c.id})"${expired?" disabled":""}>📋 複製</button></div>
+      <div class="cp-row"><span class="cp-label">獎勵</span><div class="cp-rewards">${c.rewards.map(x=>`<span class="cp-reward">🎁 ${esc(x)}</span>`).join("") || "—"}</div></div>
+      <div class="cp-row"><span class="cp-label">兌換期限</span><span class="cp-exp">${c.expire==null ? "無期限" : "～ "+cpFmt(c.expire)+" 止"}</span></div>
+      ${c.note?`<div class="cp-row"><span class="cp-label">備註</span><span class="cp-exp">${esc(c.note)}</span></div>`:""}
+    </div>`;
+  };
+  box.innerHTML = live.map(c=>card(c,false)).join("") + (dead.length ? `<div class="ev-sec" style="grid-column:1/-1;color:var(--gold)">已過期<small style="color:#ffffff99">${dead.length} 組</small></div>` + dead.map(c=>card(c,true)).join("") : "");
+}
+// 2026/12/31(四) 23:59
+function cpFmt(ts){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts*1000));
+  const g = t => p.find(x=>x.type===t).value;
+  const wd = EV_WD[new Date((ts + 8*3600)*1000).getUTCDay()];
+  return `${g("year")}/${g("month")}/${g("day")}(${wd}) ${String(Number(g("hour"))%24).padStart(2,"0")}:${g("minute")}`;
+}
+async function cpCopy(btn, id){
+  const c = CP.items.find(x=>x.id===id); if(!c) return;
+  let ok = false;
+  try{ await navigator.clipboard.writeText(c.code); ok = true; }
+  catch(e){ try{ const ta=document.createElement("textarea"); ta.value=c.code; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); ok=document.execCommand("copy"); ta.remove(); }catch(x){} }
+  toast(ok ? "已複製序號 "+c.code+"，請到兌換網址貼上" : "複製失敗，請手動選取序號");
+  if(ok){ const old = btn.textContent; btn.textContent = "✔ 已複製"; setTimeout(()=>{ btn.textContent = old; }, 1600); try{ gtag("event","coupon_copy",{ code:c.code }); }catch(e){} }
+}
 
 /* ─── 活動日程（不需登入；資料來自 GET /api/events，D1 的 events 表直接維護） ───
    PC：月曆（7 欄、每格一天），一個活動一條橫 bar，跨日連成一條、跨週分段；同週多個活動依「車道」排列不重疊
