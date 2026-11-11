@@ -278,6 +278,19 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .kw-item .off{font-size:12.5px;color:var(--red);font-weight:700;flex-basis:100%}
 .kw-item button{font-family:inherit;font-size:13px;font-weight:700;border-radius:999px;padding:4px 12px;cursor:pointer;border:1px solid var(--red);color:var(--red);background:none}
 .kw-item button.on{border-color:var(--green-dark);color:var(--green-dark)}
+/* ── 帳號選單／角色綁定／私訊按鈕 ── */
+.side-bottom{position:relative}
+.acct-menu{position:absolute;left:0;right:0;bottom:calc(100% + 6px);background:var(--parchment);border:2px solid #2B2B2B;border-radius:6px;box-shadow:0 8px 24px #00000088;overflow:hidden;z-index:40;display:none}
+.acct-menu.show{display:block}
+.acct-menu button{display:block;width:100%;font-family:inherit;font-weight:700;font-size:15px;text-align:left;color:var(--ink);background:none;border:0;border-bottom:1px solid #00000018;padding:12px 14px;cursor:pointer;letter-spacing:1px}
+.acct-menu button:last-child{border-bottom:0}
+.acct-menu button:hover{background:#00000010}
+.acct-menu button.out{color:var(--red)}
+.dm-btn{display:inline-block;font-size:11.5px;font-weight:900;color:#fff;background:#5865F2;border-radius:3px;padding:1px 7px;margin-left:6px;text-decoration:none;white-space:nowrap;vertical-align:1px;letter-spacing:0}
+.dm-btn:hover{background:#4752C4}
+.bind-warn{margin-top:10px;padding:10px 12px;border:1.5px solid var(--red);border-radius:6px;background:#C0452F14;color:#7d2416;font-size:13.5px;line-height:1.7}
+.bind-warn b{letter-spacing:1px}
+.bind-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -681,6 +694,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ev-wrap.mode-cal .cal{display:none} .ev-wrap.mode-cal .ev-list{display:grid} .ev-list{grid-template-columns:1fr} .ev-modes{display:none} .cal-legend{display:none} .cal-nav .month{font-size:18px}
   .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
   .cp-list{grid-template-columns:1fr} .cp-code{font-size:13px} .cp-label{min-width:56px}
+  .acct-menu{left:12px;right:12px;bottom:calc(100% - 6px)}
   .srv-bar{gap:6px 10px;margin-bottom:10px}
   .srv-chips{flex:1 1 auto;gap:6px}
   .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
@@ -729,6 +743,10 @@ button{touch-action:manipulation}
   </div>
   <div class="side-bottom">
     <a class="nav-btn donate" href="https://payment.opay.tw/Broadcaster/Donate/F282CA5A0B4DC352B40DE957D23C9441" target="_blank" rel="noopener" onclick="try{gtag('event','donate_click')}catch(e){}">☕ 贊助我們</a>
+    <div class="acct-menu" id="acct-menu" role="menu">
+      <button role="menuitem" onclick="acctMenuToggle(false);showView('bind')">🔗 綁定角色</button>
+      <button role="menuitem" class="out" onclick="doLogout()">🚪 會員登出</button>
+    </div>
     <button class="nav-btn auth" id="auth-btn" onclick="authAction()" style="background:#5865F2;border-color:#5865F2">Discord 登入</button>
   </div>
   </div>
@@ -915,6 +933,34 @@ button{touch-action:manipulation}
       <div id="ti-body"></div>
     </div>
 
+    </div>
+  </section>
+
+  <!-- ═══ 綁定角色（需登入；從左下角帳號選單進入） ═══ -->
+  <section class="view" id="view-bind">
+    <div class="login-bar gate-login" id="bind-login" style="display:none">
+      <span>🔐 綁定角色需先登入 Discord。</span>
+      <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
+    </div>
+    <div class="gate-body" id="bind-body">
+    <div class="panel">
+      <div class="panel-title"><span>🔗 綁定角色</span> <small>把遊戲角色綁到你的 Discord 帳號，一個帳號可綁定多個角色</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <p style="font-size:14.5px;line-height:1.7">綁定角色後，你的角色在<b>廣播訊息</b>與<b>交易買賣</b>頁面的名稱旁會出現「💬 私訊」按鈕：其他玩家從網站看到你的廣播時，可以直接用 Discord 私訊你。</p>
+        <div class="bind-warn">
+          <b>⚠ 綁定前請留意</b><br>
+          ・綁定後，你的 Discord 帳號連結會顯示給本站已登入的玩家，即表示你同意接收「懿岐玩遊戲」DC 群其他玩家的 Discord 私訊。<br>
+          ・角色綁定由玩家自行填寫，本站無法核對是否為本人。交易時請務必自行確認對方身分，本站不對任何交易提供保證，亦不負任何責任。
+        </div>
+        <div class="kw-form" style="margin-top:12px">
+          <select id="bind-server"></select>
+          <input id="bind-name" maxlength="24" placeholder="遊戲角色名稱（需與遊戲內完全相同）" autocomplete="off" onkeydown="if(event.key==='Enter')bindAdd()">
+          <button class="btn blue small" onclick="bindAdd()">新增</button>
+        </div>
+        <p class="hint" id="bind-count" style="margin-top:6px"></p>
+        <div class="bind-list" id="bind-list"></div>
+      </div>
+    </div>
     </div>
   </section>
 
@@ -1192,10 +1238,10 @@ async function loadUser(){
   }catch(e){ USER = null; }
   const btn = $("auth-btn");
   if(USER && USER.member){
-    btn.textContent = "🎮 "+USER.name+"｜登出";
+    btn.textContent = "⚙ "+USER.name;
     btn.style.background = "#3BA55D"; btn.style.borderColor = "#3BA55D";
   }else if(USER){
-    btn.textContent = "⚠ "+USER.name+"（未加入伺服器）｜登出";
+    btn.textContent = "⚙ ⚠ "+USER.name+"（未加入伺服器）";
     btn.style.background = "#C77B2B"; btn.style.borderColor = "#C77B2B";
   }else{
     btn.textContent = "Discord 登入";
@@ -1236,7 +1282,7 @@ function updateNavMine(){
   if(!mvpOk && currentView==="mvp") showView("home");
   else if(mvpOk && PENDING_VIEW==="mvp"){ PENDING_VIEW = null; showView("mvp"); }
   // 登入狀態改變後，正在看的廣播／MVP 頁重新載入（例如登出後要顯示登入提示、登入後要抓資料）
-  if(currentView==="bc") bcEnter(); if(currentView==="mvp") mvpEnter(); if(currentView==="trade") tradeEnter();
+  if(currentView==="bc") bcEnter(); if(currentView==="mvp") mvpEnter(); if(currentView==="trade") tradeEnter(); if(currentView==="bind") bindEnter(); if(currentView==="bc" || currentView==="trade") dmLoad();
   // 組隊揪團頁最上方的登入提示列（未登入／未加入伺服器時顯示）
   const bar = $("login-bar");
   if(bar){
@@ -1285,10 +1331,7 @@ function updateRegForm(){
 }
 async function authAction(){
   if(USER){
-    await fetch(API+"/auth/logout", {method:"POST"});
-    USER = null;
-    await loadUser();
-    toast("已登出");
+    acctMenuToggle();   // 已登入：開關帳號選單（綁定角色／會員登出）
   }else{
     location.href = API+"/auth/login";
   }
@@ -1615,7 +1658,7 @@ function showView(v){
   let evMonth = null;
   const em = /^events(?:\/(\d{4}-\d{2}))?$/.exec(v||"");
   if(em){ evMonth = em[1] || null; v = "events"; }
-  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events" && v!=="coupon") v = "home";
+  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events" && v!=="coupon" && v!=="bind") v = "home";
   if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
@@ -1627,6 +1670,7 @@ function showView(v){
   $("nav-events").classList.toggle("active", v==="events");
   $("view-coupon").classList.toggle("show", v==="coupon");
   $("nav-coupon").classList.toggle("active", v==="coupon");
+  $("view-bind").classList.toggle("show", v==="bind");
   $("nav-party").classList.toggle("active", inParty);
   $("nav-bc").classList.toggle("active", v==="bc");
   $("nav-mvp").classList.toggle("active", v==="mvp");
@@ -1642,6 +1686,8 @@ function showView(v){
   if(v==="trade") tradeEnter(tradeItem); else tradeLeave();
   if(v==="events") evEnter(evMonth); else evLeave();
   if(v==="coupon") cpEnter(); else cpLeave();
+  if(v==="bind") bindEnter();
+  if(v==="bc" || v==="trade") dmLoad();
   // 網址 hash 記住目前頁面，重新整理／返回鍵都能回到同一頁
   const hash = (v==="trade" && tradeItem) ? (tradeItem==="currency" ? "#trade/currency" : "#trade/item/"+tradeItem) : (v==="events" ? "#events/"+EV.ym : "#"+v);
   if(location.hash !== hash) history.replaceState(null, "", hash);
@@ -1649,7 +1695,7 @@ function showView(v){
   window.scrollTo({top:0});
 }
 // Google Analytics：每次切換頁面送一次 page_view（虛擬路徑 /home、/mine、/all、/bc、/mvp）；GA 未載入（被擋）時靜默
-const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程", coupon:"序號領取" };
+const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程", coupon:"序號領取", bind:"綁定角色" };
 function trackPage(v){
   try{ if(typeof gtag === "function") gtag("event", "page_view", { page_title: "RO 樂園佈告欄｜"+(PAGE_TITLES[v]||v), page_path: "/"+v, page_location: location.origin + "/#" + v }); }catch(e){}
 }
@@ -2277,7 +2323,7 @@ function bcRender(){
         <span class="bc-time">${bcHM(it.ts)}</span>
         <span class="bc-type ${typeCls}">${esc(it.type||"廣播")}</span>
         <span class="bc-cat-tag" style="--c:${color}">${esc(it.category)}</span>
-        ${it.sender?`<span class="bc-sender">${bcHighlight(it.sender, BC.q)}</span>`:""}
+        ${it.sender?`<span class="bc-sender">${bcHighlight(it.sender, BC.q)}</span>${dmBtn(it.sender)}`:""}
       </div>
       <div class="bc-msg">${bcHighlight(it.message, BC.q)}</div>
     </div>`;
@@ -2425,6 +2471,7 @@ function serverReload(){
   if(currentView==="bc") bcEnter();
   else if(currentView==="trade") tradeEnter(TRADE.itemId);
   else if(currentView==="mvp") mvpEnter();
+  DM.map = {}; DM.server = null; if(currentView==="bc" || currentView==="trade") dmLoad(true);
   toast("已切換到「"+SRV.cur+"」");
 }
 
@@ -2602,7 +2649,7 @@ function tradeRender(){
   }
   const openSet = new Set([...box.querySelectorAll(".tr-card.open")].map(c=>c.dataset.id));
   const cardHTML = g => `<div class="tr-card${g.isNew?" new":""}${openSet.has(g.id)?" open":""}" data-id="${esc(g.id)}">
-      <div class="tr-head"><span class="bc-time" title="${mvpFmt(g.ts)}">${tradeRel(g.ts)}</span><span class="bc-sender">${esc(g.sender)}</span>${g.rows.length>1?`<span class="n">${g.rows.length} 筆</span>`:""}
+      <div class="tr-head"><span class="bc-time" title="${mvpFmt(g.ts)}">${tradeRel(g.ts)}</span><span class="bc-sender">${esc(g.sender)}</span>${dmBtn(g.sender)}${g.rows.length>1?`<span class="n">${g.rows.length} 筆</span>`:""}
         <button class="tr-toggle" onclick="this.closest('.tr-card').classList.toggle('open')">喊話全文</button></div>
       ${g.rows.sort((a,b)=>a.seq-b.seq).map(tradeRowHTML).join("")}
       <div class="tr-msg">${esc(g.message)}</div>
@@ -2713,7 +2760,7 @@ function tradeItemRender(){
     const arr = listRows.filter(t=>t.side===side);
     return `<div class="ti-col ${cls}"><div class="ti-col-head">${title}<small>${arr.length} 筆</small></div>
       ${arr.length ? `<div class="ti-rows">${arr.map(t=>`<div class="ti-r" style="--c:var(--${cls})" onclick="this.classList.toggle('open')">
-        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${t.refine!=null?`<span class="ref">+${esc(t.refine)}</span>`:""}${esc(t.sender)}${tradeSlots(t)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}${tradeExtrasHTML(t)?`<div class="ti-r-ex">${tradeExtrasHTML(t)}</div>`:""}</div>
+        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${t.refine!=null?`<span class="ref">+${esc(t.refine)}</span>`:""}${esc(t.sender)}${dmBtn(t.sender)}${tradeSlots(t)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}${tradeExtrasHTML(t)?`<div class="ti-r-ex">${tradeExtrasHTML(t)}</div>`:""}</div>
         <div class="tr-msg">${esc(t.message)}</div></div>`).join("")}</div>` : `<div class="empty">沒有${title}紀錄</div>`}
     </div>`;
   };
@@ -2734,7 +2781,7 @@ function tradeCurRender(){
     const arr = rows.filter(t=>t.side===side);
     return `<div class="ti-col ${cls}"><div class="ti-col-head">${title} R幣<small>${arr.length} 筆</small></div>
       ${arr.length ? `<div class="ti-rows">${arr.map(t=>`<div class="ti-r" style="--c:var(--${cls})" onclick="this.classList.toggle('open')">
-        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${esc(t.sender)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}</div>
+        <div class="ti-r-main"><span class="t" title="${mvpFmt(t.ts)}">${tradeRel(t.ts)}</span><span class="who">${esc(t.sender)}${dmBtn(t.sender)}${t.quantity!=null?`<span class="q">×${tradeFmtNum(t.quantity)}</span>`:""}</span>${tradePriceHTML(t)}</div>
         <div class="tr-msg">${esc(t.message)}</div></div>`).join("")}</div>` : `<div class="empty">沒有${title}紀錄</div>`}
     </div>`;
   };
@@ -2828,6 +2875,82 @@ async function kwAdd(){
 }
 async function kwDelete(id){ if(await kwCall("DELETE", "/alerts?id="+id)) toast("已刪除關鍵字通知"); }
 async function kwEnable(id){ if(await kwCall("POST", "/alerts", { id, enable:true })) toast("已重新啟用"); }
+
+/* ─── 帳號選單、角色綁定、Discord 私訊按鈕 ───
+   綁定：/api/binds（本人清單、新增、刪除）；對照表：/api/binds/map?server=（角色名 → Discord ID，廣播／交易頁共用）
+   發話者名稱在對照表內 → 名稱旁顯示「💬 私訊」，連到 https://discord.com/users/<ID>（開啟對方個人檔案後可傳訊息） */
+function acctMenuToggle(force){
+  const m = $("acct-menu"); if(!m) return;
+  const show = force===undefined ? !m.classList.contains("show") : !!force;
+  m.classList.toggle("show", show);
+}
+document.addEventListener("click", e=>{ if(!e.target.closest || !e.target.closest(".side-bottom")) acctMenuToggle(false); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") acctMenuToggle(false); });
+async function doLogout(){
+  acctMenuToggle(false);
+  await fetch(API+"/auth/logout", {method:"POST"});
+  USER = null; DM.map = {}; DM.server = null;
+  await loadUser();
+  toast("已登出");
+}
+const BIND = { items:[], max:10, busy:false };
+const DM = { map:{}, server:null, at:0, loading:null };
+// 對照表：同一伺服器 60 秒內不重抓；抓到後重畫目前頁面讓按鈕出現
+async function dmLoad(force){
+  if(!USER || !SRV.cur) return;
+  if(!force && DM.server===SRV.cur && Date.now()-DM.at < 60000) return;
+  if(DM.loading) return DM.loading;
+  const server = SRV.cur;
+  DM.loading = (async()=>{
+    try{
+      const r = await fetch(API+"/binds/map?server="+encodeURIComponent(server));
+      if(r.ok){ const d = await r.json(); if(server===SRV.cur){ DM.map = d.map||{}; DM.server = server; DM.at = Date.now(); dmRefreshViews(); } }
+    }catch(e){}
+    DM.loading = null;
+  })();
+  return DM.loading;
+}
+function dmRefreshViews(){
+  if(currentView==="bc" && typeof bcRender==="function") bcRender();
+  if(currentView==="trade"){ if(TRADE.itemId) tradeItemRender(); else tradeRender(); }
+}
+// 發話者名稱旁的私訊按鈕（沒綁定就回空字串）
+function dmBtn(name){
+  const id = name && DM.server===SRV.cur ? DM.map[name] : null;
+  if(!id || !/^\d{5,25}$/.test(String(id))) return "";
+  return `<a class="dm-btn" href="https://discord.com/users/${id}" target="_blank" rel="noopener" title="開啟「${esc(name)}」綁定的 Discord 帳號（玩家自行綁定、未經核對，交易請自行確認身分）" onclick="event.stopPropagation();try{gtag('event','dm_click')}catch(e){}">💬 私訊</a>`;
+}
+function bindEnter(){
+  const gate = store.online && !USER;
+  $("bind-login").style.display = gate ? "" : "none"; $("bind-body").style.display = gate ? "none" : "";
+  if(gate) return;
+  $("bind-server").innerHTML = SRV.list.map(x=>`<option value="${esc(x.server)}"${x.server===SRV.cur?" selected":""}>${esc(x.server)}</option>`).join("");
+  bindRender(); bindCall("GET", "/binds");
+}
+function bindRender(){
+  $("bind-count").textContent = `已綁定 ${BIND.items.length}／${BIND.max} 個角色`;
+  $("bind-list").innerHTML = BIND.items.length
+    ? BIND.items.map(b=>`<div class="kw-item"><span class="srv">🌐 ${esc(b.server)}</span><span class="kw">${esc(b.charName)}</span><button onclick="bindDelete(${b.id})">刪除</button></div>`).join("")
+    : `<div class="empty" style="padding:18px 10px;font-size:13.5px">還沒有綁定任何角色。</div>`;
+}
+async function bindCall(method, url, body){
+  if(BIND.busy) return false; BIND.busy = true;
+  let ok = false;
+  try{
+    const r = await fetch(API+url, { method, headers: body ? {"Content-Type":"application/json"} : undefined, body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json();
+    if(r.status===401){ USER=null; loadUser(); toast(d.error||"請先登入 Discord"); }
+    else if(!r.ok) toast(d.error||"操作失敗");
+    else { BIND.items = d.items||[]; BIND.max = d.max||BIND.max; ok = true; if(currentView==="bind") bindRender(); }
+  }catch(e){ if(method!=="GET") toast("連線失敗，請稍後再試"); }
+  BIND.busy = false; return ok;
+}
+async function bindAdd(){
+  const charName = ($("bind-name").value||"").trim(), server = $("bind-server").value;
+  if(!charName) return toast("請輸入角色名稱");
+  if(await bindCall("POST", "/binds", { server, charName })){ $("bind-name").value=""; DM.at = 0; toast("已綁定角色「"+charName+"」"); try{ gtag("event","bind_add"); }catch(e){} }
+}
+async function bindDelete(id){ if(await bindCall("DELETE", "/binds?id="+id)){ DM.at = 0; toast("已解除綁定"); } }
 
 /* ─── 序號領取（不需登入；資料來自 GET /api/coupons，D1 的 coupons 表直接維護） ─── */
 const COUPON_URL = "https://www.gnjoy.com.tw/Coupon/Zone";
