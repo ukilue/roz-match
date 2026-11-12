@@ -291,6 +291,19 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .bind-warn{margin-top:10px;padding:10px 12px;border:1.5px solid var(--red);border-radius:6px;background:#C0452F14;color:#7d2416;font-size:13.5px;line-height:1.7}
 .bind-warn b{letter-spacing:1px}
 .bind-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+/* ── 首頁：更新紀錄 ── */
+.log-item{padding:12px 0;border-bottom:1px dashed #8a6f3f66}
+.log-item:last-child{border-bottom:0}
+.log-item h3{font-size:16px;font-weight:900;letter-spacing:1px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.log-item time{font-size:12.5px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 8px;font-variant-numeric:tabular-nums;letter-spacing:0;white-space:nowrap}
+.log-item ul{list-style:none;margin-top:6px;font-size:14.5px;line-height:1.75;color:#4a3d28}
+.log-item li{padding-left:1.1em;text-indent:-1.1em}
+.log-item li::before{content:"．";color:var(--wood)}
+.log-older{display:none} .log-older.show{display:block}
+.log-older .log-item:first-child{border-top:1px dashed #8a6f3f66}
+/* ── 手機：頂端列（≡ 功能＋站名）與左側滑出選單 ── */
+.m-top{display:none}
+.side-backdrop{display:none}
 /* ── 交易買賣 ── */
 :root{--buy:#2F9E4F;--buy-dark:#1F7A3A;--sell:#C0452F;--sell-dark:#8E2F1F;--swap:#7B4FB3;--swap-dark:#5A3788}
 .tr-status{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#7A6845;margin-top:6px}
@@ -630,22 +643,26 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .cal .bar{font-size:11.5px;padding:0 5px} .cal .bar .t{display:none}
   .ev-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-/* ── 手機版（RWD）：上＝LOGO＋功能列、中＝內容、最下＝登入／登出（避免誤觸） ── */
+/* ── 手機版（RWD）：頂端列「≡ 功能」＋站名；功能列與登入區收進左側滑出選單（版面同 PC 側欄） ── */
 @media (max-width:720px){
-  .side,.side-in{display:contents}
-  .side-top{order:1;width:100%;flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px;background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);border-bottom:3px solid var(--gold)}
-  .content{order:2}
-  .side-bottom{order:3;width:100%;padding:14px 12px calc(16px + env(safe-area-inset-bottom));background:var(--night-2);border-top:2px solid #ffffff22}
-  .side-bottom{flex-direction:column;align-items:stretch;gap:0}
-  .side-bottom .nav-btn.auth{width:100%;min-height:46px;font-size:15px}
-  .side-bottom .nav-btn.donate{width:100%;min-height:44px;font-size:15px;margin-bottom:8px;line-height:22px}
-  .logo{padding:0;border-bottom:0}
-  .logo .px{font-size:15px}
-  .logo .zh{font-size:17px;letter-spacing:1px}
-  nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  nav.has-mvp{grid-template-columns:1fr 1fr 1fr}   /* 6 顆功能鈕：3×2 */
-  nav.has-mvp .nav-btn{padding:10px 4px;font-size:13.5px}
-  .nav-btn{padding:10px 8px;font-size:14px;letter-spacing:0;min-height:42px;text-align:center;width:100%}
+  .m-top{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;padding:8px 12px;background:linear-gradient(180deg,var(--ro-blue) 0%,var(--ro-blue-dark) 100%);border-bottom:3px solid var(--gold)}
+  .m-menu-btn{font-family:inherit;font-weight:900;font-size:15px;letter-spacing:1px;color:#fff;background:#ffffff1f;border:1px solid #ffffff55;border-radius:4px;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+  .m-title{display:flex;align-items:baseline;gap:8px;color:#fff;cursor:pointer;min-width:0}
+  .m-title .px{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold);text-shadow:2px 2px 0 #00000055}
+  .m-title .zh{font-weight:900;font-size:17px;letter-spacing:1px;white-space:nowrap}
+  .side{position:fixed;left:0;top:0;bottom:0;width:min(270px,82vw);z-index:50;transform:translateX(-102%);transition:transform .22s ease;border-right:3px solid var(--gold);border-bottom:0;box-shadow:6px 0 24px #00000088}
+  .side.open{transform:none}
+  .side-in{position:static;height:100%;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:12px;padding:16px 12px calc(14px + env(safe-area-inset-bottom));overflow-y:auto}
+  .side-top{flex-direction:column;align-items:stretch;gap:14px;flex:0 0 auto}
+  .side-bottom{margin-top:auto;display:block}
+  .side-bottom .nav-btn.donate{margin-bottom:8px}
+  .side-backdrop{position:fixed;inset:0;z-index:45;background:#00000088}
+  .side-backdrop.show{display:block}
+  .tr-newbar{top:64px}
+  .logo{padding:2px 4px 6px;border-bottom:1px solid #ffffff33}
+  nav{flex-direction:column;display:flex}
+  .nav-btn{width:100%;text-align:left;padding:11px 14px;font-size:15px;min-height:44px}
+  .nav-btn.auth,.nav-btn.donate{text-align:center}
   main{padding:16px 12px 40px}
   .panel{margin-bottom:16px;border-radius:6px}
   .panel-body{padding:14px 13px 16px}
@@ -694,7 +711,6 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ev-wrap.mode-cal .cal{display:none} .ev-wrap.mode-cal .ev-list{display:grid} .ev-list{grid-template-columns:1fr} .ev-modes{display:none} .cal-legend{display:none} .cal-nav .month{font-size:18px}
   .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
   .cp-list{grid-template-columns:1fr} .cp-code{font-size:13px} .cp-label{min-width:56px}
-  .acct-menu{left:12px;right:12px;bottom:calc(100% - 6px)}
   .srv-bar{gap:6px 10px;margin-bottom:10px}
   .srv-chips{flex:1 1 auto;gap:6px}
   .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
@@ -724,15 +740,18 @@ button{touch-action:manipulation}
 </head>
 <body>
 
+<div class="m-top"><button class="m-menu-btn" onclick="sideToggle(true)" aria-label="開啟功能選單">≡ 功能</button><div class="m-title" onclick="showView('index')"><span class="px">RO</span><span class="zh">樂園佈告欄</span></div></div>
+<div class="side-backdrop" id="side-backdrop" onclick="sideToggle(false)"></div>
 <div class="app">
 <!-- PC：左側功能欄（LOGO＋功能在上、登入／登出在最下）；手機：功能列在最上、登入／登出移到頁面最下方 -->
-<aside class="side">
+<aside class="side" id="side">
   <div class="side-in">
   <div class="side-top">
-    <div class="logo" onclick="showView('home')">
+    <div class="logo" onclick="showView('index')">
       <span class="px">RO</span><h1 class="zh">樂園佈告欄</h1>
     </div>
     <nav id="main-nav">
+      <button class="nav-btn" id="nav-index" onclick="showView('index')">🏠 首頁</button>
       <button class="nav-btn" id="nav-party" onclick="showView('home')">⚔️ 組隊揪團</button>
       <button class="nav-btn" id="nav-bc" onclick="showView('bc')">📢 廣播訊息</button>
       <button class="nav-btn" id="nav-trade" onclick="showView('trade')">💰 交易買賣</button>
@@ -754,6 +773,66 @@ button{touch-action:manipulation}
 
 <div class="content">
 <main>
+
+  <!-- ═══ 首頁（不需登入）：網站簡介＋更新紀錄 ═══
+       更新紀錄直接寫在這裡（靜態 HTML，Google 可索引）。每次有功能性更新時，在最上面加一個 <article class="log-item">；
+       只列玩家看得懂的功能變動，純樣式調整、SEO、統計與 Discord 群工具不列。前 5 則直接顯示，其餘放進 #log-older。 -->
+  <section class="view" id="view-index">
+    <div class="panel">
+      <div class="panel-title"><span>🏠 首頁</span> <small>RO 樂園玩家的社群佈告欄</small></div>
+      <div class="panel-body" style="padding:14px 18px">
+        <p style="font-size:15px;line-height:1.8">這裡可以<b>組隊揪團</b>（自動分團、Discord 通知與語音房）、看遊戲內<b>廣播訊息</b>、查<b>交易買賣</b>行情、看<b>活動日程</b>、領<b>序號</b>，以及追蹤 <b>MVP</b> 重生時間。請從功能列選擇要使用的功能。</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span>📋 更新紀錄</span> <small>網站每次更新的內容，最新的在最上面</small></div>
+      <div class="panel-body log-list" style="padding:6px 18px 16px">
+        <article class="log-item">
+          <h3><time>2026/11/12</time>新增首頁、手機版功能選單</h3>
+          <ul><li>新增首頁，整理網站每次更新的內容；點左上角「RO 樂園佈告欄」或「🏠 首頁」都會回到這裡。</li><li>手機版的功能列改成左上角「≡ 功能」，點一下從左側滑出選單。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/11/11</time>新增綁定角色與 Discord 私訊</h3>
+          <ul><li>左下角改為「⚙ DC 名稱」，點開可選「綁定角色」或「會員登出」。</li><li>綁定角色：選伺服器、輸入遊戲角色名稱即可，一個帳號最多 10 個角色。</li><li>綁定後，你的角色在廣播訊息、交易買賣出現時，名稱旁會有「💬 私訊」按鈕，其他玩家可以直接用 Discord 找你。</li><li>綁定無法核對是否為本人，交易時請自行確認對方身分。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/11/10</time>新增序號領取、廣播關鍵字通知</h3>
+          <ul><li>序號領取：列出目前可兌換的序號、獎勵與期限，可一鍵複製並前往官方兌換頁。</li><li>關鍵字通知：在廣播訊息頁設定伺服器與關鍵字，喇叭廣播出現關鍵字時機器人會私訊你（約 5 分鐘內）。每人可設定 1 組。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/30</time>新增贊助連結</h3>
+          <ul><li>登入按鈕上方新增「☕ 贊助我們」。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/29</time>新增活動日程</h3>
+          <ul><li>以卡片或日曆查看官方活動的起訖時間，進行中的活動會顯示剩餘時間，快結束的排最前面。</li><li>點活動可看說明並前往官方公告。</li></ul>
+        </article>
+        <div class="log-older" id="log-older">
+        <article class="log-item">
+          <h3><time>2026/10/26</time>揪團規則調整</h3>
+          <ul><li>登記與加入時可勾選「願意當隊長」，不勾就不會被系統指派為隊長。</li><li>隊長可以鎖定自己的隊伍，鎖定後不再加人。</li><li>出發前 30 分鐘內若各團已滿，不再開放報名，避免多出人數不足的團。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/21</time>支援多伺服器</h3>
+          <ul><li>廣播訊息、交易買賣、MVP 資訊可切換伺服器，會記住你上次的選擇。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/19</time>交易買賣加強</h3>
+          <ul><li>新增 R幣匯率專區。</li><li>裝備會顯示洞數、卡片與隨機屬性。</li><li>搜尋可找到喊話原文與發話者。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/18</time>新增交易買賣</h3>
+          <ul><li>從廣播整理出收購、販賣、交換，可依類型、時間、道具名稱篩選。</li><li>點道具名稱可看近期行情：最高收購價、最低販賣價與價格走勢。</li></ul>
+        </article>
+        <article class="log-item">
+          <h3><time>2026/10/17</time>版面改版</h3>
+          <ul><li>功能列移到左側，主畫面加寬。</li><li>MVP 資訊分成「存活中」與「等待重生」兩區，一眼看出哪隻王快出了。</li></ul>
+        </article>
+        </div>
+        <button class="btn blue small" id="log-more" style="width:auto;margin-top:12px" onclick="document.getElementById('log-older').classList.add('show');this.style.display='none'">顯示更早的更新</button>
+      </div>
+    </div>
+  </section>
 
   <!-- ═══ 組隊揪團（需登入 Discord） ═══ -->
   <section class="view" id="view-party">
@@ -1279,7 +1358,7 @@ function updateNavMine(){
   $("nav-mvp").style.display = mvpOk ? "" : "none";
   $("main-nav").classList.toggle("has-mvp", mvpOk);
   applyGates();
-  if(!mvpOk && currentView==="mvp") showView("home");
+  if(!mvpOk && currentView==="mvp") showView("index");
   else if(mvpOk && PENDING_VIEW==="mvp"){ PENDING_VIEW = null; showView("mvp"); }
   // 登入狀態改變後，正在看的廣播／MVP 頁重新載入（例如登出後要顯示登入提示、登入後要抓資料）
   if(currentView==="bc") bcEnter(); if(currentView==="mvp") mvpEnter(); if(currentView==="trade") tradeEnter(); if(currentView==="bind") bindEnter(); if(currentView==="bc" || currentView==="trade") dmLoad();
@@ -1658,11 +1737,14 @@ function showView(v){
   let evMonth = null;
   const em = /^events(?:\/(\d{4}-\d{2}))?$/.exec(v||"");
   if(em){ evMonth = em[1] || null; v = "events"; }
-  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events" && v!=="coupon" && v!=="bind") v = "home";
-  if(v==="mvp" && !mvpVisible()) v = "home";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
+  if(!PARTY_VIEWS.includes(v) && v!=="bc" && v!=="mvp" && v!=="trade" && v!=="events" && v!=="coupon" && v!=="bind") v = "index";   // 預設／無效網址 → 首頁（#home 仍是登記揪團）
+  if(v==="mvp" && !mvpVisible()) v = "index";   // 沒有權限（或尚未載入登入狀態）→ 回首頁
   currentView = v;
   const inParty = PARTY_VIEWS.includes(v);
   $("view-party").classList.toggle("show", inParty);
+  $("view-index").classList.toggle("show", v==="index");
+  $("nav-index").classList.toggle("active", v==="index");
+  sideToggle(false);   // 手機：選了功能就收起側邊選單
   $("view-bc").classList.toggle("show", v==="bc");
   $("view-mvp").classList.toggle("show", v==="mvp");
   $("view-trade").classList.toggle("show", v==="trade");
@@ -1695,7 +1777,7 @@ function showView(v){
   window.scrollTo({top:0});
 }
 // Google Analytics：每次切換頁面送一次 page_view（虛擬路徑 /home、/mine、/all、/bc、/mvp）；GA 未載入（被擋）時靜默
-const PAGE_TITLES = { home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程", coupon:"序號領取", bind:"綁定角色" };
+const PAGE_TITLES = { index:"首頁", home:"登記揪團", mine:"我的揪團", all:"所有揪團", bc:"廣播訊息", mvp:"MVP 資訊", trade:"交易買賣", events:"活動日程", coupon:"序號領取", bind:"綁定角色" };
 function trackPage(v){
   try{ if(typeof gtag === "function") gtag("event", "page_view", { page_title: "RO 樂園佈告欄｜"+(PAGE_TITLES[v]||v), page_path: "/"+v, page_location: location.origin + "/#" + v }); }catch(e){}
 }
@@ -2879,6 +2961,13 @@ async function kwEnable(id){ if(await kwCall("POST", "/alerts", { id, enable:tru
 /* ─── 帳號選單、角色綁定、Discord 私訊按鈕 ───
    綁定：/api/binds（本人清單、新增、刪除）；對照表：/api/binds/map?server=（角色名 → Discord ID，廣播／交易頁共用）
    發話者名稱在對照表內 → 名稱旁顯示「💬 私訊」，連到 https://discord.com/users/<ID>（開啟對方個人檔案後可傳訊息） */
+// 手機：左側滑出選單（≡ 功能）
+function sideToggle(open){
+  const sd = $("side"), bd = $("side-backdrop"); if(!sd || !bd) return;
+  sd.classList.toggle("open", !!open); bd.classList.toggle("show", !!open);
+  if(!open) acctMenuToggle(false);
+}
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") sideToggle(false); });
 function acctMenuToggle(force){
   const m = $("acct-menu"); if(!m) return;
   const show = force===undefined ? !m.classList.contains("show") : !!force;
@@ -3255,7 +3344,7 @@ async function refresh(){
   renderSkillBoxes("f");
   fillTimeSelects();
   setInterval(fillTimeSelects, 60000); // 每分鐘刷新，移除已過去的出發時間
-  const firstView = location.hash.replace(/^#\/?/, "") || "home";
+  const firstView = location.hash.replace(/^#\/?/, "") || "index";
   if(firstView==="mvp") PENDING_VIEW = "mvp";
   await serversLoad();          // 伺服器清單（不需登入）先到手，各頁才知道要帶哪個 server
   showView(firstView);
