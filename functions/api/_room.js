@@ -21,7 +21,7 @@ export const roomPwHash = (room, pw) => sha256hex(room + ":" + pw);
 // 找出房間的密碼雜湊（房間內任一筆登記皆可，含已退出者）；找不到 → null
 export async function findRoom(env, room) {
   if (!ROOM_ID.test(room)) return null;
-  return env.DB.prepare("SELECT pwHash, date, activity, roomOpen, startHM AS start, endHM AS \"end\" FROM regs WHERE room = ? AND pwHash != '' LIMIT 1").bind(room).first();
+  return env.DB.prepare("SELECT pwHash, date, activity, roomOpen, server, startHM AS start, endHM AS \"end\" FROM regs WHERE room = ? AND pwHash != '' LIMIT 1").bind(room).first();
 }
 // 房主＝該房間最早的一筆登記（含已退出）的 Discord 帳號，與三端演算法的錨點（anchor）一致
 export async function roomHostId(env, room) {

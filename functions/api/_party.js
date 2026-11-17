@@ -2,7 +2,8 @@
 // 與前端 public/index.html 及 cron-worker.js 的演算法「完全一致」。
 // ⚠ 若修改組團規則，三處必須同步修改。
 
-const DUNGEONS = ["副本團：59~90級", "副本團：105級奧丁"];
+// 副本團：59~90級、115級驚駭森靈 → 不分團、不控制職能，全員一團、滿 3 人成團；105級奧丁 → 依職能名額分團
+const DUNGEONS = ["副本團：59~90級", "副本團：105級奧丁", "副本團：115級驚駭森靈"];
 const SQUAD_SIZE = 12, MIN_PARTY = 3;   // 每日團預期分團 12 人一團、滿 3 人成團（報名不設上限）
 export const isDungeon = act => DUNGEONS.includes(act);
 const maxOf = act => SQUAD_SIZE;   // 每個預期分團的人數上限（保留函式形式，日後若要分目標設定只改這裡）
@@ -134,7 +135,7 @@ export function odinTeams(members, readyMs) {
   teams.forEach(t => { t.members = byTs(t.members); fill(t); });
   return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
-// 成團條件：奧丁→第 1 團必要名額全滿；每日團、59~90 級副本→滿 3 人
+// 成團條件：奧丁→第 1 團必要名額全滿；每日團、其他副本（59~90 級、驚駭森靈）→滿 3 人
 const canForm = (act, ms) => {
   if (isOdin(act)) { const t = odinTeams(ms).teams; return t.length > 0 && t[0].complete; }
   return ms.length >= MIN_PARTY;
@@ -311,11 +312,12 @@ function buildSquadsFree(act, members, t, dateStr, removedRegs) {
 }
 
 // 出發時間 t（分鐘）的一群人 → 揪團物件
-function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
+function splitCluster(act, members, t, dateStr, removedRegs, room, party, server) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const sorted = byTs(members);
-  room = room || "";
-  const rk = (room ? "|room:" + room : "") + (party ? "|p:" + party : "");   // 私人房間鍵（公開登記為空字串）
+  room = room || ""; server = server || "";
+  // 私人房間／單號／伺服器鍵（公開登記、舊登記沒有伺服器時為空字串 → 分伺服器前的編號與留言板不變）
+  const rk = (room ? "|room:" + room : "") + (party ? "|p:" + party : "") + (server ? "|srv:" + server : "");
   const id = act + rk + "|" + toHM(t) + "|" + sorted.map(m => m.charId).sort().join(",");
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
@@ -326,7 +328,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs, anchor);
   return {
-    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags, party: party || "",
+    id, activity: act, server, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags, party: party || "",
     opts: act === DAILY ? DAILY_TAGS[DAILY].filter(x => skillsOf(anchor).includes(x)) : [],   // 開單者勾的細項＝可選項目
     ok: canForm(act, members),
     readyMin: Math.max(0, t - READY_BEFORE_MIN), departMin: t,   // 出發前 10 分「請準備」提醒／出發時刻
@@ -337,8 +339,8 @@ function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
 }
 export function buildParties(regs, dateStr) {
   const todays = regs.filter(r => r.date === dateStr);
-  // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
-  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + (r.party || "");   // party＝新制每日團的單號
+  // 分堆鍵＝伺服器＋目標＋房間＋出發時間：同伺服器、同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + (r.party || "") + "\u0001" + (r.server || "");   // party＝新制每日團的單號
   const byKey = {};
   todays.filter(r => !r.removed).forEach(r => { (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};
@@ -346,7 +348,7 @@ export function buildParties(regs, dateStr) {
   const parties = [];
   for (const key in byKey) {
     const first = byKey[key][0];
-    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), dateStr, removedByKey[key] || [], first.room || "", first.party || ""));
+    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), dateStr, removedByKey[key] || [], first.room || "", first.party || "", first.server || ""));
   }
   return parties;
 }

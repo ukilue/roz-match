@@ -182,13 +182,16 @@ main{width:100%;max-width:1260px;margin:0 auto;padding:28px 28px 60px;flex:1}
 .mvp-card.alive .mvp-bar i{background:var(--green)}
 .mvp-card.soon .mvp-bar i{background:var(--gold)}
 .mvp-killed{font-size:11px;color:#8a7858;font-variant-numeric:tabular-nums;letter-spacing:.3px}
-/* ── 伺服器切換（廣播／交易／MVP 各頁頂端） ── */
-.srv-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-bottom:12px}
-.srv-label{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;text-shadow:1px 1px 0 #00000088;white-space:nowrap}
-.srv-chips{margin-bottom:0}
-.srv-chips .bc-cat{background:#ffffff14;color:#fff;border-color:#ffffff66}
-.srv-chips .bc-cat.active{background:var(--gold);color:var(--wood-dark);border-color:var(--gold)}
-.srv-chips .bc-cat small{font-size:11px;opacity:.75;margin-left:4px;letter-spacing:0}
+/* ── 伺服器選單（側欄，全站共用：組隊揪團、廣播、交易、MVP）與各頁標題旁的伺服器標籤 ── */
+.side-srv{display:flex;flex-direction:column;gap:6px;margin:0;letter-spacing:0}
+.side-srv-label{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;text-shadow:1px 1px 0 #00000088;white-space:nowrap}
+.side-srv select{width:100%;font-family:inherit;font-weight:900;font-size:14.5px;letter-spacing:1px;color:var(--wood-dark);background:var(--gold);border:2px solid #B8862B;border-radius:4px;padding:8px 10px;min-height:40px;cursor:pointer}
+.m-srv{margin-left:auto;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;font-weight:900;font-size:13px;color:var(--wood-dark);background:var(--gold);border:1px solid #B8862B;border-radius:4px;padding:6px 10px;min-height:36px;cursor:pointer}
+.reg-srv{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:14px;padding:8px 12px;background:#4A6FA51a;border:1.5px solid var(--ro-blue);border-radius:6px;font-size:14.5px;color:#2b4368}
+.reg-srv b{font-size:15.5px;color:var(--wood-dark)}
+.reg-srv small{font-size:12.5px;color:#7A6845}
+.reg-srv.none{background:#C0452F14;border-color:var(--red);color:#7d2416}
+.old-tag{display:inline-block;font-size:12px;font-weight:900;color:#5b4a2e;background:#e9dcc0;border:1px solid #b9a27a;border-radius:3px;padding:0 7px;letter-spacing:.5px}
 .srv-tag{display:inline-block;font-size:11.5px;font-weight:900;color:var(--wood-dark);background:var(--gold);border-radius:3px;padding:1px 8px;letter-spacing:1px;margin-left:8px;vertical-align:2px;white-space:nowrap}
 /* ── 活動日程（月曆） ── */
 .cal-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -670,8 +673,10 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .app{display:flex;flex-direction:column}
   .side{border-right:0;border-bottom:3px solid var(--gold)}
   .side-in{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:12px 16px}
-  .side-top{flex-direction:row;align-items:center;gap:16px;flex:1 1 auto}
+  .side-top{flex-direction:row;align-items:center;gap:16px;flex:1 1 auto;flex-wrap:wrap}
   .logo{padding:0;border-bottom:0}
+  .side-srv{flex-direction:row;align-items:center;gap:8px}
+  .side-srv select{width:auto;max-width:200px;font-size:13.5px;padding:6px 8px;min-height:36px}
   nav{flex-direction:row;flex-wrap:wrap}
   nav .nav-btn{white-space:nowrap;padding:8px 10px;font-size:13.5px;letter-spacing:0}
   .logo .zh{white-space:nowrap}
@@ -695,7 +700,9 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .side{position:fixed;left:0;top:0;bottom:0;width:min(270px,82vw);z-index:50;transform:translateX(-102%);transition:transform .22s ease;border-right:3px solid var(--gold);border-bottom:0;box-shadow:6px 0 24px #00000088}
   .side.open{transform:none}
   .side-in{position:static;height:100%;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:12px;padding:16px 12px calc(14px + env(safe-area-inset-bottom));overflow-y:auto}
-  .side-top{flex-direction:column;align-items:stretch;gap:14px;flex:0 0 auto}
+  .side-top{flex-direction:column;align-items:stretch;gap:14px;flex:0 0 auto;flex-wrap:nowrap}
+  .side-srv{flex-direction:column;align-items:stretch;gap:6px}
+  .side-srv select{width:100%;max-width:none;min-height:44px}
   .side-bottom{margin-top:auto;display:block}
   .side-bottom .nav-btn.donate{margin-bottom:8px}
   .side-backdrop{position:fixed;inset:0;z-index:45;background:#00000088}
@@ -755,9 +762,8 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
   .ev-wrap.mode-cal .cal{display:none} .ev-wrap.mode-cal .ev-list{display:grid} .ev-list{grid-template-columns:1fr} .ev-modes{display:none} .cal-legend{display:none} .cal-nav .month{font-size:18px}
   .cal-nav .bc-cat{flex:0 0 auto;padding:7px 12px;font-size:13.5px;min-height:36px}
   .cp-list{grid-template-columns:1fr} .cp-code{font-size:13px} .cp-label{min-width:56px}
-  .srv-bar{gap:6px 10px;margin-bottom:10px}
-  .srv-chips{flex:1 1 auto;gap:6px}
-  .srv-chips .bc-cat{flex:1 1 0;padding:7px 6px;font-size:13.5px;min-height:36px}
+  .reg-srv{font-size:14px}
+  .reg-srv small{flex-basis:100%}
   /* 交易篩選晶片：手機上各一列排滿，省空間 */
   #trade-sides .bc-cat,#trade-sides .bc-cat.all{flex:1 1 0;padding:7px 4px;font-size:13px;min-height:36px}
   #trade-sides .bc-cat.cur{flex-basis:100%;margin-left:0;text-align:center}
@@ -784,7 +790,7 @@ button{touch-action:manipulation}
 </head>
 <body>
 
-<div class="m-top"><button class="m-menu-btn" onclick="sideToggle(true)" aria-label="開啟功能選單">≡ 功能</button><div class="m-title" onclick="showView('index')"><span class="px">RO</span><span class="zh">樂園佈告欄</span></div></div>
+<div class="m-top"><button class="m-menu-btn" onclick="sideToggle(true)" aria-label="開啟功能選單">≡ 功能</button><div class="m-title" onclick="showView('index')"><span class="px">RO</span><span class="zh">樂園佈告欄</span></div><button class="m-srv" id="m-srv" onclick="sideToggle(true)" style="display:none" aria-label="切換伺服器"></button></div>
 <div class="side-backdrop" id="side-backdrop" onclick="sideToggle(false)"></div>
 <div class="app">
 <!-- PC：左側功能欄（LOGO＋功能在上、登入／登出在最下）；手機：功能列在最上、登入／登出移到頁面最下方 -->
@@ -794,6 +800,11 @@ button{touch-action:manipulation}
     <div class="logo" onclick="showView('index')">
       <span class="px">RO</span><h1 class="zh">樂園佈告欄</h1>
     </div>
+    <!-- 伺服器選單：全站共用（組隊揪團、廣播、交易、MVP 都看這裡選的伺服器）；清單來自 /api/servers，沒有清單時隱藏 -->
+    <label class="side-srv" id="side-srv" style="display:none">
+      <span class="side-srv-label">🌐 伺服器</span>
+      <select id="srv-select" onchange="setServer(this.value);sideToggle(false)" aria-label="選擇伺服器"></select>
+    </label>
     <nav id="main-nav">
       <button class="nav-btn" id="nav-index" onclick="showView('index')">🏠 首頁</button>
       <div class="nav-group" id="nav-party-group">
@@ -845,6 +856,10 @@ button{touch-action:manipulation}
       <div class="panel-title"><span>📋 更新紀錄</span> <small>網站每次更新的內容，最新的在最上面</small></div>
       <div class="panel-body log-list" style="padding:6px 18px 16px">
         <article class="log-item">
+          <h3><time>2026/11/18</time>伺服器選單移到功能列、揪團分伺服器、新增驚駭森靈副本</h3>
+          <ul><li>伺服器改在左側功能列的下拉選單切換（手機在「≡ 功能」裡，頂端也會顯示目前的伺服器）。選一次全站通用，各頁面不再各自切換。</li><li>組隊揪團也分伺服器了：登記時會登記到目前選的伺服器，「所有揪團」只列出這個伺服器的團，只有同伺服器的人會被分在同一團。</li><li>改版前就登記的團會標示「舊登記・未分伺服器」，每個伺服器都看得到、可以照常加入，最晚明天就會自然結束。</li><li>新增副本團「115級驚駭森靈」：角色需 115 級以上，不限職業，登記時一樣要勾職能；同時間的人併成一團，滿 3 人成團。</li><li>機器人的新揪團公告、出發私訊和語音房名稱都會標示伺服器；新揪團公告不再 tag 身份組。</li></ul>
+        </article>
+        <article class="log-item">
           <h3><time>2026/11/17</time>每日團改版、所有揪團加入遊戲廣播</h3>
           <ul><li>每日團可以跨等級多選項目：登記時勾選要打的項目（例如朱諾＋研3），送出就是開一張新單，你就是隊長。</li><li>加入別人的每日團時，從隊長開放的項目裡勾自己要打的；角色等級要達到所勾項目的等級。</li><li>新增項目：110 級「驚駭小蟲」、115 級「驚駭皇后」。</li><li>「願意當隊長」改為預設不勾。開單的人固定是隊長；人多分出其他團時優先指派有勾選的人，都沒人勾則由系統隨機指派。</li><li>所有揪團下方新增「遊戲內廣播的揪團」：列出最近 1 小時有人在遊戲裡喊的團，可一鍵複製對方名稱回遊戲密他（非本站登記，僅供參考）。</li><li>你已加入的團會標示「✔ 已加入」並排在最前面；「我的揪團」分頁已移除。</li><li>功能列的「組隊揪團」點開後可選「登記揪團」或「所有揪團」。</li></ul>
         </article>
@@ -860,11 +875,11 @@ button{touch-action:manipulation}
           <h3><time>2026/11/11</time>新增綁定角色與 Discord 私訊</h3>
           <ul><li>左下角改為「⚙ DC 名稱」，點開可選「綁定角色」或「會員登出」。</li><li>綁定角色：選伺服器、輸入遊戲角色名稱即可，一個帳號最多 10 個角色。</li><li>綁定後，你的角色在廣播訊息、交易買賣出現時，名稱旁會有「💬 私訊」按鈕，其他玩家可以直接用 Discord 找你。</li><li>綁定無法核對是否為本人，交易時請自行確認對方身分。</li></ul>
         </article>
+        <div class="log-older" id="log-older">
         <article class="log-item">
           <h3><time>2026/11/10</time>新增序號領取、廣播關鍵字通知</h3>
           <ul><li>序號領取：列出目前可兌換的序號、獎勵與期限，可一鍵複製並前往官方兌換頁。</li><li>關鍵字通知：在廣播訊息頁設定伺服器與關鍵字，喇叭廣播出現關鍵字時機器人會私訊你（約 5 分鐘內）。每人可設定 1 組。</li></ul>
         </article>
-        <div class="log-older" id="log-older">
         <article class="log-item">
           <h3><time>2026/10/30</time>新增贊助連結</h3>
           <ul><li>登入按鈕上方新增「☕ 贊助我們」。</li></ul>
@@ -908,8 +923,9 @@ button{touch-action:manipulation}
   <!-- ═══ 登記 ═══ -->
   <div class="subview" id="view-home">
     <div class="panel">
-      <div class="panel-title">冒險者登記卡 <small id="mode-tag" class="mode-tag"></small></div>
+      <div class="panel-title"><span>冒險者登記卡<span class="srv-tag" data-srv-tag></span></span> <small id="mode-tag" class="mode-tag"></small></div>
       <div class="panel-body">
+        <div class="reg-srv" id="f-srv-row" style="display:none"></div>
         <div id="id-cards" class="id-cards" style="display:none">
           <div class="id-cards-title">🪪 載入身份卡 <small>近 1 週報名過的角色，點一下自動帶入 ID、等級、職業、要做的事情、職能與出發時間</small></div>
           <div id="id-cards-list" class="id-cards-list"></div>
@@ -924,6 +940,7 @@ button{touch-action:manipulation}
               <option value="每日團">每日團（可跨等級多選項目）</option>
               <option value="副本團：59~90級">副本團：59~90級</option>
               <option value="副本團：105級奧丁">副本團：105級奧丁</option>
+              <option value="副本團：115級驚駭森靈">副本團：115級驚駭森靈</option>
             </select>
             <div id="f-skills-wrap" class="skills-wrap" style="display:none">
               <div class="skills-title" id="f-skills-title">副本職能 <small>依職業列出，可多選，至少勾一項；會顯示在明細供團員查看</small></div>
@@ -945,7 +962,7 @@ button{touch-action:manipulation}
               <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
               <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
             </div>
-            <p class="hint"><b>每日團</b>：送出登記＝開一張新單，你勾的項目就是這張單開放的項目，其他人到「所有揪團」加入並從中勾選；滿 3 人成團，人多時每 12 人一團、依職業與項目平均分配。<b>副本團</b>：同目標、同出發時間的人自動併成一團，59~90 級滿 3 人成團、105 級奧丁依職能名額成團。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
+            <p class="hint"><b>每日團</b>：送出登記＝開一張新單，你勾的項目就是這張單開放的項目，其他人到「所有揪團」加入並從中勾選；滿 3 人成團，人多時每 12 人一團、依職業與項目平均分配。<b>副本團</b>：同伺服器、同目標、同出發時間的人自動併成一團，59~90 級與 115 級驚駭森靈滿 3 人成團（不限職業、全員一團）、105 級奧丁依職能名額成團。揪團依左側選的伺服器分開，只有同伺服器的人會在同一團。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -957,10 +974,10 @@ button{touch-action:manipulation}
   <!-- ═══ 所有揪團 ═══ -->
   <div class="subview" id="view-all">
     <div class="panel">
-      <div class="panel-title"><span><span class="day-word">今日</span>揪團</span> <small>時間由近到遠，已關閉的排在最後</small></div>
+      <div class="panel-title"><span><span class="day-word">今日</span>揪團<span class="srv-tag" data-srv-tag></span></span> <small>時間由近到遠，已關閉的排在最後</small></div>
       <div class="panel-body" style="padding:14px 18px">
         <div class="day-tabs"><button class="day-tab" data-day="0" onclick="setViewDay(0)">今日</button><button class="day-tab" data-day="1" onclick="setViewDay(1)">明日</button></div>
-        <input id="search-q" placeholder="🔍 輸入揪團編號、目標或細項搜尋，例：0421、副本、每日、崑崙、龍洞、研1、研3、奧丁" oninput="renderAll()">
+        <input id="search-q" placeholder="🔍 輸入揪團編號、目標或細項搜尋，例：0421、副本、每日、崑崙、龍洞、研1、研3、奧丁、森靈" oninput="renderAll()">
         <p class="hint">依出發時間由近到遠排列，同時間人多的排前面。</p>
       </div>
     </div>
@@ -969,7 +986,6 @@ button{touch-action:manipulation}
     <!-- 遊戲內廣播喊的團（非本站登記，僅供參考）：廣播分類「組隊資訊」、最近 1 小時、只在今日顯示 -->
     <div id="lfg-wrap" style="display:none">
       <div class="lfg-sep"><span>📢 遊戲內廣播的揪團</span><small>非本站登記，僅供參考；最近 1 小時內的喊話</small></div>
-      <div class="srv-bar" id="lfg-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
       <div id="lfg-list" class="cards"></div>
       <div id="lfg-empty" class="empty" style="display:none;padding:22px 10px;font-size:13.5px"></div>
     </div>
@@ -979,7 +995,6 @@ button{touch-action:manipulation}
 
   <!-- ═══ 廣播訊息（不需登入） ═══ -->
   <section class="view" id="view-bc">
-    <div class="srv-bar" id="bc-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="login-bar gate-login" id="bc-login" style="display:none">
       <span>🔐 廣播訊息需先登入 Discord 才能查看。</span>
       <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
@@ -1008,7 +1023,6 @@ button{touch-action:manipulation}
 
   <!-- ═══ 交易買賣（需登入；資料來自 ro-broadcast Worker 的 /trades API） ═══ -->
   <section class="view" id="view-trade">
-    <div class="srv-bar" id="trade-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="login-bar gate-login" id="trade-login" style="display:none">
       <span>🔐 交易買賣需先登入 Discord 才能查看。</span>
       <button class="btn small" onclick="location.href=API+'/auth/login'">Discord 登入</button>
@@ -1146,7 +1160,6 @@ button{touch-action:manipulation}
 
   <!-- ═══ MVP 資訊（需登入且帳號在 mvp_viewers 表內） ═══ -->
   <section class="view" id="view-mvp">
-    <div class="srv-bar" id="mvp-servers" style="display:none"><span class="srv-label">🌐 伺服器</span><div class="bc-cats srv-chips"></div></div>
     <div class="open-banner" id="mvp-open-banner" style="display:none">🎉 <b>限時開放查詢</b>：目前所有登入 Discord 的玩家都可以查看 MVP 資訊，開放期間結束後將恢復為授權帳號限定。</div>
     <div class="login-bar gate-login" id="mvp-login" style="display:none">
       <span>🔐 MVP 資訊需先登入 Discord 才能查看。</span>
@@ -1201,7 +1214,8 @@ const API = "/api";
 // 你的 Discord 伺服器邀請連結（未登入者將被導向這裡加入）
 const DISCORD_INVITE_URL = "https://discord.gg/zXfD4q5qZ7";
 
-const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
+// 副本團：59~90級、115級驚駭森靈 → 不分團、不控制職能，全員一團、滿 3 人成團；105級奧丁 → 依職能名額分團
+const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁","副本團：115級驚駭森靈"];
 const SQUAD_SIZE = 12, MIN_PARTY = 3, POLL_MS = 25000;   // 每日團預期分團 12 人一團、滿 3 人成團（報名不設上限）
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
 const isDungeon = act => DUNGEONS.includes(act);
@@ -1334,7 +1348,7 @@ function odinTeams(members, readyMs) {
   teams.forEach(t => { t.members = byTs(t.members); fill(t); });
   return { teams: teams.map(t => ({ members: t.members, slot: t.slot, complete: t.complete, missing: t.missing, power: t.power })), waitlist };
 }
-// 成團條件：奧丁→第 1 團必要名額全滿；每日團、59~90 級副本→滿 3 人
+// 成團條件：奧丁→第 1 團必要名額全滿；每日團、其他副本（59~90 級、驚駭森靈）→滿 3 人
 const canForm = (act, ms) => {
   if (isOdin(act)) { const t = odinTeams(ms).teams; return t.length > 0 && t[0].complete; }
   return ms.length >= MIN_PARTY;
@@ -1509,15 +1523,17 @@ function requireLogin(){
 /* ─── 資料層：Cloudflare Pages Functions（共用）或瀏覽器（單機備援） ─── */
 const store = {
   online: true,
+  // 只載入目前伺服器的登記＋分伺服器前的舊登記（server 空字串）；揪團不會跨伺服器，所以篩選不影響分團結果
   async load(){
+    const srv = SRV.cur || "";
     try{
-      const r = await fetch(API+"/regs?date="+viewDate());
+      const r = await fetch(API+"/regs?"+new URLSearchParams({ date: viewDate(), server: srv }).toString());
       if(!r.ok) throw 0;
       this.online = true;
       return await r.json();
     }catch(e){
       if(this.online){ this.online=false; toast("無法連線伺服器，暫用單機模式"); }
-      try{ return JSON.parse(localStorage.getItem("ro-party-regs")||"[]").filter(r=>r.date===viewDate()); }catch(x){ return []; }
+      try{ return JSON.parse(localStorage.getItem("ro-party-regs")||"[]").filter(r=>r.date===viewDate() && (!r.server || !srv || r.server===srv)); }catch(x){ return []; }
     }
   },
   // 單機備援：完整清單（不分日期）讀寫
@@ -1634,15 +1650,15 @@ let openPartyId = null;
 const myNames = () => new Set(REGS.filter(r=>r.mine && !r.removed).map(r=>r.charId));
 
 /* ─── 組團演算法（各端結果一致） ───
-   1. 只看該日的登記，依「要做的事情＋房間＋出發時間」分堆：同目標、同出發時間的人就是一個揪團（同編號、同留言板）
-   2. 每日團滿 3 人、59~90 級副本滿 3 人、105 級奧丁依職能名額 → 成團
+   1. 只看該日的登記，依「伺服器＋要做的事情＋房間＋出發時間」分堆：同伺服器、同目標、同出發時間的人就是一個揪團（同編號、同留言板）
+   2. 每日團滿 3 人、59~90 級與驚駭森靈副本滿 3 人、105 級奧丁依職能名額 → 成團
    3. 群內另算「預期分團」（每日團 12 人一團、職業平均；奧丁依名額與戰力平均），供明細顯示；
       各預期分團的隊長＝該團最早登記者 → 每個玩家看到的結果相同 */
 function buildParties(regs, dateStr){
   const t = dateStr || todayKey();
   const todays = regs.filter(r=>r.date===t);
-  // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
-  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + (r.party || "");   // party＝新制每日團的單號
+  // 分堆鍵＝伺服器＋目標＋房間＋出發時間：同伺服器、同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + (r.party || "") + "\u0001" + (r.server || "");   // party＝新制每日團的單號
   const byKey = {};
   todays.filter(r=>!r.removed).forEach(r=>{ (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};
@@ -1650,7 +1666,7 @@ function buildParties(regs, dateStr){
   const parties = [];
   for(const key in byKey){
     const first = byKey[key][0];
-    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), t, removedByKey[key]||[], first.room || "", first.party || ""));
+    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), t, removedByKey[key]||[], first.room || "", first.party || "", first.server || ""));
   }
   // 時間近→遠；同時間快滿人的排前面
   parties.sort((a,b)=> a.time-b.time || b.members.length-a.members.length || cmpStr(a.num, b.num));
@@ -1659,7 +1675,7 @@ function buildParties(regs, dateStr){
 // ── 一個「揪團」＝同目標、同房間、同出發時間的整群人：共用一個編號、一個留言板 ──
 // 群內另外算出「預期分團」squads，只用於明細顯示，加人時可動態變動，不影響揪團本身：
 //   每日團 → 12 人一團，同一 Discord 帳號的角色優先同團，再依職業平均
-//   副本團：59~90級 → 不分團、不控制職能，全員一團
+//   副本團：59~90級、115級驚駭森靈 → 不分團、不控制職能，全員一團
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
 // ── 隊長與鎖定（三處一致）──
@@ -1798,11 +1814,12 @@ function buildSquadsFree(act, members, t, dateStr, removedRegs) {
 }
 
 // 出發時間 t（分鐘）的一群人 → 揪團物件
-function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
+function splitCluster(act, members, t, dateStr, removedRegs, room, party, server) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const sorted = byTs(members);
-  room = room || "";
-  const rk = (room ? "|room:" + room : "") + (party ? "|p:" + party : "");   // 私人房間鍵（公開登記為空字串）
+  room = room || ""; server = server || "";
+  // 私人房間／單號／伺服器鍵（公開登記、舊登記沒有伺服器時為空字串 → 分伺服器前的編號與留言板不變）
+  const rk = (room ? "|room:" + room : "") + (party ? "|p:" + party : "") + (server ? "|srv:" + server : "");
   const id = act + rk + "|" + toHM(t) + "|" + sorted.map(m => m.charId).sort().join(",");
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
@@ -1813,7 +1830,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
   const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs, anchor);
   return {
-    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags, party: party || "",
+    id, activity: act, server, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags, party: party || "",
     opts: act === DAILY ? DAILY_TAGS[DAILY].filter(x => skillsOf(anchor).includes(x)) : [],   // 開單者勾的細項＝可選項目
     ok: canForm(act, members),
     readyMin: Math.max(0, t - READY_BEFORE_MIN), departMin: t,   // 出發前 10 分「請準備」提醒／出發時刻
@@ -1913,6 +1930,8 @@ async function toggleSquadLock(uid, action){
     await refresh();
   }catch(e){ toast("連線失敗，請稍後再試"); }
 }
+// 分伺服器前的舊登記（共用模式下、揪團沒有伺服器）：每個伺服器都看得到、可照常加入，最晚明天自然消失
+const isLegacyParty = p => store.online && !p.server && SRV.list.length > 0;
 function cardHTML(p, source){
   const st = statusOf(p);
   const dg = isDungeon(p.activity);
@@ -1930,6 +1949,7 @@ function cardHTML(p, source){
     <span class="stamp ${st.cls}">${st.label}</span>
     <div class="act">${locked?'<span class="lock-ic" title="私人房間">🔒</span>':(p.priv?'<span class="lock-ic" title="房間開放中">🔓</span>':"")}${esc(p.activity)}</div>
     ${partyTags(p).length?`<div class="tags-row">${tagChips(p)}</div>`:""}
+    ${isLegacyParty(p)?`<div class="row"><b>伺服器</b><span class="old-tag">舊登記・未分伺服器</span></div>`:""}
     ${locked?`<div class="row"><b>房間</b><span class="lock-tag">🔒 私人房間</span><span style="font-size:12.5px;color:#7d2416">需密碼加入</span></div>`:(p.priv?`<div class="row"><b>房間</b><span class="open-tag">🔓 開放中</span><span style="font-size:12.5px;color:var(--green-dark)">免密碼加入</span></div>`:"")}
     <div class="row"><b>出發時間</b><span style="font-weight:900;font-size:15px">${toHM(p.time)}</span></div>
     <div class="row"><b>目前人數</b>${countText}</div>
@@ -1959,7 +1979,7 @@ function renderAll(){
    目標標籤：以每日團項目與副本關鍵字比對喊話內容，比對不到就不標。每 30 秒更新。 */
 const LFG = { items:[], loaded:false, loading:false, timer:null };
 const LFG_WINDOW = 3600, LFG_POLL_MS = 30000;
-const LFG_KEYS = DAILY_TAGS[DAILY].concat(["奧丁"]);
+const LFG_KEYS = DAILY_TAGS[DAILY].concat(["奧丁", "森靈"]);
 function lfgEnter(){
   lfgRender(); lfgLoad();
   clearInterval(LFG.timer); LFG.timer = setInterval(()=>{ if(!document.hidden) lfgLoad(); }, LFG_POLL_MS);
@@ -2030,6 +2050,7 @@ function detailMainHTML(p){
 
   let main = `
     <div class="row" style="font-size:15px;margin-bottom:6px"><b style="min-width:70px;display:inline-block">揪團編號</b><span style="font-family:'Press Start 2P',monospace;font-size:17px;font-weight:900;letter-spacing:1px${p.priv?";color:var(--red)":""}">#${p.num}</span>${locked?' <span class="lock-tag" style="margin-left:8px">🔒 私人房間</span>':(p.priv?' <span class="open-tag" style="margin-left:8px">🔓 私人房間・開放中</span>':"")}</div>
+    ${(p.server || isLegacyParty(p))?`<div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">伺服器</b>${p.server ? "🌐 "+esc(p.server) : '<span class="old-tag">舊登記・未分伺服器</span> <small style="color:#7A6845">分伺服器前登記的團，各伺服器都看得到，可照常加入</small>'}</div>`:""}
     <div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">目標</b>${esc(p.activity)}</div>
     ${partyTags(p).length?`<div class="row" style="font-size:15px;margin-bottom:4px"><b style="min-width:70px;display:inline-block">${isDaily(p.activity)?"開放項目":"想打的細項"}</b><span class="tags-row" style="margin:0;display:inline-flex;vertical-align:middle">${tagChips(p)}</span></div>`:""}
     <div class="row" style="font-size:15px"><b style="min-width:70px;display:inline-block">出發時間</b><span style="font-weight:900;font-size:16px">${toHM(p.time)}</span>${closed?"（已過）":""}</div>
@@ -2331,7 +2352,7 @@ async function processChatQueue(){   // 依序送出，狂按也不會漏或亂�
 }
 
 /* ─── 登記 / 加入 ─── */
-const LEVEL_REQ = {"每日團":90,"每日團：90級":90,"每日團：100級":100,"每日團：105級":105,"每日團：110級":110,"副本團：59~90級":59,"副本團：105級奧丁":105};
+const LEVEL_REQ = {"每日團":90,"每日團：90級":90,"每日團：100級":100,"每日團：105級":105,"每日團：110級":110,"副本團：59~90級":59,"副本團：105級奧丁":105,"副本團：115級驚駭森靈":115};
 function levelCheck(activity, level, skills){
   const lv = Number(level);
   if(!Number.isInteger(lv) || lv < 1) return "請輸入正確的角色等級";
@@ -2434,8 +2455,9 @@ async function submitReg(){
   if(dailyTagsOf($("f-act").value) && !skills.length){ flagSkillsWarn("f"); return toast("請勾選要打的項目：每日團至少勾選一項"); }
   const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
   if(priv && !/^\d{4}$/.test(pw)) return toast("私人房間密碼須為 4 位數字");
+  if(store.online && !SRV.cur) return toast("伺服器清單暫時無法讀取，暫時無法登記，請稍後重新整理頁面");
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
-    skills, leader: $("f-leader").checked,
+    skills, leader: $("f-leader").checked, server: SRV.cur || "",
     priv, pw: priv ? pw : "",
     date: forTomorrow ? addDays(todayKey(),1) : todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
@@ -2462,6 +2484,7 @@ async function joinParty(){
   if(dailyTagsOf(p.activity) && !skills.length){ flagSkillsWarn("j"); return toast("請勾選正確目標：至少勾選一項想打的細項"); }
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.time),
     skills, leader: !!($("j-leader") && $("j-leader").checked), party: p.party || "",
+    server: p.server || "",   // 沿用揪團的伺服器（分伺服器前的舊登記為空字串，照常可加入）
     room: p.room || "", pw: (p.priv && !p.open) ? (ROOM_PW.get(p.room) || "") : "",   // 鎖上的私人房間：附上已驗證的密碼，伺服器再驗一次；開放中不需密碼
     date:viewDate(), ts:Date.now(), uid:newUid()});
   if(!added) return;
@@ -2681,8 +2704,9 @@ function mvpRender(){
 
 /* ─── 伺服器切換 ───
    清單來自 GET /api/servers（代理 Worker 的 /servers，不寫死名稱、「未設定」不顯示）。
-   目前選擇：網址 ?server= → localStorage → 清單第一個（最近有資料的）。廣播／交易／MVP 各頁頂端都有切換晶片，
-   切換時清掉該些頁的資料與增量更新邊界後重新載入；揪團頁不分伺服器。 */
+   目前選擇：網址 ?server= → localStorage → 清單第一個（最近有資料的）。切換只在側欄的下拉選單（手機在「≡ 功能」裡），
+   全站共用：組隊揪團（登記／所有揪團／廣播揪團）、廣播、交易、MVP 都看這裡選的伺服器；各頁標題旁的 data-srv-tag 顯示目前伺服器。
+   切換時清掉各頁的資料與增量更新邊界後重新載入。 */
 const SRV = { list:[], cur:"", timer:null, ready:false };
 const SRV_KEY = "ro_server";
 async function serversLoad(){
@@ -2711,9 +2735,20 @@ function serverApply(name, silent){
 }
 function setServer(name){ if(name && name!==SRV.cur) serverApply(name, false); }
 function serverRenderChips(){
-  const html = SRV.list.map(x=>`<button class="bc-cat${x.server===SRV.cur?" active":""}" onclick="setServer('${esc(x.server).replace(/'/g,"\\'")}')">${esc(x.server)}</button>`).join("");
-  ["bc-servers","trade-servers","mvp-servers","lfg-servers"].forEach(id=>{ const b=$(id); if(!b) return; b.querySelector(".srv-chips").innerHTML = html; b.style.display = SRV.list.length ? "" : "none"; });
+  // 側欄下拉選單
+  const sel = $("srv-select"), box = $("side-srv");
+  if(sel) sel.innerHTML = SRV.list.map(x=>`<option value="${esc(x.server)}"${x.server===SRV.cur?" selected":""}>${esc(x.server)}</option>`).join("");
+  if(box) box.style.display = SRV.list.length ? "" : "none";
+  // 手機頂端列：顯示目前伺服器，點了打開選單
+  const m = $("m-srv"); if(m){ m.textContent = SRV.cur ? "🌐 "+SRV.cur : ""; m.style.display = SRV.cur ? "" : "none"; }
   document.querySelectorAll("[data-srv-tag]").forEach(e=>{ e.textContent = SRV.cur ? "🌐 "+SRV.cur : ""; e.style.display = SRV.cur ? "" : "none"; });
+  // 登記表單：登記到哪個伺服器（共用模式沒有伺服器時無法開新揪團）
+  const row = $("f-srv-row");
+  if(row){
+    if(SRV.cur){ row.className = "reg-srv"; row.innerHTML = `登記到：<b>🌐 ${esc(SRV.cur)}</b><small>只有同伺服器的人會在同一團；要換伺服器請用左側選單（手機在「≡ 功能」裡）</small>`; row.style.display = ""; }
+    else if(store.online){ row.className = "reg-srv none"; row.innerHTML = "⚠ 伺服器清單暫時無法讀取，暫時無法登記新揪團，請稍後重新整理頁面"; row.style.display = ""; }
+    else row.style.display = "none";
+  }
 }
 // 切換伺服器：清掉廣播／交易／MVP 的資料與增量邊界，重新載入目前所在的頁
 function serverReload(){
@@ -2730,6 +2765,10 @@ function serverReload(){
   else if(currentView==="mvp") mvpEnter();
   DM.map = {}; DM.server = null; if(currentView==="bc" || currentView==="trade" || currentView==="all") dmLoad(true);
   LFG.items = []; LFG.loaded = false; if(currentView==="all") lfgEnter();
+  // 組隊揪團：清掉舊伺服器的揪團、關掉開著的明細，重新載入；身份卡改列新伺服器的角色
+  closeModal(); REGS = []; PARTIES = [];
+  if(currentView==="all") renderAll();
+  refresh(); renderIdCards();
   toast("已切換到「"+SRV.cur+"」");
 }
 
@@ -3552,14 +3591,22 @@ async function setViewDay(d){
 }
 
 /* ─── 身份卡：近 1 週報名過的角色，一鍵帶入 ─── */
-let ID_CARDS = [];
+// 只列出目前伺服器登記過的角色；分伺服器前登記的（server 空字串）各伺服器都列，但同名角色已有本伺服器的身份卡時不重複列
+let ID_CARDS = [], ID_CARDS_ALL = [];
 async function loadIdCards(){
   const box = $("id-cards"); if(!box) return;
-  if(!store.online || !USER || !USER.member){ box.style.display="none"; return; }
+  if(!store.online || !USER || !USER.member){ ID_CARDS_ALL = []; box.style.display="none"; return; }
   try{
     const r = await fetch(API+"/me/chars");
-    ID_CARDS = r.ok ? await r.json() : [];
-  }catch(e){ ID_CARDS = []; }
+    ID_CARDS_ALL = r.ok ? await r.json() : [];
+  }catch(e){ ID_CARDS_ALL = []; }
+  renderIdCards();
+}
+function renderIdCards(){
+  const box = $("id-cards"); if(!box) return;
+  const srv = SRV.cur || "";
+  const here = ID_CARDS_ALL.filter(c=> c.server && c.server===srv);
+  ID_CARDS = here.concat(ID_CARDS_ALL.filter(c=> !c.server && !here.some(h=>h.charId===c.charId)));
   if(!ID_CARDS.length){ box.style.display="none"; return; }
   $("id-cards-list").innerHTML = ID_CARDS.map((c,i)=>`<button class="id-card" onclick="applyIdCard(${i})" title="${esc(c.job)}｜${esc(c.activity||"")}${(c.skills&&c.skills.length)?"｜"+esc(c.skills.join("、")):""}｜上次出發 ${esc(c.start)}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("");
   box.style.display = "";
@@ -3583,7 +3630,10 @@ function applyIdCard(i){
 }
 
 async function refresh(){
-  REGS = await store.load();
+  const srv = SRV.cur;
+  const regs = await store.load();
+  if(srv !== SRV.cur) return;   // 載入途中切換了伺服器：丟掉舊伺服器的結果（切換時已另外重新載入）
+  REGS = regs;
   PARTIES = buildParties(REGS, viewDate());
   if(currentView==="all") renderAll();
   if(currentView==="home") updateDailyHint();
@@ -3614,6 +3664,7 @@ async function refresh(){
   await Promise.all([loadConfig(), loadUser(), refresh()]);
   loadIdCards();
   $("mode-tag").textContent = store.online ? (USER ? "共用模式｜已登入" : "共用模式｜未登入") : "單機模式（僅本瀏覽器）";
+  serverRenderChips();          // 知道是共用／單機模式後，更新登記表單的伺服器提示
   updateNavMine();
   setInterval(refresh, POLL_MS);
 })();

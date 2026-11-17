@@ -1,14 +1,16 @@
 // /api/regs — GET 查詢當日登記、POST 新增登記（需 Discord 登入＋公會伺服器成員）
 // 所有遊戲規則在伺服器端再驗證一次，前端無法繞過；
 // 登記會綁定 Discord 帳號，退團只有本人帳號可操作。同一角色可登記多個時段／目標（不檢查時段重疊）。
+// 揪團分遊戲伺服器（regs.server）：只有同伺服器的登記會併成同一個揪團；server 空字串＝分伺服器前的舊登記，
+// 舊登記在每個伺服器都看得到、可以照常加入（加入者沿用空字串），但不能再用空字串開新揪團。
 import { getSession, needLogin, needMember } from "./_auth.js";
 import { buildParties, addDays, isOdin, odinTeams, SKILLS, DAILY_TAGS, DAILY, dailyLevelOf } from "./_party.js";
 import { findRoom, checkRoomPw, roomPwHash, ROOM_ID, PW } from "./_room.js";
 
-const ACTS = [DAILY, "每日團：90級","每日團：100級","每日團：105級","每日團：110級","副本團：59~90級","副本團：105級奧丁"];
+const ACTS = [DAILY, "每日團：90級","每日團：100級","每日團：105級","每日團：110級","副本團：59~90級","副本團：105級奧丁","副本團：115級驚駭森靈"];
 const JOBS = ["騎士","十字軍","巫師","賢者","鐵匠","鍊金","刺客","流氓","祭司","武僧","獵人","詩人","舞孃","忍者"];
-const LEVEL_REQ = { [DAILY]:90, "每日團：90級":90, "每日團：100級":100, "每日團：105級":105, "每日團：110級":110, "副本團：59~90級":59, "副本團：105級奧丁":105 };
-const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁"];
+const LEVEL_REQ = { [DAILY]:90, "每日團：90級":90, "每日團：100級":100, "每日團：105級":105, "每日團：110級":110, "副本團：59~90級":59, "副本團：105級奧丁":105, "副本團：115級驚駭森靈":115 };
+const DUNGEONS = ["副本團：59~90級","副本團：105級奧丁","副本團：115級驚駭森靈"];
 const isDungeon = a => DUNGEONS.includes(a);
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const CLOSE_BEFORE_MIN = 30;   // 出發前 30 分鐘內，各團已滿就不再開放報名
@@ -34,20 +36,23 @@ function taipeiNow() {
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
 export async function onRequestGet({ request, env }) {
-  const date = new URL(request.url).searchParams.get("date") || "";
+  const params = new URL(request.url).searchParams;
+  const date = params.get("date") || "";
+  const server = String(params.get("server") || "").trim().slice(0, 40);
   if (!DATE.test(date)) return bad("date 格式錯誤");
   const user = await getSession(request, env);   // 有登入的話，標記哪些登記是本人的
-  const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, pwHash, ts
-              FROM regs WHERE date = ?`)
-    .bind(date).all();
+  // 帶 server：只回傳該伺服器＋舊登記（server 空字串）；不帶：全部。揪團不會跨伺服器，篩選不影響各揪團的分團結果
+  const stmt = env.DB
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, server, pwHash, ts
+              FROM regs WHERE date = ?` + (server ? ` AND (server = ? OR server = '')` : ""));
+  const { results } = await (server ? stmt.bind(date, server) : stmt.bind(date)).all();
   // acct：同一 Discord 帳號在同一天會拿到相同的匿名鍵（雜湊，每日不同、無法反推 discordId），
   // 讓前端的預期分團能把同帳號的角色放在同一團，與伺服器／Worker 的結果一致
   const hashStr = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
   const acctOf = id => "a" + hashStr(id + "|" + date + "|acct").toString(36) + hashStr(date + "|" + id).toString(36);
   // pwHash（私人房間密碼雜湊）與 discordId 一樣絕不回傳；room 只是不透明的房間 ID，前端用它分堆與呼叫驗證 API
   return json(results.map(({ discordId, pwHash, ...r }) =>
-    ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "", acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
+    ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "", server: r.server || "", acct: acctOf(discordId), mine: !!(user && discordId === user.id) })));
 }
 
 export async function onRequestPost({ request, env }) {
@@ -70,6 +75,7 @@ export async function onRequestPost({ request, env }) {
   const pw = String(b.pw || "");
   const leader = b.leader ? 1 : 0;            // 願意當隊長（預設不願意，必須明確勾選）
   const joinParty = String(b.party || "");    // 新制每日團：加入既有的單（單號）；空字串＝開新單
+  const server = String(b.server || "").trim().slice(0, 40);   // 遊戲伺服器；空字串只能用來加入分伺服器前的舊登記（下方檢查）
   if (joinParty && !ROOM_ID.test(joinParty)) return bad("揪團參數錯誤");
   if (joinRoom && !ROOM_ID.test(joinRoom)) return bad("房間參數錯誤");
   if (!joinRoom && priv && !PW.test(pw)) return bad("私人房間密碼須為 4 位數字");
@@ -104,13 +110,18 @@ export async function onRequestPost({ request, env }) {
   if (date !== tw.date && date !== tomorrow) return bad("只能登記今天或明天的揪團");
   const isToday = date === tw.date;
   if (isToday && toMin(start) < tw.min) return bad("這個出發時間已經過了，請選擇之後的時間");
+  // 伺服器必須真的存在（broadcasts 內有該伺服器的資料，與關鍵字通知、角色綁定相同的判斷）
+  if (server) {
+    const exists = await env.DB.prepare("SELECT 1 AS ok FROM broadcasts WHERE server = ? LIMIT 1").bind(server).first();
+    if (!exists) return bad("找不到這個伺服器");
+  }
 
   // 以當日全部登記重算分團（下方「私人房間」「重複登記」「奧丁名額」檢查共用）
   const { results: all } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, server, ts
               FROM regs WHERE date = ?`)
     .bind(date).all();
-  const rows = all.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "" }));
+  const rows = all.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "", server: r.server || "" }));
   const parties = buildParties(rows, date);
 
   // ── 私人房間 ──
@@ -121,6 +132,7 @@ export async function onRequestPost({ request, env }) {
     const roomRow = await findRoom(env, joinRoom);
     if (!roomRow || roomRow.date !== date) return bad("找不到這個私人房間", 404);
     if (roomRow.activity !== activity) return bad("目標與私人房間不符");
+    if ((roomRow.server || "") !== server) return bad("伺服器與私人房間不符，請先在左側切換到該房間的伺服器");
     const already = all.some(r => r.room === joinRoom && !r.removed && r.discordId === user.id);
     // 房主已「開放」的房間不需密碼（roomOpen 房間內每筆登記同步更新）
     const isOpen = !!roomRow.roomOpen;
@@ -139,6 +151,7 @@ export async function onRequestPost({ request, env }) {
     if (joinParty) {
       const target = parties.find(p => p.party === joinParty && p.activity === DAILY);
       if (!target) return bad("找不到這個揪團，可能已被取消", 404);
+      if ((target.server || "") !== server) return bad("伺服器與揪團不符，請先在左側切換到該揪團的伺服器");
       if (toMin(start) !== target.time) return bad("出發時間與揪團不符");
       if ((target.room || "") !== room) return bad("房間與揪團不符");
       const notIn = skills.filter(k => !target.opts.includes(k));
@@ -150,19 +163,23 @@ export async function onRequestPost({ request, env }) {
     }
   } else if (joinParty) return bad("揪團參數錯誤");
 
+  // 這筆登記會落入的揪團（同伺服器、同目標、同房間、同單號、同出發時間）
+  const sameParty = p => p.activity === activity && (p.server || "") === server && (p.room || "") === room && (p.party || "") === party && p.time === toMin(start);
+  // 沒有伺服器（空字串）只能加入分伺服器前就存在的舊登記揪團；開新揪團一定要選伺服器
+  if (!server && !parties.some(sameParty)) return bad("請先在左側選擇伺服器");
+
   // 同一個 Discord 帳號可以登記多個角色 ID；同一角色 ID 也可登記多個出發時間／目標。
-  // 僅擋「同一角色重複登記到同一個揪團」（同目標、同房間、同出發時間）。
-  const dup = parties.find(p => p.activity === activity && (p.room || "") === room && (p.party || "") === party && p.time === toMin(start)
-    && p.members.some(m => m.charId === charId && m.discordId === user.id));
+  // 僅擋「同一角色重複登記到同一個揪團」（同伺服器、同目標、同房間、同出發時間）。
+  const dup = parties.find(p => sameParty(p) && p.members.some(m => m.charId === charId && m.discordId === user.id));
   if (dup) return bad(`角色「${charId}」已在 ${start} 出發的「${activity}」揪團 #${dup.num} 內，不需重複登記`);
 
   const uid = crypto.randomUUID();
-  const newReg = { uid, discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room, roomOpen: !!roomOpen, leader: !!leader, lockKey: "", party, ts: Date.now() };
+  const newReg = { uid, discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room, roomOpen: !!roomOpen, leader: !!leader, lockKey: "", party, server, ts: Date.now() };
 
   // 出發前 30 分鐘內「各團已滿」就不再開放報名：若這筆登記會讓既有揪團多開一團（24→25 人變 3 團、
   // 奧丁要另開新團或進候補、未鎖定的團都滿 12 人），就擋下，避免最後一刻多出一個人數不足的團
   if (isToday && toMin(start) - tw.min <= CLOSE_BEFORE_MIN) {
-    const before = parties.find(p => p.activity === activity && (p.room || "") === room && (p.party || "") === party && p.time === toMin(start));
+    const before = parties.find(sameParty);
     if (before) {
       const after = buildParties([...rows, newReg], date).find(p => p.members.some(m => m.uid === uid));
       const grew = after && (after.squads.length > before.squads.length || after.waitlist.some(m => m.uid === uid));
@@ -179,9 +196,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   await env.DB
-    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, skills, room, pwHash, roomOpen, leader, lockKey, party, ts)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(uid, user.id, charId, level, job, activity, start, end, date, skills.join(","), room, pwHash, roomOpen, leader, "", party, newReg.ts)
+    .prepare(`INSERT INTO regs (uid, discordId, charId, level, job, activity, startHM, endHM, date, skills, room, pwHash, roomOpen, leader, lockKey, party, server, ts)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(uid, user.id, charId, level, job, activity, start, end, date, skills.join(","), room, pwHash, roomOpen, leader, "", party, server, newReg.ts)
     .run();
-  return json({ uid, room, party });
+  return json({ uid, room, party, server });
 }

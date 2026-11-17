@@ -19,9 +19,9 @@ export async function onRequestPost({ request, env }) {
   if (mine.discordId !== user.id) return json({ error: "只能操作自己的登記" }, 403);
 
   const { results } = await env.DB
-    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, ts
+    .prepare(`SELECT uid, discordId, charId, level, job, activity, startHM AS start, endHM AS "end", date, skills, removed, removedTs, room, roomOpen, leader, lockKey, party, server, ts
               FROM regs WHERE date = ?`).bind(mine.date).all();
-  const rows = results.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "" }));
+  const rows = results.map(r => ({ ...r, skills: String(r.skills || "").split(",").filter(Boolean), removed: !!r.removed, room: r.room || "", roomOpen: !!r.roomOpen, leader: !!r.leader, lockKey: r.lockKey || "", party: r.party || "", server: r.server || "" }));
   const party = buildParties(rows, mine.date).find(p => p.members.some(m => m.uid === uid));
   const squad = party && party.squads.find(s => s.members.some(m => m.uid === uid));
   if (!squad) return json({ error: "找不到所在的隊伍" }, 404);
