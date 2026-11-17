@@ -10,11 +10,25 @@ export const ODIN = "副本團：105級奧丁";
 export const isOdin = act => act === ODIN;
 // 各職業可勾選的職能（登記副本團時至少勾一項，可多選；前端表單、regs.js 驗證、明細顯示、機器人私訊共用）
 // 每日團「想打的細項」（可多選、可不選）：登記時勾選，顯示在卡片、明細與機器人私訊名單；存在 regs.skills（與副本職能共用欄位）
+// 新制每日團（activity＝"每日團"）：登記＝開一張單，可跨大項多選細項；開單者勾的細項＝這張單的可選項目（p.opts），
+// 加入者只能從中勾選。大項的等級＝該細項的最低角色等級。同一張單的登記共用 regs.party（單號），不同單不會合併。
+export const DAILY = "每日團";
+export const isDaily = act => act === DAILY;
+export const DAILY_GROUPS = [
+  { lv: 90,  name: "90級",  items: ["崑崙", "天津", "洛陽", "泰國", "龜島"] },
+  { lv: 100, name: "100級", items: ["朱諾", "龍洞", "鋼都", "礦山3樓"] },
+  { lv: 105, name: "105級", items: ["毀葛", "企都野外", "研1", "研2"] },
+  { lv: 110, name: "110級", items: ["研3", "驚駭小蟲"] },
+  { lv: 115, name: "115級", items: ["驚駭皇后"] }
+];
+export const dailyLevelOf = item => { const g = DAILY_GROUPS.find(x => x.items.includes(item)); return g ? g.lv : 0; };
+// 舊制（"每日團：100級" 等，同目標同時間自動併團）的鍵保留，讓上線前已存在的登記照舊顯示到過期
 export const DAILY_TAGS = {
   "每日團：90級": ["崑崙", "天津", "洛陽", "泰國", "龜島"],
   "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦山3樓"],
   "每日團：105級": ["毀葛", "企都野外", "研1", "研2"],
-  "每日團：110級": ["研3"]
+  "每日團：110級": ["研3"],
+  [DAILY]: DAILY_GROUPS.flatMap(g => g.items)
 };
 export const dailyTagsOf = act => DAILY_TAGS[act] || null;
 // 揪團的細項總覽：每日團所有成員勾選細項的聯集（依清單順序）；副本團為空陣列。顯示在卡片、明細與機器人訊息，不影響分堆
@@ -162,13 +176,32 @@ export function taipeiNow() {
 //   副本團：105級奧丁 → 依職能名額分團（見 odinTeams），未成團的團標示缺少的名額
 // 每團另有 complete（是否成團）與 missing（奧丁缺少的必要名額）；waitlist＝奧丁名額不足而候補的人（伺服器登記時即擋下，正常不會出現）
 // ── 隊長與鎖定（三處一致）──
-//   隊長＝該團最早登記且「願意當隊長」（leader 欄位）的人；全團都不願意時由最早登記者暫代（acting=true）
+//   隊長規則見 buildSquads 內的 pickLeader（開單者 → 最早願意者 → 系統隨機指派 acting=true）
 //   鎖定：隊長鎖定後，該團所有成員的 lockKey 相同（含建立時間、依鎖定先後排序）；分團時先把鎖定團固定下來
 //   （不加人、不重排、有人退出不補），其餘「未鎖定」成員再照原規則分團，鎖定團排在前面並依序編號
-const willingLeader = m => !(m.leader === false || m.leader === 0 || m.leader === "0");
+const willingLeader = m => m.leader === true || m.leader === 1 || m.leader === "1";   // 預設不願意；必須明確勾選
 const lockKeyOf = m => (m.lockKey ? String(m.lockKey) : "");
-function buildSquads(act, members, t, dateStr, removedRegs) {
+function buildSquads(act, members, t, dateStr, removedRegs, anchor) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
+  // 隊長：① 開單者（整張單最早登記的人）還在團內 → 他所在的那一團由他當隊長（不論有沒有勾願意）
+  //       ② 其他團：該團最早登記且勾「願意當隊長」的人
+  //       ③ 整團沒人願意 → 系統隨機指派（acting=true）。「隨機」以單號為種子取雜湊最小者，三端算出同一人；
+  //          只從「請準備」提醒前登記的人裡抽，提醒後補進來的人不會讓已通知的隊長換人
+  const idOf = m => m.uid || m.charId;
+  if (!anchor) anchor = byTs(members.concat(removedRegs || []))[0];
+  const openerId = anchor && !anchor.removed ? idOf(anchor) : null;
+  const seed = anchor ? idOf(anchor) + "|" + (anchor.ts || 0) : "";
+  const readyAt = taipeiMs(dateStr, Math.max(0, t - READY_BEFORE_MIN));
+  const pickLeader = sorted => {
+    const own = openerId && sorted.find(m => idOf(m) === openerId);
+    if (own) return { leader: own, acting: false };
+    const w = sorted.find(willingLeader);
+    if (w) return { leader: w, acting: false };
+    const early = sorted.filter(m => (m.ts || 0) < readyAt), pool = early.length ? early : sorted;
+    let best = pool[0], bh = -1;
+    for (const m of pool) { const h = hashStr(seed + "|" + idOf(m)); if (bh < 0 || h < bh || (h === bh && cmpStr(m.charId, best.charId) < 0)) { best = m; bh = h; } }
+    return { leader: best, acting: true };
+  };
   const lockedMap = {};
   members.forEach(m => { const k = lockKeyOf(m); if (k) (lockedMap[k] ||= []).push(m); });
   const free = members.filter(m => !lockKeyOf(m));
@@ -184,8 +217,8 @@ function buildSquads(act, members, t, dateStr, removedRegs) {
   });
   const built = free.length ? buildSquadsFree(act, free, t, dateStr, (removedRegs || []).filter(r => !lockKeyOf(r))) : { squads: [], waitlist: [] };
   const squads = lockedSquads.concat(built.squads.filter(s => s.members.length)).map((s, i) => {
-    const sorted = byTs(s.members), leader = sorted.find(willingLeader) || sorted[0];
-    return Object.assign(s, { index: i + 1, leader, acting: !willingLeader(leader), locked: !!s.locked, lockKey: s.lockKey || "" });
+    const { leader, acting } = pickLeader(byTs(s.members));
+    return Object.assign(s, { index: i + 1, leader, acting, locked: !!s.locked, lockKey: s.lockKey || "" });
   });
   return { squads, waitlist: built.waitlist };
 }
@@ -278,11 +311,11 @@ function buildSquadsFree(act, members, t, dateStr, removedRegs) {
 }
 
 // 出發時間 t（分鐘）的一群人 → 揪團物件
-function splitCluster(act, members, t, dateStr, removedRegs, room) {
+function splitCluster(act, members, t, dateStr, removedRegs, room, party) {
   const byTs = arr => arr.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0) || cmpStr(a.charId, b.charId));
   const sorted = byTs(members);
   room = room || "";
-  const rk = room ? "|room:" + room : "";   // 私人房間鍵（公開登記為空字串）
+  const rk = (room ? "|room:" + room : "") + (party ? "|p:" + party : "");   // 私人房間鍵（公開登記為空字串）
   const id = act + rk + "|" + toHM(t) + "|" + sorted.map(m => m.charId).sort().join(",");
   // 錨點：整群最早登記者（退出採軟刪除，退出者仍是錨點候選）→ 編號、留言板 key 創團後永不變動
   let anchor = sorted[0];
@@ -291,9 +324,10 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
   }
   const tags = tagsOfParty(act, members);   // 本團所有成員想打的細項（聯集）
   const stable = act + rk + "|" + anchor.charId + "|" + (anchor.ts || 0);
-  const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs);
+  const { squads, waitlist } = buildSquads(act, members, t, dateStr, removedRegs, anchor);
   return {
-    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags,
+    id, activity: act, room, priv: !!room, open: !!room && members.some(m => m.roomOpen), host: anchor, members: sorted, time: t, timeEnd: t, tags, party: party || "",
+    opts: act === DAILY ? DAILY_TAGS[DAILY].filter(x => skillsOf(anchor).includes(x)) : [],   // 開單者勾的細項＝可選項目
     ok: canForm(act, members),
     readyMin: Math.max(0, t - READY_BEFORE_MIN), departMin: t,   // 出發前 10 分「請準備」提醒／出發時刻
     squads, waitlist, leader: squads[0].leader,
@@ -304,7 +338,7 @@ function splitCluster(act, members, t, dateStr, removedRegs, room) {
 export function buildParties(regs, dateStr) {
   const todays = regs.filter(r => r.date === dateStr);
   // 分堆鍵＝目標＋房間＋出發時間：同目標、同房間、同出發時間的人就是同一個揪團；私人房間（room 非空）自成一堆
-  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start;
+  const keyOf = r => r.activity + "\u0001" + (r.room || "") + "\u0001" + r.start + "\u0001" + (r.party || "");   // party＝新制每日團的單號
   const byKey = {};
   todays.filter(r => !r.removed).forEach(r => { (byKey[keyOf(r)] ||= []).push(r); });
   const removedByKey = {};
@@ -312,7 +346,7 @@ export function buildParties(regs, dateStr) {
   const parties = [];
   for (const key in byKey) {
     const first = byKey[key][0];
-    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), dateStr, removedByKey[key] || [], first.room || ""));
+    parties.push(splitCluster(first.activity, byKey[key], toMin(first.start), dateStr, removedByKey[key] || [], first.room || "", first.party || ""));
   }
   return parties;
 }
