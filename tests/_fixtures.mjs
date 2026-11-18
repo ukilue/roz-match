@@ -11,8 +11,8 @@ export const S1 = "測試服一", S2 = "測試服二";
 const base = (i, x) => ({ uid: "u" + i, discordId: "d" + i, acct: "a" + i, charId: "c" + String(i).padStart(2, "0"), level: 115, job: jobs[i % 5], activity: "每日團", start, end: start, date, skills: ["朱諾"], removed: false, removedTs: 0, room: "", roomOpen: false, leader: false, lockKey: "", party: P1, server: S1, ts: 1000 + i, ...x });
 export function makeRegs() {
   const regs = [];
-  // 單 P1：c01 開單（朱諾＋研3＋驚駭皇后），26 人 → 3 團；c05、c09 願意當隊長
-  regs.push(base(1, { skills: ["朱諾", "研3", "驚駭皇后"] }));
+  // 單 P1：c01 開單（朱諾＋研3＋大蟲），26 人 → 3 團；c05、c09 願意當隊長
+  regs.push(base(1, { skills: ["朱諾", "研3", "大蟲"] }));
   for (let i = 2; i <= 26; i++) regs.push(base(i, { skills: i % 3 === 0 ? ["研3"] : i % 3 === 1 ? ["朱諾", "研3"] : ["朱諾"], leader: i === 5 || i === 9 }));
   // 單 P2：同時間另一張單（不合併）；開單者 c30 已退出、沒人願意當隊長 → 系統指派
   regs.push(base(30, { party: P2, skills: ["崑崙", "天津"], removed: true, removedTs: 2000 }));

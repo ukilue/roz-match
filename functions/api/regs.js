@@ -146,8 +146,28 @@ export async function onRequestPost({ request, env }) {
   // ── 新制每日團的單號 ──
   //   開新單：產生單號，這位登記者就是開單者（隊長），他勾的細項＝這張單的可選項目
   //   加入既有的單：單必須存在且同一天、同出發時間、同房間；細項只能從開單者的可選項目裡勾
-  let party = "";
-  if (activity === DAILY) {
+  //   自動加入（2026-11-18）：從「登記揪團」送出、沒勾「另開新單」的公開每日團，若同伺服器、同出發時間已有公開的單
+  //     「開放項目包含所勾的全部項目」，就直接加入那張單（多張符合時取人數最多 → 最早開的）。
+  //     跳過：同角色已在單內、出發前 30 分鐘內加入會多開一團的單；都不行才開新單。
+  let party = "", autoNum = "";
+  if (activity === DAILY && !joinParty && !joinRoom && !priv && server && !b.newParty) {
+    const cands = parties
+      .filter(p => p.activity === DAILY && p.party && !p.room && (p.server || "") === server && p.time === toMin(start) && skills.every(k => (p.opts || []).includes(k)))
+      .sort((x, y) => y.members.length - x.members.length || (x.host.ts || 0) - (y.host.ts || 0) || (x.party < y.party ? -1 : 1));
+    const closing = isToday && toMin(start) - tw.min <= CLOSE_BEFORE_MIN;
+    for (const c of cands) {
+      if (c.members.some(m => m.charId === charId && m.discordId === user.id)) continue;
+      if (closing) {
+        const trial = { uid: "__trial__", discordId: user.id, charId, level, job, activity, start, end, date, skills, removed: false, room: "", roomOpen: false, leader: !!leader, lockKey: "", party: c.party, server, ts: Date.now() };
+        const after = buildParties([...rows, trial], date).find(p => p.members.some(m => m.uid === "__trial__"));
+        if (after && after.squads.length > c.squads.length) continue;
+      }
+      party = c.party; autoNum = c.num; break;
+    }
+  }
+  if (autoNum) {
+    // 已自動找到要加入的單（不另開）
+  } else if (activity === DAILY) {
     if (joinParty) {
       const target = parties.find(p => p.party === joinParty && p.activity === DAILY);
       if (!target) return bad("找不到這個揪團，可能已被取消", 404);
@@ -200,5 +220,5 @@ export async function onRequestPost({ request, env }) {
               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .bind(uid, user.id, charId, level, job, activity, start, end, date, skills.join(","), room, pwHash, roomOpen, leader, "", party, server, newReg.ts)
     .run();
-  return json({ uid, room, party, server });
+  return json({ uid, room, party, server, joined: autoNum });   // joined：自動加入的既有單編號（開新單時為空字串）
 }

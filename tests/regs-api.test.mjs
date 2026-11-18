@@ -50,6 +50,18 @@ assert.equal(low.status, 400); assert.match(low.error, /等級不足/);
 assert.equal((await post(B, { charId: "隊員3", skills: [], party: open.party })).status, 400);
 assert.equal((await post(B, { charId: "隊員3", skills: ["朱諾"], party: "00000000-0000-4000-8000-000000000000" })).status, 404);
 assert.equal((await post(B, { charId: "隊員1", skills: ["朱諾"], party: open.party })).status, 400, "同帳號同角色不可重複加入同一張單");
+// 自動加入：從登記表單送出（不帶單號），同伺服器同時間已有「開放項目包含所勾全部項目」的單 → 直接加入
+const auto1 = await post(B, { charId: "自動甲", skills: ["朱諾"] });
+assert.equal(auto1.status, 200); assert.equal(auto1.party, open.party, "勾的項目都在既有單內 → 自動加入"); assert.ok(auto1.joined, "回傳自動加入的單編號");
+const mixed = await post(B, { charId: "自動乙", skills: ["朱諾", "崑崙"] });
+assert.equal(mixed.status, 200); assert.ok(mixed.party !== open.party && mixed.party !== open2.party && !mixed.joined, "沒有一張單包含全部項目 → 開新單");
+const forced = await post(B, { charId: "自動丙", skills: ["朱諾"], newParty: true });
+assert.equal(forced.status, 200); assert.ok(forced.party !== open.party && !forced.joined, "勾「另開新單」→ 開新單");
+const otherSrv = await post(B, { charId: "自動丁", skills: ["朱諾"], server: SRV2 });
+assert.equal(otherSrv.status, 200); assert.ok(otherSrv.party !== open.party && !otherSrv.joined, "不同伺服器不自動加入");
+// 多張符合（open：3 人；forced：1 人、只開朱諾）→ 加入人數最多的那張
+const auto2 = await post(A, { charId: "自動戊", skills: ["朱諾"] });
+assert.equal(auto2.party, open.party, "多張符合時加入人數最多的單");
 // 副本團：同目標同時間自動併團，不帶單號
 assert.equal((await post(A, { charId: "騎士甲", activity: "副本團：59~90級", skills: ["物理近傷"] })).status, 200);
 assert.equal((await post(B, { charId: "騎士乙", activity: "副本團：59~90級", skills: ["物理近傷"] })).status, 200);

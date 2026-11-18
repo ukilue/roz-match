@@ -38,7 +38,7 @@ assert.deepEqual(c, a, "前端與伺服器的分團結果不同");
 const byParty = id => a.find(p => p.party === id);
 const p1 = byParty(P1), p2 = byParty(P2);
 assert.equal(p1.n, 26); assert.equal(p1.squads.length, 3, "26 人應分 3 團");
-assert.deepEqual(p1.opts, ["朱諾", "研3", "驚駭皇后"], "可選項目＝開單者勾的項目");
+assert.deepEqual(p1.opts, ["朱諾", "研3", "大蟲"], "可選項目＝開單者勾的項目");
 assert.equal(p1.squads.find(s => s.m.includes("c01")).leader, "c01", "開單者固定是他那一團的隊長");
 assert.ok(p1.squads.some(s => s.acting), "沒人願意的團由系統指派");
 assert.ok(p1.squads.filter(s => !s.acting && s.leader !== "c01").every(s => ["c05", "c09"].includes(s.leader)), "其他團取勾願意的人");

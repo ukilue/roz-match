@@ -17,17 +17,17 @@ export const DAILY = "每日團";
 export const isDaily = act => act === DAILY;
 export const DAILY_GROUPS = [
   { lv: 90,  name: "90級",  items: ["崑崙", "天津", "洛陽", "泰國", "龜島"] },
-  { lv: 100, name: "100級", items: ["朱諾", "龍洞", "鋼都", "礦山3樓"] },
-  { lv: 105, name: "105級", items: ["毀葛", "企都野外", "研1", "研2"] },
-  { lv: 110, name: "110級", items: ["研3", "驚駭小蟲"] },
-  { lv: 115, name: "115級", items: ["驚駭皇后"] }
+  { lv: 100, name: "100級", items: ["朱諾", "龍洞", "鋼都", "礦3"] },
+  { lv: 105, name: "105級", items: ["毀葛", "企北", "研1", "研2"] },
+  { lv: 110, name: "110級", items: ["研3", "小蟲"] },
+  { lv: 115, name: "115級", items: ["大蟲"] }
 ];
 export const dailyLevelOf = item => { const g = DAILY_GROUPS.find(x => x.items.includes(item)); return g ? g.lv : 0; };
 // 舊制（"每日團：100級" 等，同目標同時間自動併團）的鍵保留，讓上線前已存在的登記照舊顯示到過期
 export const DAILY_TAGS = {
   "每日團：90級": ["崑崙", "天津", "洛陽", "泰國", "龜島"],
-  "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦山3樓"],
-  "每日團：105級": ["毀葛", "企都野外", "研1", "研2"],
+  "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦3"],
+  "每日團：105級": ["毀葛", "企北", "研1", "研2"],
   "每日團：110級": ["研3"],
   [DAILY]: DAILY_GROUPS.flatMap(g => g.items)
 };

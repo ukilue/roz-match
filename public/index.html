@@ -597,6 +597,7 @@ input:disabled,select:disabled{background:#E9E1CC;color:#A2947A;border-color:#BB
 .id-card:hover{filter:brightness(1.05)}
 .id-card:active{transform:translateY(2px);box-shadow:none}
 .id-card small{font-weight:400;color:#7A6845;margin-left:4px}
+.id-card.low{opacity:.45;filter:grayscale(.6)}   /* 等級不夠這個團的身份卡 */
 .chk-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:700;font-size:14px;cursor:pointer}
 .chk-row input{width:auto;transform:scale(1.25)}
 .chk-row small{font-weight:400;color:#7A6845}
@@ -803,7 +804,7 @@ button{touch-action:manipulation}
     <!-- 伺服器選單：全站共用（組隊揪團、廣播、交易、MVP 都看這裡選的伺服器）；清單來自 /api/servers，沒有清單時隱藏 -->
     <label class="side-srv" id="side-srv" style="display:none">
       <span class="side-srv-label">🌐 伺服器</span>
-      <select id="srv-select" onchange="setServer(this.value);sideToggle(false)" aria-label="選擇伺服器"></select>
+      <select id="srv-select" onchange="setServer(this.value);srvMarkConfirmed();sideToggle(false)" aria-label="選擇伺服器"></select>
     </label>
     <nav id="main-nav">
       <button class="nav-btn" id="nav-index" onclick="showView('index')">🏠 首頁</button>
@@ -856,6 +857,10 @@ button{touch-action:manipulation}
       <div class="panel-title"><span>📋 更新紀錄</span> <small>網站每次更新的內容，最新的在最上面</small></div>
       <div class="panel-body log-list" style="padding:6px 18px 16px">
         <article class="log-item">
+          <h3><time>2026/11/18</time>每日團自動合併、加入時一鍵帶入角色、項目改名</h3>
+          <ul><li>在「登記揪團」送出每日團時，如果同伺服器、同出發時間已經有一張單開放了你勾的全部項目，會直接幫你加入那張單，不會再各開各的；想自己開新單，勾「我要另開新單」就好。</li><li>在揪團明細加入別人的團時，上方也有身份卡：點一下自動帶入角色 ID、等級、職業，並勾好這個團你能打的項目（副本團勾回上次的職能）。等級不夠的身份卡會變灰。</li><li>第一次登記或加入揪團時，會先請你確認自己玩的伺服器，避免選錯服跟朋友分到不同團。</li><li>每日團項目改用大家習慣的名稱：企都野外 → 企北、驚駭小蟲 → 小蟲、驚駭皇后 → 大蟲、礦山3樓 → 礦3。</li><li>Discord 群名稱更新為「懿岐玩遊戲」。</li></ul>
+        </article>
+        <article class="log-item">
           <h3><time>2026/11/18</time>伺服器選單移到功能列、揪團分伺服器、新增驚駭森靈副本</h3>
           <ul><li>伺服器改在左側功能列的下拉選單切換（手機在「≡ 功能」裡，頂端也會顯示目前的伺服器）。選一次全站通用，各頁面不再各自切換。</li><li>組隊揪團也分伺服器了：登記時會登記到目前選的伺服器，「所有揪團」只列出這個伺服器的團，只有同伺服器的人會被分在同一團。</li><li>改版前就登記的團會標示「舊登記・未分伺服器」，每個伺服器都看得到、可以照常加入，最晚明天就會自然結束。</li><li>新增副本團「115級驚駭森靈」：角色需 115 級以上，不限職業，登記時一樣要勾職能；同時間的人併成一團，滿 3 人成團。</li><li>機器人的新揪團公告、出發私訊和語音房名稱都會標示伺服器；新揪團公告不再 tag 身份組。</li></ul>
         </article>
@@ -871,11 +876,11 @@ button{touch-action:manipulation}
           <h3><time>2026/11/12</time>新增首頁、手機版功能選單</h3>
           <ul><li>新增首頁，整理網站每次更新的內容；點左上角「RO 樂園佈告欄」或「🏠 首頁」都會回到這裡。</li><li>手機版的功能列改成左上角「≡ 功能」，點一下從左側滑出選單。</li></ul>
         </article>
+        <div class="log-older" id="log-older">
         <article class="log-item">
           <h3><time>2026/11/11</time>新增綁定角色與 Discord 私訊</h3>
           <ul><li>左下角改為「⚙ DC 名稱」，點開可選「綁定角色」或「會員登出」。</li><li>綁定角色：選伺服器、輸入遊戲角色名稱即可，一個帳號最多 10 個角色。</li><li>綁定後，你的角色在廣播訊息、交易買賣出現時，名稱旁會有「💬 私訊」按鈕，其他玩家可以直接用 Discord 找你。</li><li>綁定無法核對是否為本人，交易時請自行確認對方身分。</li></ul>
         </article>
-        <div class="log-older" id="log-older">
         <article class="log-item">
           <h3><time>2026/11/10</time>新增序號領取、廣播關鍵字通知</h3>
           <ul><li>序號領取：列出目前可兌換的序號、獎勵與期限，可一鍵複製並前往官方兌換頁。</li><li>關鍵字通知：在廣播訊息頁設定伺服器與關鍵字，喇叭廣播出現關鍵字時機器人會私訊你（約 5 分鐘內）。每人可設定 1 組。</li></ul>
@@ -917,7 +922,7 @@ button{touch-action:manipulation}
   <!-- ═══ 組隊揪團（需登入 Discord） ═══ -->
   <section class="view" id="view-party">
     <div class="login-bar" id="login-bar" style="display:none">
-      <span>🔐 組隊揪團功能需先登入 Discord 並加入懿岐來揪團伺服器，才能登記、加入與留言。</span>
+      <span>🔐 組隊揪團功能需先登入 Discord 並加入懿岐玩遊戲伺服器，才能登記、加入與留言。</span>
       <button class="btn small" id="login-bar-btn" onclick="authAction()">Discord 登入</button>
     </div>
   <!-- ═══ 登記 ═══ -->
@@ -955,6 +960,7 @@ button{touch-action:manipulation}
             </div>
             <div class="notice member" id="f-daily-hint" style="display:none;margin-top:8px"></div>
             <label class="chk-row"><input type="checkbox" id="f-tomorrow" onchange="fillTimeSelects();updateDailyHint()"> 預先報名明日的團 <small id="f-tomorrow-date"></small></label>
+            <label class="chk-row" id="f-newparty-row"><input type="checkbox" id="f-newparty"> 🆕 <b>我要另開新單</b> <small>不勾的話：同時間已有開放你所勾全部項目的每日團，會直接幫你加入那張單</small></label>
             <label class="chk-row leader-chk"><input type="checkbox" id="f-leader"> 👑 <b>願意當隊長</b> <small>開單的人就是隊長。人多分出其他團時，會優先指派有勾選的人；都沒人勾則由系統隨機指派（出發時由隊長建隊、邀請成員）</small></label>
             <label class="chk-row"><input type="checkbox" id="f-priv" onchange="togglePriv()"> 🔒 設為私人房間 <small>需輸入房間密碼才能加入；同出發時間的一般登記不會被併進來</small></label>
             <div id="f-pw-wrap" class="pw-wrap" style="display:none">
@@ -962,7 +968,7 @@ button{touch-action:manipulation}
               <input id="f-pw" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="off">
               <p class="hint">密碼只有你知道，請私下告知想邀請的隊友。系統只保存加密雜湊，網頁與 F12 都看不到密碼，之後也無法再查看，請記好。</p>
             </div>
-            <p class="hint"><b>每日團</b>：送出登記＝開一張新單，你勾的項目就是這張單開放的項目，其他人到「所有揪團」加入並從中勾選；滿 3 人成團，人多時每 12 人一團、依職業與項目平均分配。<b>副本團</b>：同伺服器、同目標、同出發時間的人自動併成一團，59~90 級與 115 級驚駭森靈滿 3 人成團（不限職業、全員一團）、105 級奧丁依職能名額成團。揪團依左側選的伺服器分開，只有同伺服器的人會在同一團。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
+            <p class="hint"><b>每日團</b>：送出登記時，若同伺服器、同出發時間已有開放你所勾全部項目的單，會直接幫你加入；沒有的話（或勾了「我要另開新單」）就開一張新單，你勾的項目就是這張單開放的項目，其他人到「所有揪團」加入並從中勾選；滿 3 人成團，人多時每 12 人一團、依職業與項目平均分配。<b>副本團</b>：同伺服器、同目標、同出發時間的人自動併成一團，59~90 級與 115 級驚駭森靈滿 3 人成團（不限職業、全員一團）、105 級奧丁依職能名額成團。揪團依左側選的伺服器分開，只有同伺服器的人會在同一團。出發前 10 分鐘機器人會私訊名單與語音頻道，到了出發時間揪團就關閉。</p>
           </div>
           <div class="full"><button class="btn" id="submit-btn" onclick="submitReg()">送出登記</button></div>
         </div>
@@ -1202,6 +1208,18 @@ button{touch-action:manipulation}
   </div>
 </div>
 
+<!-- ═══ 第一次登記／加入揪團前確認伺服器（沒自己在選單選過伺服器的人才會出現；z-index 高於明細彈窗） ═══ -->
+<div class="overlay" id="srv-confirm" style="z-index:60" onclick="if(event.target===this)srvConfirmClose(false)">
+  <div class="modal panel">
+    <div class="panel-title"><span>🌐 請確認你的伺服器</span><button class="close-x" onclick="srvConfirmClose(false)">✕</button></div>
+    <div class="panel-body">
+      <p style="line-height:1.75;margin-bottom:12px">揪團依遊戲伺服器分開，<b>只有同伺服器的人會在同一團</b>。請選擇你玩的伺服器（只會問這一次，之後可隨時在左側選單切換）：</p>
+      <select id="srv-confirm-sel" aria-label="選擇伺服器"></select>
+      <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="srvConfirmClose(true)">確認</button><button class="btn blue" onclick="srvConfirmClose(false)">取消</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1230,17 +1248,17 @@ const DAILY = "每日團";
 const isDaily = act => act === DAILY;
 const DAILY_GROUPS = [
   { lv: 90,  name: "90級",  items: ["崑崙", "天津", "洛陽", "泰國", "龜島"] },
-  { lv: 100, name: "100級", items: ["朱諾", "龍洞", "鋼都", "礦山3樓"] },
-  { lv: 105, name: "105級", items: ["毀葛", "企都野外", "研1", "研2"] },
-  { lv: 110, name: "110級", items: ["研3", "驚駭小蟲"] },
-  { lv: 115, name: "115級", items: ["驚駭皇后"] }
+  { lv: 100, name: "100級", items: ["朱諾", "龍洞", "鋼都", "礦3"] },
+  { lv: 105, name: "105級", items: ["毀葛", "企北", "研1", "研2"] },
+  { lv: 110, name: "110級", items: ["研3", "小蟲"] },
+  { lv: 115, name: "115級", items: ["大蟲"] }
 ];
 const dailyLevelOf = item => { const g = DAILY_GROUPS.find(x => x.items.includes(item)); return g ? g.lv : 0; };
 // 舊制（"每日團：100級" 等，同目標同時間自動併團）的鍵保留，讓上線前已存在的登記照舊顯示到過期
 const DAILY_TAGS = {
   "每日團：90級": ["崑崙", "天津", "洛陽", "泰國", "龜島"],
-  "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦山3樓"],
-  "每日團：105級": ["毀葛", "企都野外", "研1", "研2"],
+  "每日團：100級": ["朱諾", "龍洞", "鋼都", "礦3"],
+  "每日團：105級": ["毀葛", "企北", "研1", "研2"],
   "每日團：110級": ["研3"],
   [DAILY]: DAILY_GROUPS.flatMap(g => g.items)
 };
@@ -1460,7 +1478,7 @@ function updateNavMine(){
     bar.style.display = need ? "" : "none";
     const b = $("login-bar-btn");
     if(b){
-      if(USER && !USER.member){ b.textContent = "加入懿岐來揪團 DC"; b.onclick = ()=>{ window.open(DISCORD_INVITE_URL, "_blank"); toast("加入伺服器後，請點「Discord 登入」按鈕重新登入驗證"); }; }
+      if(USER && !USER.member){ b.textContent = "加入懿岐玩遊戲 DC"; b.onclick = ()=>{ window.open(DISCORD_INVITE_URL, "_blank"); toast("加入伺服器後，請點「Discord 登入」按鈕重新登入驗證"); }; }
       else { b.textContent = "Discord 登入"; b.onclick = ()=>{ location.href = API+"/auth/login"; }; }
     }
   }
@@ -1476,7 +1494,7 @@ function updateRegForm(){
     else if(!USER.member) mode = "join";
   }
   const disabled = mode !== "ok";
-  ["f-id","f-lv","f-job","f-act","f-start","f-tomorrow","f-priv","f-pw","f-leader"].forEach(id=>{
+  ["f-id","f-lv","f-job","f-act","f-start","f-tomorrow","f-priv","f-pw","f-leader","f-newparty"].forEach(id=>{
     const el = $(id); if(el) el.disabled = disabled;
   });
   document.querySelectorAll('input[name="f-skill"]').forEach(el=>{ el.disabled = disabled; });
@@ -1486,7 +1504,7 @@ function updateRegForm(){
     btn.style.borderColor = "#2A339E"; btn.style.boxShadow = "0 3px 0 #2A339E";
     btn.onclick = ()=>{ location.href = API+"/auth/login"; };
   }else if(mode === "join"){
-    btn.textContent = "加入懿岐來揪團DC";
+    btn.textContent = "加入懿岐玩遊戲DC";
     btn.style.background = "linear-gradient(180deg,#3BA55D,#2C7F46)";
     btn.style.borderColor = "#1F5C33"; btn.style.boxShadow = "0 3px 0 #1F5C33";
     btn.onclick = ()=>{
@@ -1511,7 +1529,7 @@ function requireLogin(){
   if(!store.online) return true;   // 單機預覽模式不需登入
   if(USER && USER.member) return true;
   if(USER){   // 已登入但未加入伺服器
-    toast("請先加入Discord-懿岐來揪團才能登記，3秒後跳轉");
+    toast("請先加入Discord-懿岐玩遊戲才能登記，3秒後跳轉");
     setTimeout(()=>{ location.href = DISCORD_INVITE_URL; }, 3000);
   }else{      // 未登入
     toast("請先以 Discord 登入，3秒後前往登入");
@@ -1547,12 +1565,12 @@ const store = {
         const d = await r.json();
         if(r.status===401){ toast(d.error||"請先登入 Discord"); USER=null; loadUser(); return false; }
         if(!r.ok){ toast(d.error||"登記失敗"); return false; }
-        return true;
+        return d || true;   // d.joined：伺服器自動加入的既有每日團編號（開新單時為空字串）
       }catch(e){ this.online=false; toast("連線失敗，已存到本機"); }
     }
     // 單機模式的私人房間：密碼以明文存在本機（僅預覽用；正式模式密碼只在伺服器端雜湊比對）
     const list = this.localAll();
-    const {pw, priv, ...rest} = reg;
+    const {pw, priv, newParty, ...rest} = reg;
     let room = reg.room || "", _pw;
     if(priv && !room){ room = newUid(); _pw = pw; }
     else if(room){
@@ -1561,10 +1579,19 @@ const store = {
       if(host && !already && !host.roomOpen && host._pw !== pw){ toast("房間密碼錯誤"); return false; }
       _pw = host ? host._pw : undefined;
     }
+    // 單機模式的每日團：比照伺服器自動加入「同伺服器、同出發時間、開放項目包含所勾全部項目」的既有單，否則開新單
+    let joined = "";
+    if(rest.activity===DAILY && !rest.party && !room && !newParty){
+      const c = buildParties(list.filter(r=>r.date===rest.date), rest.date)
+        .filter(p=> p.activity===DAILY && p.party && !p.room && (p.server||"")===(rest.server||"") && p.time===toMin(rest.start)
+          && (rest.skills||[]).every(k=>(p.opts||[]).includes(k)) && !p.members.some(m=>m.charId===rest.charId))
+        .sort((x,y)=> y.members.length-x.members.length || (x.host.ts||0)-(y.host.ts||0))[0];
+      if(c){ rest.party = c.party; joined = c.num; }
+    }
     if(rest.activity===DAILY && !rest.party) rest.party = newUid();   // 單機模式：開新單
     list.push({...rest, room, _pw, roomOpen: !!(list.find(r=>r.room===room && r.roomOpen)), mine:true});
     this.localSave(list);
-    return true;
+    return joined ? { joined } : true;
   },
   // 房主開放／鎖上房間（伺服器驗證房主＋密碼；成功回 true）
   async roomAction(room, pw, action){
@@ -2065,7 +2092,7 @@ function detailMainHTML(p){
     }else if(store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。想加入請先點 <b>Discord 登入</b> 按鈕，再輸入房間密碼。</div>`;
     }else if(store.online && !USER.member){
-      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證，再輸入房間密碼。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">🔒 此為私人房間。請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐玩遊戲 DC 伺服器</a>，加入後重新登入驗證，再輸入房間密碼。</div>`;
     }else{
       main += `
       <div class="lock-box">
@@ -2143,7 +2170,7 @@ function detailMainHTML(p){
     if(!closed && store.online && !USER){
       main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先點 <b>Discord 登入</b> 按鈕。</div>`;
     }else if(!closed && store.online && !USER.member){
-      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐來揪團 DC 伺服器</a>，加入後重新登入驗證。</div>`;
+      main += `<div class="notice member" style="margin-top:14px">想加入這個揪團？請先<a href="${DISCORD_INVITE_URL}" target="_blank" style="font-weight:900">加入懿岐玩遊戲 DC 伺服器</a>，加入後重新登入驗證。</div>`;
     }else if(closed){
       main += `<div class="notice member" style="margin-top:14px">${isDeparted(p) ? "此團已出發" : "出發時間已過、未成團"}，已關閉揪團，不再接受新成員加入。</div>`;
     }else if(isFullClosed(p)){
@@ -2153,6 +2180,7 @@ function detailMainHTML(p){
       <div style="margin-top:16px;border-top:2px dashed #8a6f3f66;padding-top:14px">
         ${(isOdin(p.activity) && inClosingWindow(p)) ? `<div class="hint" style="margin-bottom:8px">出發前 ${CLOSE_BEFORE_MIN} 分鐘內，若加入會需要另開新團或進候補，伺服器將不接受報名。</div>` : ""}
         <label style="margin-bottom:8px">${viewerMember ? "用其他角色再加入這個揪團" : "加入這個揪團"}</label>
+        ${joinCardsHTML(p)}
         <div class="form-grid">
           <div><input id="j-id" maxlength="24" placeholder="角色 ID"></div>
           <div><input id="j-lv" type="number" min="1" max="120" placeholder="角色等級"></div>
@@ -2165,6 +2193,41 @@ function detailMainHTML(p){
     }
   }
   return main;
+}
+// 加入表單的身份卡（與登記卡同一份 ID_CARDS：目前伺服器近 1 週登記過的角色）：點一下帶入角色 ID、等級、職業並勾選目標
+//   每日團：勾「這張單有開、等級也夠」的項目，優先勾上次打的；上次的項目這張單都沒開 → 勾這張單裡等級夠的全部項目
+//   副本團：勾回上次登記的職能（職業相同才有對應的勾選框）
+//   等級不夠這個團的身份卡變灰，點了只提示不帶入
+const joinNeedLv = p => {   // 加入這個團的最低等級：每日團＝開放項目中最低的等級；其他＝目標的等級門檻
+  if(isDaily(p.activity)){ const lv = (p.opts||[]).map(dailyLevelOf).filter(Boolean); return lv.length ? Math.min(...lv) : (LEVEL_REQ[DAILY] || 90); }
+  return LEVEL_REQ[p.activity] || 0;
+};
+function joinCardsHTML(p){
+  if(!ID_CARDS.length) return "";
+  const need = joinNeedLv(p);
+  return `<div class="id-cards" style="margin-bottom:10px"><div class="id-cards-title">🪪 一鍵帶入 <small>近 1 週報名過的角色，點一下帶入 ID、等級、職業並勾選這個團可以打的目標</small></div>
+    <div class="id-cards-list">${ID_CARDS.map((c,i)=>`<button class="id-card${c.level < need ? " low" : ""}" onclick="applyJoinCard(${i})" title="${esc(c.job)}${c.level < need ? "｜等級不足（需 "+need+" 級）" : ""}">${esc(c.level)}-${esc(c.charId)}<small>${esc(c.job)}</small></button>`).join("")}</div></div>`;
+}
+function applyJoinCard(i){
+  const c = ID_CARDS[i], p = PARTIES.find(x=>x.id===openPartyId);
+  if(!c || !p || !$("j-id")) return;
+  const need = joinNeedLv(p);
+  if(c.level < need) return toast(`「${c.charId}」是 ${c.level} 級，這個團需要 ${need} 級以上`);
+  $("j-id").value = c.charId; $("j-lv").value = c.level;
+  if(JOBS.includes(c.job)) $("j-job").value = c.job;
+  if($("j-skills")){
+    renderSkillBoxes("j");   // 依職業／這張單的項目重畫勾選框（全部不勾）
+    let pick = c.skills || [];
+    if(isDaily(p.activity)){
+      const can = (p.opts||[]).filter(k=> c.level >= dailyLevelOf(k));
+      pick = pick.filter(k=> can.includes(k));
+      if(!pick.length) pick = can;
+    }
+    pick.forEach(k=>{ const el = document.querySelector('input[name="j-skill"][value="'+k+'"]'); if(el) el.checked = true; });
+    updateHardHint("j");
+    if(pickedSkills("j-skill").length){ const w=$("j-skills-wrap"), wn=$("j-skills-warn"); if(w) w.classList.remove("warn"); if(wn) wn.classList.remove("show"); }
+  }
+  toast("已帶入「"+c.charId+"」"+(pickedSkills("j-skill").length ? "，並勾選 "+pickedSkills("j-skill").join("、") : ""));
 }
 function captureJoinDraft(){
   const pw = $("pw-in") ? $("pw-in").value : ($("host-pw") ? $("host-pw").value : "");
@@ -2391,7 +2454,7 @@ function updateHardHint(prefix){
 }
 const SKILLS_TITLE_DG = '副本職能 <small>依職業列出，可多選，至少勾一項；會顯示在明細供團員查看</small>';
 const SKILLS_TITLE_DAILY = '想打的細項 <small>可多選，至少勾一項；相同目標的人會優先分在同一團，卡片顯示全團細項總覽</small>';
-const SKILLS_TITLE_OPEN = '要打的項目 <small>可跨等級多選，至少勾一項；你勾的項目＝這張單開放的項目，角色等級需達到所勾項目的等級</small>';
+const SKILLS_TITLE_OPEN = '要打的項目 <small>可跨等級多選，至少勾一項；開新單時你勾的項目＝這張單開放的項目，角色等級需達到所勾項目的等級</small>';
 const SKILLS_TITLE_JOIN = '想打的項目 <small>從隊長開放的項目中勾選，至少一項；角色等級需達到所勾項目的等級</small>';
 // 未勾選細項就送出：細項區塊紅框閃爍＋顯示「請勾選正確目標」，勾選任一項後自動消失
 function flagSkillsWarn(prefix){
@@ -2427,17 +2490,20 @@ const partyTags = p => isDaily(p.activity) ? (p.opts||[]) : (p.tags||[]);
 function updateDailyHint(){
   const box = $("f-daily-hint"); if(!box) return;
   const act = $("f-act").value, start = $("f-start").value;
+  // 「我要另開新單」只對公開的每日團有意義（私人房間本來就自成一團）
+  const np = $("f-newparty-row"); if(np) np.style.display = (isDaily(act) && !$("f-priv").checked) ? "" : "none";
   const formDate = $("f-tomorrow").checked ? addDays(todayKey(),1) : todayKey();
   let list = [];
   if(isDaily(act) && start && formDate===viewDate()) list = PARTIES.filter(p=> isDaily(p.activity) && !p.priv && p.time===toMin(start) && !isClosed(p));
   if(!list.length){ box.style.display = "none"; return; }
   box.style.display = "";
-  box.innerHTML = `💡 ${esc(start)} 已有 ${list.length} 張每日團，可以直接加入：` + list.map(p=>`<button class="lfg-copy" style="margin:2px 4px" onclick="showView('all');openDetail('${esc(p.id).replace(/'/g,"\\'")}','all')">#${p.num}｜${p.members.length} 人｜${esc(p.opts.join("、"))}</button>`).join("") + `<br>仍要另開一張新單，直接送出登記即可。`;
+  box.innerHTML = `💡 ${esc(start)} 已有 ${list.length} 張每日團，可以點開直接加入：` + list.map(p=>`<button class="lfg-copy" style="margin:2px 4px" onclick="showView('all');openDetail('${esc(p.id).replace(/'/g,"\\'")}','all')">#${p.num}｜${p.members.length} 人｜${esc(p.opts.join("、"))}</button>`).join("") + `<br>直接送出登記時，若其中有開放你所勾全部項目的單，會自動幫你加入；想自己開新單請勾「我要另開新單」。`;
 }
 function togglePriv(){
   const on = $("f-priv").checked;
   $("f-pw-wrap").style.display = on ? "block" : "none";
   if(on) $("f-pw").focus();
+  updateDailyHint();
 }
 const pickedSkills = name => [...document.querySelectorAll('input[name="'+name+'"]:checked')].map(el=>el.value);
 const newUid = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
@@ -2456,17 +2522,22 @@ async function submitReg(){
   const priv = $("f-priv").checked, pw = $("f-pw").value.trim();
   if(priv && !/^\d{4}$/.test(pw)) return toast("私人房間密碼須為 4 位數字");
   if(store.online && !SRV.cur) return toast("伺服器清單暫時無法讀取，暫時無法登記，請稍後重新整理頁面");
+  if(!(await ensureServerConfirmed())) return;   // 第一次登記：先確認伺服器（可能在視窗裡改選）
+  const newParty = isDaily($("f-act").value) && !priv && $("f-newparty").checked;
   const added = await store.add({charId, level:Number(level), job, activity:$("f-act").value, start:s, end:e,
-    skills, leader: $("f-leader").checked, server: SRV.cur || "",
+    skills, leader: $("f-leader").checked, server: SRV.cur || "", newParty,
     priv, pw: priv ? pw : "",
     date: forTomorrow ? addDays(todayKey(),1) : todayKey(), ts:Date.now(), uid:newUid()});
   if(!added) return;
-  $("f-pw").value=""; $("f-priv").checked=false; togglePriv(); $("f-leader").checked = false;
+  const joinedNum = added.joined || "";   // 每日團自動加入了既有的單
+  $("f-pw").value=""; $("f-priv").checked=false; $("f-newparty").checked=false; togglePriv(); $("f-leader").checked = false;
   if(forTomorrow && VIEW_DAY!==1) VIEW_DAY = 1; else if(!forTomorrow && VIEW_DAY!==0) VIEW_DAY = 0;   // 切到登記的那一天
   syncDayTabs();
   await refresh(); loadIdCards();
-  try{ gtag("event", "party_register", { activity: $("f-act").value, priv: priv ? "yes" : "no" }); }catch(e){}
-  toast(priv ? "已建立私人房間！請把 4 位數密碼私下告知隊友" : (forTomorrow ? "已預先登記明日的揪團！可到「所有揪團」切到明日查看" : "登記完成！可到「所有揪團」查看進度（你的團會排在最前面）"));
+  try{ gtag("event", "party_register", { activity: $("f-act").value, priv: priv ? "yes" : "no", auto_join: joinedNum ? "yes" : "no" }); }catch(e){}
+  toast(priv ? "已建立私人房間！請把 4 位數密碼私下告知隊友"
+    : joinedNum ? `同時間已有開放這些項目的每日團，已幫你加入 #${joinedNum}（你的團會排在「所有揪團」最前面）`
+    : (forTomorrow ? "已預先登記明日的揪團！可到「所有揪團」切到明日查看" : "登記完成！可到「所有揪團」查看進度（你的團會排在最前面）"));
   $("f-id").value=$("f-lv").value="";
   document.querySelectorAll('input[name="f-skill"]').forEach(el=>{ el.checked=false; });
 }
@@ -2482,6 +2553,9 @@ async function joinParty(){
   const skills = (isDungeon(p.activity) || dailyTagsOf(p.activity)) ? pickedSkills("j-skill") : [];
   if(isDungeon(p.activity) && !skills.length) return toast("副本團需至少勾選一項職能");
   if(dailyTagsOf(p.activity) && !skills.length){ flagSkillsWarn("j"); return toast("請勾選正確目標：至少勾選一項想打的細項"); }
+  const okSrv = await ensureServerConfirmed();   // 第一次加入：先確認伺服器；在視窗裡改了伺服器 → 這個團不在新伺服器，不加入
+  if(!okSrv) return;
+  if(okSrv === "changed") return toast("已切換伺服器，請在這個伺服器的揪團中重新選擇要加入的團");
   const added = await store.add({charId, level:Number(level), job, activity:p.activity, start:toHM(p.time), end:toHM(p.time),
     skills, leader: !!($("j-leader") && $("j-leader").checked), party: p.party || "",
     server: p.server || "",   // 沿用揪團的伺服器（分伺服器前的舊登記為空字串，照常可加入）
@@ -2734,6 +2808,29 @@ function serverApply(name, silent){
   if(changed && !silent) serverReload();
 }
 function setServer(name){ if(name && name!==SRV.cur) serverApply(name, false); }
+// 第一次登記／加入揪團前確認伺服器：預設伺服器是「清單第一個」，不一定是玩家玩的那一服，選錯就會跟同伴分到不同伺服器。
+// 沒在側欄選單自己選過（ro_server_ok）的人，先跳出確認視窗；只有一個伺服器或單機模式時不問。
+// 回傳 Promise：false＝取消；true＝確認（伺服器沒變）；"changed"＝在視窗裡改選了別的伺服器
+const SRV_OK_KEY = "ro_server_ok";
+function srvMarkConfirmed(){ try{ localStorage.setItem(SRV_OK_KEY, "1"); }catch(e){} }
+function srvConfirmed(){ try{ return localStorage.getItem(SRV_OK_KEY) === "1"; }catch(e){ return true; } }
+let srvConfirmResolve = null;
+function ensureServerConfirmed(){
+  if(!store.online || SRV.list.length < 2 || srvConfirmed()) return Promise.resolve(true);
+  $("srv-confirm-sel").innerHTML = SRV.list.map(x=>`<option value="${esc(x.server)}"${x.server===SRV.cur?" selected":""}>${esc(x.server)}</option>`).join("");
+  $("srv-confirm").classList.add("show");
+  return new Promise(res=>{ srvConfirmResolve = res; });
+}
+function srvConfirmClose(ok){
+  $("srv-confirm").classList.remove("show");
+  let result = false;
+  if(ok){
+    srvMarkConfirmed();
+    const v = $("srv-confirm-sel").value;
+    if(v && v !== SRV.cur){ setServer(v); result = "changed"; } else result = true;
+  }
+  const r = srvConfirmResolve; srvConfirmResolve = null; if(r) r(result);
+}
 function serverRenderChips(){
   // 側欄下拉選單
   const sel = $("srv-select"), box = $("side-srv");
@@ -3148,7 +3245,7 @@ async function kwLoad(){
 function kwRender(){
   const box = $("kw-body"); if(!box) return;
   if(!USER){ box.innerHTML = `<span class="hint">登入 Discord 後可設定。</span>`; return; }
-  if(!USER.member){ box.innerHTML = `<span class="hint">需先加入懿岐來揪團 DC 伺服器，機器人才能私訊你。</span>`; return; }
+  if(!USER.member){ box.innerHTML = `<span class="hint">需先加入懿岐玩遊戲 DC 伺服器，機器人才能私訊你。</span>`; return; }
   const list = KW.items.map(a=>`<div class="kw-item"><span class="srv">🌐 ${esc(a.server)}</span><span class="kw">${esc(a.keyword)}</span>
       ${a.enabled ? "" : `<button class="on" onclick="kwEnable(${a.id})">重新啟用</button>`}<button onclick="kwDelete(${a.id})">刪除</button>
       ${a.enabled ? "" : `<span class="off">⚠ 私訊失敗已停用：請在 Discord 開啟「允許伺服器成員私訊」後按「重新啟用」。</span>`}</div>`).join("");
@@ -3656,8 +3753,8 @@ async function refresh(){
   if(auth){
     history.replaceState(null, "", location.pathname + (SRV.cur ? "?server="+encodeURIComponent(SRV.cur) : "") + location.hash);
     if(auth==="ok") toast("Discord 登入成功！");
-    else if(auth==="joined") toast("登入成功，已自動幫你加入懿岐來揪團伺服器！");
-    else if(auth==="nonmember") toast("已登入，但尚未能加入懿岐來揪團伺服器，請點按鈕手動加入");
+    else if(auth==="joined") toast("登入成功，已自動幫你加入懿岐玩遊戲伺服器！");
+    else if(auth==="nonmember") toast("已登入，但尚未能加入懿岐玩遊戲伺服器，請點按鈕手動加入");
     else toast("Discord 登入失敗，請再試一次");
   }
   syncDayTabs();

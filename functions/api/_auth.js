@@ -56,4 +56,4 @@ export const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
 export const needLogin = () => json({ error: "請先登入 Discord" }, 401);
-export const needMember = () => json({ error: "請先加入懿岐來揪團 Discord 伺服器" }, 403);
+export const needMember = () => json({ error: "請先加入懿岐玩遊戲 Discord 伺服器" }, 403);
